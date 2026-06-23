@@ -8,4 +8,4 @@
 - Do not mix unrelated refactors with feature work.
 - Use TypeScript for new source files unless an existing JavaScript integration requires otherwise.
 - Keep GitHub API and `gh` CLI access behind server-side endpoints; do not expose tokens to the browser.
-- Run `npm test` and `npm run build` after behavior changes when dependencies are available.
+- Run `pnpm test` and `pnpm build` after behavior changes when dependencies are available.

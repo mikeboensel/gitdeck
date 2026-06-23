@@ -152,8 +152,11 @@ export OPENAI_API_KEY=sk-...
 
 ## Install
 
+This project uses [pnpm](https://pnpm.io/) (pinned via the `packageManager` field). The easiest way to get the right version is Corepack, which ships with Node:
+
 ```bash
-npm install
+corepack enable
+pnpm install
 ```
 
 ## Run in development
@@ -161,7 +164,7 @@ npm install
 Starts the API server (with file-watch reload) and the Vite dev server in parallel. The Vite dev server proxies `/api` to the backend on port `8765`.
 
 ```bash
-npm run dev
+pnpm dev
 ```
 
 Then open <http://127.0.0.1:5173>. On first launch the UI will walk you through the GitHub Device Flow sign-in.
@@ -169,7 +172,7 @@ Then open <http://127.0.0.1:5173>. On first launch the UI will walk you through 
 If you only want one of the two processes:
 
 ```bash
-npm run api    # backend only, on http://127.0.0.1:8765
+pnpm api    # backend only, on http://127.0.0.1:8765
 ```
 
 ## Build
@@ -177,22 +180,22 @@ npm run api    # backend only, on http://127.0.0.1:8765
 Type-checks the server, compiles it to `dist/`, and produces the production frontend bundle under `dist/client/`:
 
 ```bash
-npm run build
+pnpm build
 ```
 
 ## Run the production build
 
-After `npm run build`, the Node server can serve both the API and the built SPA from a single port:
+After `pnpm build`, the Node server can serve both the API and the built SPA from a single port:
 
 ```bash
-npm start
+pnpm start
 # or, equivalently
-npm run serve
+pnpm serve
 ```
 
 Then open <http://127.0.0.1:8765>.
 
-`npm run preview` is also available if you want to preview only the static frontend through Vite (no backend).
+`pnpm preview` is also available if you want to preview only the static frontend through Vite (no backend).
 
 ## Run with Docker
 
@@ -232,8 +235,8 @@ The container forwards `GITHUB_CLIENT_ID`, `GITHUB_OAUTH_SCOPES`, `OPENAI_API_KE
 ## Test & type-check
 
 ```bash
-npm test          # vitest run
-npm run typecheck # tsc --noEmit
+pnpm test          # vitest run
+pnpm typecheck     # tsc --noEmit
 ```
 
 Tests live under `tests/` and mirror the structure of `src/` (see [AGENTS.md](AGENTS.md)).
@@ -271,7 +274,7 @@ Early scaffolding. APIs, modules, and the UI are still being shaped — expect r
 
 ## Contributing
 
-Before opening a PR, please skim [AGENTS.md](AGENTS.md) for the project conventions (English-only identifiers, pure logic in `src/utils/` with mirrored tests, no GitHub tokens on the browser, etc.) and run `npm test` + `npm run build`.
+Before opening a PR, please skim [AGENTS.md](AGENTS.md) for the project conventions (English-only identifiers, pure logic in `src/utils/` with mirrored tests, no GitHub tokens on the browser, etc.) and run `pnpm test` + `pnpm build`.
 
 ## License
 
