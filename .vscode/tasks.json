@@ -1,0 +1,75 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      // Skip the husky pre-commit hook (lint-staged + typecheck) by pointing
+      // git at an empty hooks dir. Useful when an unrelated in-flight change
+      // elsewhere in the tree breaks the whole-program typecheck and you only
+      // want to commit your own staged work. Re-enable when done.
+      "label": "🚫 pre-commit: DISABLE (skip hooks)",
+      "type": "shell",
+      "command": "git config core.hooksPath /dev/null && echo '⚠️  pre-commit hooks DISABLED — commits will skip lint-staged + typecheck. Run \"pre-commit: ENABLE\" to restore.'",
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "shared", "clear": true }
+    },
+    {
+      // Restore the husky hook path. (pnpm install also restores this via the
+      // `prepare` script, so the safe default is always ENABLED.)
+      "label": "🔒 pre-commit: ENABLE (restore hooks)",
+      "type": "shell",
+      "command": "git config core.hooksPath .husky/_ && echo '✅ pre-commit hooks ENABLED (core.hooksPath=.husky/_).'",
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "shared", "clear": true }
+    },
+    {
+      // Report whether the hook is currently active.
+      "label": "🔍 pre-commit: STATUS",
+      "type": "shell",
+      "command": "p=$(git config core.hooksPath || echo '(unset)'); if [ \"$p\" = '.husky/_' ]; then echo \"✅ ENABLED (hooksPath=$p)\"; else echo \"⚠️  DISABLED (hooksPath=$p)\"; fi",
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "shared", "clear": true }
+    },
+    {
+      // Run the full quality gate manually (format + lint + typecheck + tests).
+      // format --write runs FIRST so the later checks see formatted code; then
+      // all steps run even if an earlier one fails, each exit code is printed,
+      // and it exits non-zero if any failed — handy when you've DISABLED the
+      // pre-commit hook and want to verify before/after committing. Note: format
+      // WRITES changes to disk. Default "Run Test Task".
+      "label": "🚦 Check: ALL (format + lint + typecheck + test)",
+      "type": "shell",
+      "command": "echo '▶ format'; pnpm format; F=$?; echo; echo '▶ biome lint'; pnpm lint; L=$?; echo; echo '▶ typecheck'; pnpm typecheck; T=$?; echo; echo '▶ tests'; pnpm test; V=$?; echo; echo \"── format=$F  lint=$L  typecheck=$T  test=$V ──\"; if [ $F -eq 0 ] && [ $L -eq 0 ] && [ $T -eq 0 ] && [ $V -eq 0 ]; then echo '✅ ALL PASSED'; else echo '❌ FAILURES above'; exit 1; fi",
+      "problemMatcher": [],
+      "group": { "kind": "test", "isDefault": true },
+      "presentation": { "reveal": "always", "panel": "dedicated", "clear": true }
+    },
+    {
+      "label": "🧹 Check: lint (biome)",
+      "type": "shell",
+      "command": "pnpm lint",
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "shared", "clear": true }
+    },
+    {
+      "label": "🔠 Check: typecheck (tsc)",
+      "type": "shell",
+      "command": "pnpm typecheck",
+      "problemMatcher": ["$tsc"],
+      "presentation": { "reveal": "always", "panel": "shared", "clear": true }
+    },
+    {
+      "label": "🧪 Check: test (vitest)",
+      "type": "shell",
+      "command": "pnpm test",
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "shared", "clear": true }
+    },
+    {
+      "label": "🎨 Fix: format (biome --write)",
+      "type": "shell",
+      "command": "pnpm format",
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "shared", "clear": true }
+    }
+  ]
+}
