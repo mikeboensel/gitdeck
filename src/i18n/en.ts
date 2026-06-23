@@ -1,4 +1,9 @@
 export const en = {
+  "menu.openDetails": "Open details",
+  "menu.viewIssues": "View issues",
+  "menu.openOnGitHub": "Open on GitHub",
+  "menu.copyName": "Copy name",
+  "menu.copyUrl": "Copy URL",
   "app.title": "Gitdeck",
   "language.label": "Language",
   "language.en": "English",

@@ -2,9 +2,12 @@ import type { GhIssue, GhRepo, RepoInsight } from "../../types/github";
 import { getLanguageColor } from "../../utils/colors";
 import { formatNumber, formatRelativeTime } from "../../utils/format";
 import { issueCountForRepo } from "../../utils/dashboard";
+import { LuGlobe, LuLock } from "react-icons/lu";
 import { Avatar } from "../common/Avatar";
 import { ForkIcon, IssueIcon, StarIcon } from "../common/Icons";
 import { useI18n } from "../../i18n/I18nProvider";
+import { useRightClickMenu } from "../../contexts/RightClickMenuProvider";
+import { buildRepoMenu } from "../../menus/repoMenu";
 
 interface RepoGridProps {
   repos: GhRepo[];
@@ -18,6 +21,7 @@ interface RepoGridProps {
 
 export function RepoGrid({ repos, issues, insightsByRepo, onRepoClick, onIssuesClick, onStarsClick, onForksClick }: RepoGridProps) {
   const { language, t } = useI18n();
+  const { open } = useRightClickMenu();
   if (!repos.length) {
     return <div className="empty"><div className="big">{t("empty.reposTitle")}</div><div>{t("empty.tryClearing")}</div></div>;
   }
@@ -37,6 +41,16 @@ export function RepoGrid({ repos, issues, insightsByRepo, onRepoClick, onIssuesC
             onKeyDown={(event) => {
               if (event.key === "Enter") onRepoClick(repo);
             }}
+            onContextMenu={(event) =>
+              open(event, {
+                ariaLabel: repo.nameWithOwner,
+                items: buildRepoMenu(
+                  repo,
+                  { onOpen: onRepoClick, onViewIssues: (r) => onIssuesClick(r.nameWithOwner) },
+                  t,
+                ),
+              })
+            }
           >
             <div className="rc-head">
               <Avatar login={repo.owner.login} size={28} />
@@ -44,7 +58,9 @@ export function RepoGrid({ repos, issues, insightsByRepo, onRepoClick, onIssuesC
                 <a href={repo.url} target="_blank" rel="noreferrer" onClick={(event) => event.stopPropagation()}><span className="owner">{repo.owner.login}</span><span className="slash">/</span>{repo.name}</a>
               </div>
               <div className="repo-badges">
-                {repo.isPrivate ? <span className="rb private">{t("repo.private")}</span> : <span className="rb">{t("repo.public")}</span>}
+                {repo.isPrivate
+                  ? <span className="rb rb-icon private tip" data-tip={t("repo.private")} aria-label={t("repo.private")}><LuLock size={11} /></span>
+                  : <span className="rb rb-icon tip" data-tip={t("repo.public")} aria-label={t("repo.public")}><LuGlobe size={11} /></span>}
                 {repo.isArchived ? <span className="rb archived">{t("repo.archived")}</span> : null}
                 {repo.isFork ? <span className="rb fork">{t("repo.fork")}</span> : null}
               </div>

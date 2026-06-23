@@ -1,6 +1,11 @@
 import type { en } from "./en";
 
 export const it: Record<keyof typeof en, string> = {
+  "menu.openDetails": "Apri dettagli",
+  "menu.viewIssues": "Mostra issue",
+  "menu.openOnGitHub": "Apri su GitHub",
+  "menu.copyName": "Copia nome",
+  "menu.copyUrl": "Copia URL",
   "app.title": "Gitdeck",
   "language.label": "Lingua",
   "language.en": "English",

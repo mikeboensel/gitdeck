@@ -1,6 +1,11 @@
 import type { en } from "./en";
 
 export const zh: Record<keyof typeof en, string> = {
+  "menu.openDetails": "打开详情",
+  "menu.viewIssues": "查看 issues",
+  "menu.openOnGitHub": "在 GitHub 上打开",
+  "menu.copyName": "复制名称",
+  "menu.copyUrl": "复制 URL",
   "app.title": "Gitdeck",
   "language.label": "语言",
   "language.en": "English",
