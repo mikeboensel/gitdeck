@@ -101,7 +101,6 @@ export const en = {
   "local.changeModifiedTitle": "Unstaged changes in tracked files",
   "local.changeUntrackedTitle": "Untracked files",
   "local.changeConflictedTitle": "Unmerged paths (conflicts)",
-  "local.committed": "committed {time}",
   "local.hide": "Hide",
   "local.facetOwner": "Owner",
   "local.facetHost": "Host",
@@ -345,6 +344,7 @@ export const en = {
   "tip.securityAlerts":
     "Open Dependabot and code-scanning alerts reported by GitHub for this repository.",
   "tip.pushed": "When the repository was last pushed to.",
+  "tip.committed": "When the latest local commit was made.",
   "tip.totalOpenIssues": "Sum of open issues across the repositories shown.",
   "tip.reposWithOpenIssues": "Number of repositories that have at least one open issue.",
   "tip.totalViews": "Sum of 14-day page views across repositories you have push access to.",

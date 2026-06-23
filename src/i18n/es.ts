@@ -104,7 +104,6 @@ export const es: Record<keyof typeof en, string> = {
   "local.changeModifiedTitle": "Cambios sin preparar en archivos con seguimiento",
   "local.changeUntrackedTitle": "Archivos sin seguimiento",
   "local.changeConflictedTitle": "Rutas sin fusionar (conflictos)",
-  "local.committed": "confirmado {time}",
   "local.hide": "Ocultar",
   "local.facetOwner": "Propietario",
   "local.facetHost": "Host",
@@ -349,6 +348,7 @@ export const es: Record<keyof typeof en, string> = {
   "tip.securityAlerts":
     "Alertas abiertas de Dependabot y de análisis de código notificadas por GitHub para este repositorio.",
   "tip.pushed": "Cuándo se hizo el último push al repositorio.",
+  "tip.committed": "Cuándo se hizo el último commit local.",
   "tip.totalOpenIssues": "Suma de issues abiertas en los repositorios mostrados.",
   "tip.reposWithOpenIssues": "Número de repositorios que tienen al menos una issue abierta.",
   "tip.totalViews":

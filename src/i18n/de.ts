@@ -104,7 +104,6 @@ export const de: Record<keyof typeof en, string> = {
   "local.changeModifiedTitle": "Nicht vorgemerkte Änderungen in verfolgten Dateien",
   "local.changeUntrackedTitle": "Nicht verfolgte Dateien",
   "local.changeConflictedTitle": "Nicht zusammengeführte Pfade (Konflikte)",
-  "local.committed": "committet {time}",
   "local.hide": "Ausblenden",
   "local.facetOwner": "Eigentümer",
   "local.facetHost": "Host",
@@ -350,6 +349,7 @@ export const de: Record<keyof typeof en, string> = {
   "tip.securityAlerts":
     "Offene Dependabot- und Code-Scanning-Warnungen, die GitHub für dieses Repository meldet.",
   "tip.pushed": "Wann zuletzt in das Repository gepusht wurde.",
+  "tip.committed": "Wann der letzte lokale Commit erstellt wurde.",
   "tip.totalOpenIssues": "Summe der offenen Issues über die angezeigten Repositories.",
   "tip.reposWithOpenIssues": "Anzahl der Repositories mit mindestens einem offenen Issue.",
   "tip.totalViews":
