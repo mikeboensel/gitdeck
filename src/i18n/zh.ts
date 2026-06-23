@@ -20,6 +20,7 @@ export const zh: Record<keyof typeof en, string> = {
   "common.closeFilters": "关闭筛选",
   "common.signOut": "退出登录",
   "common.signedIn": "已登录",
+  "common.account": "账户",
   "accounts.switch": "切换账户",
   "accounts.select": "选择账户",
   "accounts.add": "添加账户",

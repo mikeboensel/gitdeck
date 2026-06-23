@@ -18,6 +18,7 @@ export const en = {
   "common.closeFilters": "Close filters",
   "common.signOut": "Sign out",
   "common.signedIn": "Signed in",
+  "common.account": "Account",
   "accounts.switch": "Switch account",
   "accounts.select": "Select account",
   "accounts.add": "Add account",
