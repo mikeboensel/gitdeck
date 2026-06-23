@@ -50,6 +50,11 @@
 .topbar-org {
   position: relative;
   display: inline-flex;
+  text-decoration: none;
+  color: inherit;
+}
+a.topbar-org {
+  cursor: pointer;
 }
 .topbar-org-icon {
   width: 30px;
@@ -59,6 +64,12 @@
   flex-shrink: 0;
   border: 1px solid var(--border-soft);
   background: var(--panel-2);
+}
+a.topbar-org .topbar-org-icon {
+  transition: border-color 0.12s ease;
+}
+a.topbar-org:hover .topbar-org-icon {
+  border-color: var(--button-hover-border);
 }
 .topbar-org-overflow {
   display: inline-flex;

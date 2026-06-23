@@ -93,13 +93,17 @@ export function TopBar({
     <div className="topbar">
       <div className="topbar-orgs">
         {visibleOrgs.map((org) => (
-          <span className="topbar-org" data-tip={org} key={org}>
-            <img
-              className="topbar-org-icon"
-              src={`https://github.com/${org}.png?size=80`}
-              alt={org}
-            />
-          </span>
+          <a
+            className="topbar-org"
+            data-tip={org}
+            key={org}
+            href={`https://github.com/${org}`}
+            target="_blank"
+            rel="noreferrer"
+            aria-label={org}
+          >
+            <img className="topbar-org-icon" src={`https://github.com/${org}.png?size=80`} alt="" />
+          </a>
         ))}
         {overflowOrgs > 0 ? (
           <span className="topbar-org" data-tip={owners.slice(MAX_ORG_ICONS).join(", ")}>
