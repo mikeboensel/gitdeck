@@ -1,14 +1,19 @@
+import { useI18n } from "../../i18n/I18nProvider";
 import type { GhIssue } from "../../types/github";
-import { formatRelativeTime } from "../../utils/format";
 import { getLabelCssVars } from "../../utils/colors";
+import { formatRelativeTime } from "../../utils/format";
 import { Avatar } from "../common/Avatar";
 import { IssueIcon } from "../common/Icons";
-import { useI18n } from "../../i18n/I18nProvider";
 
 export function IssueList({ issues }: { issues: GhIssue[] }) {
   const { language, t } = useI18n();
   if (!issues.length) {
-    return <div className="empty"><div className="big">{t("empty.issuesTitle")}</div><div>{t("empty.tryClearing")}</div></div>;
+    return (
+      <div className="empty">
+        <div className="big">{t("empty.issuesTitle")}</div>
+        <div>{t("empty.tryClearing")}</div>
+      </div>
+    );
   }
 
   return (
@@ -28,7 +33,9 @@ export function IssueList({ issues }: { issues: GhIssue[] }) {
               </div>
               <div className="data-row-title">{issue.title}</div>
               <div className="data-row-meta">
-                <span className="data-kind issue"><IssueIcon /> {t("list.issue")}</span>
+                <span className="data-kind issue">
+                  <IssueIcon /> {t("list.issue")}
+                </span>
                 {stale ? <span className="stale-badge">{t("list.stale")}</span> : null}
                 {(issue.labels || []).slice(0, 4).map((label) => {
                   const vars = getLabelCssVars(label.color);
@@ -46,7 +53,9 @@ export function IssueList({ issues }: { issues: GhIssue[] }) {
                   <span className="data-label muted">+{issue.labels.length - 4}</span>
                 ) : null}
                 <span className="data-row-spacer" />
-                <span className="data-row-count">{t("list.comments", { count: issue.commentsCount })}</span>
+                <span className="data-row-count">
+                  {t("list.comments", { count: issue.commentsCount })}
+                </span>
                 {issue.assignees && issue.assignees.length ? (
                   <span className="data-row-assignees">
                     {issue.assignees.slice(0, 3).map((assignee) => (

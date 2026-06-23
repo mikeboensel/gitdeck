@@ -16,7 +16,8 @@ export interface ChangelogEntry {
   sections: ChangelogSection[];
 }
 
-const VERSION_HEADING = /^#{1,3}\s+(?:\[([^\]]+)\]\(([^)]+)\)|([\d.]+(?:-[\w.]+)?))\s*(?:\(([\d-]+)\))?\s*$/;
+const VERSION_HEADING =
+  /^#{1,3}\s+(?:\[([^\]]+)\]\(([^)]+)\)|([\d.]+(?:-[\w.]+)?))\s*(?:\(([\d-]+)\))?\s*$/;
 const SECTION_HEADING = /^#{2,4}\s+(.+)\s*$/;
 const ITEM_LINE = /^[*-]\s+(.+)$/;
 const SCOPED_ITEM = /^\*\*([^*]+):\*\*\s+(.*)$/;
@@ -48,7 +49,7 @@ export function parseChangelog(markdown: string): ChangelogEntry[] {
     if (line.startsWith("### ")) {
       const headingMatch = line.match(SECTION_HEADING);
       if (headingMatch) {
-        section = { title: headingMatch[1], items: [] };
+        section = { title: headingMatch[1] ?? "", items: [] };
         current.sections.push(section);
         continue;
       }
@@ -56,7 +57,7 @@ export function parseChangelog(markdown: string): ChangelogEntry[] {
 
     const itemMatch = raw.match(ITEM_LINE);
     if (itemMatch && section) {
-      let text = itemMatch[1];
+      let text = itemMatch[1] ?? "";
       let url: string | undefined;
       const linkMatch = text.match(COMMIT_LINK);
       if (linkMatch) {
@@ -67,7 +68,7 @@ export function parseChangelog(markdown: string): ChangelogEntry[] {
       let scope: string | undefined;
       if (scopeMatch) {
         scope = scopeMatch[1];
-        text = scopeMatch[2];
+        text = scopeMatch[2] ?? "";
       }
       section.items.push({ text, url, scope });
     }

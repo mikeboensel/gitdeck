@@ -1,20 +1,20 @@
 import {
   createContext,
+  type ReactNode,
   useCallback,
   useContext,
   useEffect,
   useMemo,
   useRef,
   useState,
-  type ReactNode,
 } from "react";
+import { invalidate as invalidateClientCache } from "../api/cache";
 import {
+  type AccountSummary,
   activateAccount,
   fetchAccounts,
   removeAccount as removeAccountApi,
-  type AccountSummary,
 } from "../api/github";
-import { invalidate as invalidateClientCache } from "../api/cache";
 import { errorMessage } from "../utils/errors";
 
 interface AccountContextValue {

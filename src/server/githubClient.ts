@@ -1,5 +1,5 @@
-import { getActiveToken } from "./authProvider";
 import { errorMessage } from "../utils/errors";
+import { getActiveToken } from "./authProvider";
 
 const API_ROOT = "https://api.github.com";
 const GRAPHQL_URL = `${API_ROOT}/graphql`;
@@ -87,7 +87,7 @@ function parseNextLink(header: string | null): string | null {
   if (!header) return null;
   for (const part of header.split(",")) {
     const match = /<([^>]+)>;\s*rel="next"/.exec(part.trim());
-    if (match) return match[1];
+    if (match) return match[1] ?? null;
   }
   return null;
 }

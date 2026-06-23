@@ -29,3 +29,6 @@ logs/
 .codex
 .cache/
 coverage/
+
+# Claude Code transient worktrees / local agent state
+.claude/

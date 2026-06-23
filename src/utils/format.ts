@@ -1,13 +1,16 @@
 import type { Language } from "./i18n";
 
-const RELATIVE_TIME_LABELS: Record<Language, {
-  now: string;
-  minute: (value: number) => string;
-  hour: (value: number) => string;
-  day: (value: number) => string;
-  month: (value: number) => string;
-  year: (value: number) => string;
-}> = {
+const RELATIVE_TIME_LABELS: Record<
+  Language,
+  {
+    now: string;
+    minute: (value: number) => string;
+    hour: (value: number) => string;
+    day: (value: number) => string;
+    month: (value: number) => string;
+    year: (value: number) => string;
+  }
+> = {
   en: {
     now: "just now",
     minute: (value) => `${value}m ago`,
@@ -58,7 +61,11 @@ const RELATIVE_TIME_LABELS: Record<Language, {
   },
 };
 
-export function formatRelativeTime(iso: string, now = Date.now(), language: Language = "en"): string {
+export function formatRelativeTime(
+  iso: string,
+  now = Date.now(),
+  language: Language = "en",
+): string {
   if (!iso) return "";
   const date = new Date(iso);
   const diff = now - date.getTime();

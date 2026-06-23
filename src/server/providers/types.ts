@@ -125,20 +125,17 @@ export interface Provider {
   loadFromGhCli?(): Promise<{ token: string } | null>;
 
   listOwners(account: Account): Promise<OwnersOutcome>;
-  listRepos(
-    account: Account,
-    owners: string[],
-  ): Promise<import("../../types/github").GhRepo[]>;
-  listIssues(
-    account: Account,
-    owners: string[],
-  ): Promise<import("../../types/github").GhIssue[]>;
+  listRepos(account: Account, owners: string[]): Promise<import("../../types/github").GhRepo[]>;
+  listIssues(account: Account, owners: string[]): Promise<import("../../types/github").GhIssue[]>;
   listPullRequests(
     account: Account,
     owners: string[],
   ): Promise<import("../../types/github").GhPullRequest[]>;
 
-  fetchNotifications(account: Account, ifModifiedSince: string | null): Promise<NotificationsFetchOutcome>;
+  fetchNotifications(
+    account: Account,
+    ifModifiedSince: string | null,
+  ): Promise<NotificationsFetchOutcome>;
   markNotificationRead(account: Account, threadId: string): Promise<NotificationMutationOutcome>;
   markAllNotificationsRead(
     account: Account,

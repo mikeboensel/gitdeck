@@ -13,7 +13,12 @@ interface RepoViewControlsProps {
  * The two isolated Repos toolbar controls: a Cards/List segmented toggle and a
  * padding (density) cycle. Both keep their text labels hidden until hover/focus.
  */
-export function RepoViewControls({ layout, density, onLayoutChange, onCycleDensity }: RepoViewControlsProps) {
+export function RepoViewControls({
+  layout,
+  density,
+  onLayoutChange,
+  onCycleDensity,
+}: RepoViewControlsProps) {
   const { t } = useI18n();
   return (
     <div className="repo-view-controls">

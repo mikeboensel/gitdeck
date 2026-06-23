@@ -1,6 +1,6 @@
 import type { ContextMenuItem } from "../components/common/ContextMenu";
-import type { GhRepo } from "../types/github";
 import type { TranslationKey } from "../i18n/translations";
+import type { GhRepo } from "../types/github";
 
 /**
  * Actions a repo right-click menu can invoke. Injected by the call site so the

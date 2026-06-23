@@ -1,4 +1,3 @@
-import { getEtag, peek, setEtag } from "./cache";
 import type {
   ApiError,
   CIHealthData,
@@ -19,6 +18,7 @@ import type {
   RepoTrafficDetails,
   StargazerNode,
 } from "../types/github";
+import { getEtag, peek, setEtag } from "./cache";
 
 export class AuthRequiredClientError extends Error {
   constructor(message = "authentication required") {
@@ -155,7 +155,11 @@ export function fetchProviderConfigs(): Promise<{ ok: true; configs: ProviderCon
   return readJson<{ ok: true; configs: ProviderConfigSummary[] }>("/api/provider-configs");
 }
 
-export function addTokenAccount(payload: { providerConfigId: string; token: string; label?: string }): Promise<{ ok: true; accountId: string }> {
+export function addTokenAccount(payload: {
+  providerConfigId: string;
+  token: string;
+  label?: string;
+}): Promise<{ ok: true; accountId: string }> {
   return readJson("/api/accounts/add-token", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -164,15 +168,27 @@ export function addTokenAccount(payload: { providerConfigId: string; token: stri
 }
 
 export function fetchRepos(fresh = false, signal?: AbortSignal): Promise<ReposData> {
-  return readJson<ReposData>(`/api/repos${fresh ? "?fresh=1" : ""}`, withSignal(signal), "/api/repos");
+  return readJson<ReposData>(
+    `/api/repos${fresh ? "?fresh=1" : ""}`,
+    withSignal(signal),
+    "/api/repos",
+  );
 }
 
 export function fetchIssues(fresh = false, signal?: AbortSignal): Promise<IssuesData> {
-  return readJson<IssuesData>(`/api/issues${fresh ? "?fresh=1" : ""}`, withSignal(signal), "/api/issues");
+  return readJson<IssuesData>(
+    `/api/issues${fresh ? "?fresh=1" : ""}`,
+    withSignal(signal),
+    "/api/issues",
+  );
 }
 
 export function fetchPullRequests(fresh = false, signal?: AbortSignal): Promise<PullRequestsData> {
-  return readJson<PullRequestsData>(`/api/prs${fresh ? "?fresh=1" : ""}`, withSignal(signal), "/api/prs");
+  return readJson<PullRequestsData>(
+    `/api/prs${fresh ? "?fresh=1" : ""}`,
+    withSignal(signal),
+    "/api/prs",
+  );
 }
 
 export function fetchStargazers(params: {
@@ -191,7 +207,11 @@ export function fetchForks(params: {
   direction: "ASC" | "DESC";
   field: string;
 }): Promise<{ ok: true; totalCount: number; pageInfo: PageInfo; nodes: ForkNode[] }> {
-  const query = new URLSearchParams({ repo: params.repo, direction: params.direction, field: params.field });
+  const query = new URLSearchParams({
+    repo: params.repo,
+    direction: params.direction,
+    field: params.field,
+  });
   if (params.cursor) query.set("cursor", params.cursor);
   return readJson(`/api/forks?${query.toString()}`);
 }
@@ -201,12 +221,16 @@ export function fetchRepoDetails(repo: string): Promise<RepoDetailsData> {
   return readJson(`/api/repo-details?${query.toString()}`);
 }
 
-export function fetchMentionIssues(repo: string): Promise<{ ok: true; items: MentionIssueItem[]; totalCount: number; aliases: string[] }> {
+export function fetchMentionIssues(
+  repo: string,
+): Promise<{ ok: true; items: MentionIssueItem[]; totalCount: number; aliases: string[] }> {
   const query = new URLSearchParams({ repo });
   return readJson(`/api/mentions/issues?${query.toString()}`);
 }
 
-export function fetchMentionCode(repo: string): Promise<{ ok: true; items: MentionCodeItem[]; totalCount: number; aliases: string[] }> {
+export function fetchMentionCode(
+  repo: string,
+): Promise<{ ok: true; items: MentionCodeItem[]; totalCount: number; aliases: string[] }> {
   const query = new URLSearchParams({ repo });
   return readJson(`/api/mentions/code?${query.toString()}`);
 }
@@ -216,7 +240,10 @@ export function fetchRepoAliases(repo: string): Promise<{ ok: true; aliases: str
   return readJson(`/api/repo-aliases?${query.toString()}`);
 }
 
-export function addRepoAlias(repo: string, alias: string): Promise<{ ok: true; aliases: string[] }> {
+export function addRepoAlias(
+  repo: string,
+  alias: string,
+): Promise<{ ok: true; aliases: string[] }> {
   const query = new URLSearchParams({ repo });
   return readJson(`/api/repo-aliases?${query.toString()}`, {
     method: "POST",
@@ -225,12 +252,17 @@ export function addRepoAlias(repo: string, alias: string): Promise<{ ok: true; a
   });
 }
 
-export function removeRepoAlias(repo: string, alias: string): Promise<{ ok: true; aliases: string[] }> {
+export function removeRepoAlias(
+  repo: string,
+  alias: string,
+): Promise<{ ok: true; aliases: string[] }> {
   const query = new URLSearchParams({ repo, alias });
   return readJson(`/api/repo-aliases?${query.toString()}`, { method: "DELETE" });
 }
 
-export function fetchDependents(repo: string): Promise<{ ok: true; items: DependentItem[]; totalRepos: number; notAvailable: boolean }> {
+export function fetchDependents(
+  repo: string,
+): Promise<{ ok: true; items: DependentItem[]; totalRepos: number; notAvailable: boolean }> {
   const query = new URLSearchParams({ repo });
   return readJson(`/api/mentions/dependents?${query.toString()}`);
 }
@@ -241,21 +273,39 @@ export function fetchRepoTraffic(repo: string): Promise<RepoTrafficDetails> {
 }
 
 export function fetchRepoInsights(fresh = false, signal?: AbortSignal): Promise<RepoInsightsData> {
-  return readJson(`/api/repo-insights${fresh ? "?fresh=1" : ""}`, withSignal(signal), "/api/repo-insights");
+  return readJson(
+    `/api/repo-insights${fresh ? "?fresh=1" : ""}`,
+    withSignal(signal),
+    "/api/repo-insights",
+  );
 }
 
-export function fetchDailyDigests(signal?: AbortSignal, period: "day" | "week" | "month" = "day"): Promise<DailyDigestsData> {
+export function fetchDailyDigests(
+  signal?: AbortSignal,
+  period: "day" | "week" | "month" = "day",
+): Promise<DailyDigestsData> {
   const query = period === "day" ? "" : `?period=${period}`;
   const cacheKey = `/api/daily-digests${query}`;
   return readJson(`/api/daily-digests${query}`, withSignal(signal), cacheKey);
 }
 
 export function fetchCIHealth(fresh = false, signal?: AbortSignal): Promise<CIHealthData> {
-  return readJson<CIHealthData>(`/api/ci-health${fresh ? "?fresh=1" : ""}`, withSignal(signal), "/api/ci-health");
+  return readJson<CIHealthData>(
+    `/api/ci-health${fresh ? "?fresh=1" : ""}`,
+    withSignal(signal),
+    "/api/ci-health",
+  );
 }
 
-export function fetchNotifications(fresh = false, signal?: AbortSignal): Promise<NotificationsData> {
-  return readJson<NotificationsData>(`/api/notifications${fresh ? "?fresh=1" : ""}`, withSignal(signal), "/api/notifications");
+export function fetchNotifications(
+  fresh = false,
+  signal?: AbortSignal,
+): Promise<NotificationsData> {
+  return readJson<NotificationsData>(
+    `/api/notifications${fresh ? "?fresh=1" : ""}`,
+    withSignal(signal),
+    "/api/notifications",
+  );
 }
 
 export function markNotificationRead(threadId: string): Promise<{ ok: true }> {
@@ -266,7 +316,9 @@ export function markNotificationRead(threadId: string): Promise<{ ok: true }> {
   });
 }
 
-export function markAllNotificationsRead(payload: { repo?: string; lastReadAt?: string } = {}): Promise<{ ok: true }> {
+export function markAllNotificationsRead(
+  payload: { repo?: string; lastReadAt?: string } = {},
+): Promise<{ ok: true }> {
   return readJson("/api/notifications/read-all", {
     method: "POST",
     headers: { "Content-Type": "application/json" },

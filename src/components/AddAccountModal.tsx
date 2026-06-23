@@ -1,14 +1,14 @@
 import { useEffect, useRef, useState } from "react";
 import {
   addTokenAccount,
+  type DeviceFlowStart,
   fetchProviderConfigs,
+  type ProviderConfigSummary,
   pollAuthFlow,
   startAuthFlow,
-  type DeviceFlowStart,
-  type ProviderConfigSummary,
 } from "../api/github";
-import { useI18n } from "../i18n/I18nProvider";
 import { useAccounts } from "../contexts/AccountContext";
+import { useI18n } from "../i18n/I18nProvider";
 import { errorMessage } from "../utils/errors";
 
 interface AddAccountModalProps {
@@ -160,17 +160,31 @@ export function AddAccountModal({ open, onClose }: AddAccountModalProps) {
   if (!open) return null;
 
   return (
-    <div className="add-account-backdrop" role="dialog" aria-modal="true" aria-label={t("accounts.add")}>
+    <div
+      className="add-account-backdrop"
+      role="dialog"
+      aria-modal="true"
+      aria-label={t("accounts.add")}
+    >
       <div className="add-account-card">
         <div className="add-account-header">
           <h2>{t("accounts.add")}</h2>
-          <button className="add-account-close" type="button" aria-label={t("common.close")} onClick={onClose}>×</button>
+          <button
+            className="add-account-close"
+            type="button"
+            aria-label={t("common.close")}
+            onClick={onClose}
+          >
+            ×
+          </button>
         </div>
 
         {step === "choose" ? (
           <div className="add-account-providers">
             <p className="auth-status">{t("accounts.pickProvider")}</p>
-            {configs.length === 0 && !error ? <p className="auth-hint">{t("common.loading")}</p> : null}
+            {configs.length === 0 && !error ? (
+              <p className="auth-hint">{t("common.loading")}</p>
+            ) : null}
             {configs.map((config) => (
               <button
                 key={config.id}
@@ -214,7 +228,12 @@ export function AddAccountModal({ open, onClose }: AddAccountModalProps) {
             <p className="auth-status">
               {t("accounts.tokenHelp").replace("{provider}", selected.label)}
             </p>
-            <a className="auth-link" href={`${selected.webUrl}/user/settings/applications`} target="_blank" rel="noreferrer">
+            <a
+              className="auth-link"
+              href={`${selected.webUrl}/user/settings/applications`}
+              target="_blank"
+              rel="noreferrer"
+            >
               {selected.webUrl}/user/settings/applications
             </a>
             <label className="add-account-field">

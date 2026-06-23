@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import {
   LuArchive,
   LuBook,
@@ -16,15 +16,24 @@ import {
   LuTag,
   LuUserCheck,
 } from "react-icons/lu";
+import { useI18n } from "../i18n/I18nProvider";
 import type { FacetValue, IssueFilters, PullRequestFilters, RepoFilters } from "../utils/dashboard";
-import { INBOX_MAILBOXES, type InboxMailbox } from "../utils/inbox";
 import { formatNumber } from "../utils/format";
+import { INBOX_MAILBOXES, type InboxMailbox } from "../utils/inbox";
 import { Avatar } from "./common/Avatar";
 import { ChevronIcon, CloseIcon, SearchIcon } from "./common/Icons";
-import { LanguageIcon, isUnknownLanguage } from "./common/LanguageIcon";
-import { useI18n } from "../i18n/I18nProvider";
+import { isUnknownLanguage, LanguageIcon } from "./common/LanguageIcon";
 
-type Tab = "inbox" | "issues" | "repos" | "kanban" | "insights" | "alerts" | "ci" | "digests" | "prs";
+type Tab =
+  | "inbox"
+  | "issues"
+  | "repos"
+  | "kanban"
+  | "insights"
+  | "alerts"
+  | "ci"
+  | "digests"
+  | "prs";
 
 export interface InboxSidebarState {
   mailbox: InboxMailbox;
@@ -101,9 +110,18 @@ function CheckList({
       if (a[0] === userLogin && b[0] !== userLogin) return 1;
       if (b[0] === userLogin && a[0] !== userLogin) return -1;
     }
-    return Number(selected.has(b[0])) - Number(selected.has(a[0])) || countOf(b[1]) - countOf(a[1]) || a[0].localeCompare(b[0]);
+    return (
+      Number(selected.has(b[0])) - Number(selected.has(a[0])) ||
+      countOf(b[1]) - countOf(a[1]) ||
+      a[0].localeCompare(b[0])
+    );
   });
-  if (!sorted.length) return <div style={{ padding: 8, color: "var(--muted-2)", fontSize: 12 }}>{t("common.noMatches")}</div>;
+  if (!sorted.length)
+    return (
+      <div style={{ padding: 8, color: "var(--muted-2)", fontSize: 12 }}>
+        {t("common.noMatches")}
+      </div>
+    );
 
   return (
     <div className="check-list">
@@ -112,9 +130,17 @@ function CheckList({
         return (
           <label className="check" key={name}>
             <input type="checkbox" checked={selected.has(name)} onChange={() => onToggle(name)} />
-            {showSwatch && color ? <span className="label-swatch" style={{ background: `#${color}` }} /> : null}
+            {showSwatch && color ? (
+              <span className="label-swatch" style={{ background: `#${color}` }} />
+            ) : null}
             {languageDot ? <LanguageIcon name={name} /> : null}
-            {showGhAvatar ? <img src={`https://github.com/${name}.png?size=32`} alt="" style={{ width: 16, height: 16, borderRadius: "50%", flexShrink: 0 }} /> : null}
+            {showGhAvatar ? (
+              <img
+                src={`https://github.com/${name}.png?size=32`}
+                alt=""
+                style={{ width: 16, height: 16, borderRadius: "50%", flexShrink: 0 }}
+              />
+            ) : null}
             <span className="label-text">{name}</span>
             <span className="label-count">{countOf(value)}</span>
           </label>
@@ -149,9 +175,18 @@ function FacetChips({
       if (a[0] === userLogin && b[0] !== userLogin) return 1;
       if (b[0] === userLogin && a[0] !== userLogin) return -1;
     }
-    return Number(selected.has(b[0])) - Number(selected.has(a[0])) || countOf(b[1]) - countOf(a[1]) || a[0].localeCompare(b[0]);
+    return (
+      Number(selected.has(b[0])) - Number(selected.has(a[0])) ||
+      countOf(b[1]) - countOf(a[1]) ||
+      a[0].localeCompare(b[0])
+    );
   });
-  if (!sorted.length) return <div style={{ padding: 8, color: "var(--muted-2)", fontSize: 12 }}>{t("common.noMatches")}</div>;
+  if (!sorted.length)
+    return (
+      <div style={{ padding: 8, color: "var(--muted-2)", fontSize: 12 }}>
+        {t("common.noMatches")}
+      </div>
+    );
   return (
     <div className="facet-chips">
       {sorted.map(([name, value]) => {
@@ -177,7 +212,23 @@ function FacetChips({
   );
 }
 
-function FilterSection({ title, icon, activeCount, children, dataFor, open = false, onClear }: { title: string; icon?: ReactNode; activeCount: number; children: ReactNode; dataFor?: string; open?: boolean; onClear?: () => void }) {
+function FilterSection({
+  title,
+  icon,
+  activeCount,
+  children,
+  dataFor,
+  open = false,
+  onClear,
+}: {
+  title: string;
+  icon?: ReactNode;
+  activeCount: number;
+  children: ReactNode;
+  dataFor?: string;
+  open?: boolean;
+  onClear?: () => void;
+}) {
   const { t } = useI18n();
   const [isOpen, setIsOpen] = useState(open || activeCount > 0);
   const prevActiveCountRef = useRef(activeCount);
@@ -203,15 +254,29 @@ function FilterSection({ title, icon, activeCount, children, dataFor, open = fal
         setIsOpen(next);
       }}
     >
-      <summary className={icon ? "tip" : undefined} data-tip={icon ? title : undefined} aria-label={icon ? title : undefined}>
+      <summary
+        className={icon ? "tip" : undefined}
+        data-tip={icon ? title : undefined}
+        aria-label={icon ? title : undefined}
+      >
         <ChevronIcon />
-        {icon ? <span className="section-icon" aria-hidden="true">{icon}</span> : title}
+        {icon ? (
+          <span className="section-icon" aria-hidden="true">
+            {icon}
+          </span>
+        ) : (
+          title
+        )}
         {clearable ? (
           <button
             type="button"
             className="count active clearable"
             aria-label={`${t("common.clear")} ${title}`}
-            onClick={(e) => { e.preventDefault(); e.stopPropagation(); onClear?.(); }}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onClear?.();
+            }}
           >
             <span className="count-num">{activeCount}</span>
             <span className="count-clear">{t("common.clearAll")}</span>
@@ -262,13 +327,23 @@ export function SidebarControls({
       <aside className="sidebar" id="sidebar">
         <div className="side-head">
           <h2>{t("sidebar.mailboxes")}</h2>
-          <span className="reset" style={{ pointerEvents: "none" }}>{formatNumber(inbox.totalCount)}</span>
-          <button className="side-close" aria-label={t("common.closeFilters")} onClick={onClose}><CloseIcon /></button>
+          <span className="reset" style={{ pointerEvents: "none" }}>
+            {formatNumber(inbox.totalCount)}
+          </span>
+          <button className="side-close" aria-label={t("common.closeFilters")} onClick={onClose}>
+            <CloseIcon />
+          </button>
         </div>
         <div className="search-wrap">
           <label className="search-input">
             <SearchIcon />
-            <input type="search" placeholder={t("sidebar.searchInbox")} autoComplete="off" value={search} onChange={(event) => onSearchChange(event.target.value)} />
+            <input
+              type="search"
+              placeholder={t("sidebar.searchInbox")}
+              autoComplete="off"
+              value={search}
+              onChange={(event) => onSearchChange(event.target.value)}
+            />
           </label>
         </div>
         <div className="mailbox-list">
@@ -300,15 +375,33 @@ export function SidebarControls({
   return (
     <aside className="sidebar" id="sidebar">
       <div className="side-head">
-        <h2 className="tip" data-tip={t("common.filters")} aria-label={t("common.filters")}><LuListFilter size={16} /></h2>
-        <button className="reset tip" data-tip={t("common.clearAll")} aria-label={t("common.clearAll")} title={t("common.clearAll")} onClick={onReset}><LuEraser size={16} /></button>
-        <button className="side-close" aria-label={t("common.closeFilters")} onClick={onClose}><CloseIcon /></button>
+        <h2 className="tip" data-tip={t("common.filters")} aria-label={t("common.filters")}>
+          <LuListFilter size={16} />
+        </h2>
+        <button
+          className="reset tip"
+          data-tip={t("common.clearAll")}
+          aria-label={t("common.clearAll")}
+          title={t("common.clearAll")}
+          onClick={onReset}
+        >
+          <LuEraser size={16} />
+        </button>
+        <button className="side-close" aria-label={t("common.closeFilters")} onClick={onClose}>
+          <CloseIcon />
+        </button>
       </div>
 
       <div className="search-wrap">
         <label className="search-input">
           <SearchIcon />
-          <input type="search" placeholder={t("sidebar.search")} autoComplete="off" value={search} onChange={(event) => onSearchChange(event.target.value)} />
+          <input
+            type="search"
+            placeholder={t("sidebar.search")}
+            autoComplete="off"
+            value={search}
+            onChange={(event) => onSearchChange(event.target.value)}
+          />
         </label>
       </div>
 
@@ -317,56 +410,198 @@ export function SidebarControls({
         icon={<LuBuilding2 size={16} />}
         activeCount={orgSelection.size}
         open
-        onClear={() => ticketMode
-          ? onActiveFiltersChange({ ...activeFilters, orgs: new Set() })
-          : onRepoFiltersChange({ ...repoFilters, orgs: new Set() })}
+        onClear={() =>
+          ticketMode
+            ? onActiveFiltersChange({ ...activeFilters, orgs: new Set() })
+            : onRepoFiltersChange({ ...repoFilters, orgs: new Set() })
+        }
       >
         <FacetChips
           entries={[...orgEntries.entries()]}
           selected={orgSelection}
           userLogin={authLogin || undefined}
           renderIcon={(name) => <Avatar login={name} size={24} className="facet-chip-avatar" />}
-          onToggle={(value) => ticketMode
-            ? onActiveFiltersChange({ ...activeFilters, orgs: toggleSetValue(activeFilters.orgs, value) })
-            : onRepoFiltersChange({ ...repoFilters, orgs: toggleSetValue(repoFilters.orgs, value) })}
+          onToggle={(value) =>
+            ticketMode
+              ? onActiveFiltersChange({
+                  ...activeFilters,
+                  orgs: toggleSetValue(activeFilters.orgs, value),
+                })
+              : onRepoFiltersChange({
+                  ...repoFilters,
+                  orgs: toggleSetValue(repoFilters.orgs, value),
+                })
+          }
         />
       </FilterSection>
 
       {ticketMode ? (
         <>
-          <FilterSection title={t("sidebar.repositories")} icon={<LuBook size={16} />} activeCount={activeFilters.repos.size} dataFor={prMode ? "prs-only" : "issues-only"} onClear={() => onActiveFiltersChange({ ...activeFilters, repos: new Set() })}>
-            <CheckList entries={[...activeFacets.repos.entries()]} selected={activeFilters.repos} onToggle={(value) => onActiveFiltersChange({ ...activeFilters, repos: toggleSetValue(activeFilters.repos, value) })} />
+          <FilterSection
+            title={t("sidebar.repositories")}
+            icon={<LuBook size={16} />}
+            activeCount={activeFilters.repos.size}
+            dataFor={prMode ? "prs-only" : "issues-only"}
+            onClear={() => onActiveFiltersChange({ ...activeFilters, repos: new Set() })}
+          >
+            <CheckList
+              entries={[...activeFacets.repos.entries()]}
+              selected={activeFilters.repos}
+              onToggle={(value) =>
+                onActiveFiltersChange({
+                  ...activeFilters,
+                  repos: toggleSetValue(activeFilters.repos, value),
+                })
+              }
+            />
           </FilterSection>
-          <FilterSection title={t("sidebar.labels")} icon={<LuTag size={16} />} activeCount={activeFilters.labels.size} dataFor={prMode ? "prs-only" : "issues-only"} onClear={() => onActiveFiltersChange({ ...activeFilters, labels: new Set() })}>
-            <CheckList entries={[...activeFacets.labels.entries()]} selected={activeFilters.labels} showSwatch onToggle={(value) => onActiveFiltersChange({ ...activeFilters, labels: toggleSetValue(activeFilters.labels, value) })} />
+          <FilterSection
+            title={t("sidebar.labels")}
+            icon={<LuTag size={16} />}
+            activeCount={activeFilters.labels.size}
+            dataFor={prMode ? "prs-only" : "issues-only"}
+            onClear={() => onActiveFiltersChange({ ...activeFilters, labels: new Set() })}
+          >
+            <CheckList
+              entries={[...activeFacets.labels.entries()]}
+              selected={activeFilters.labels}
+              showSwatch
+              onToggle={(value) =>
+                onActiveFiltersChange({
+                  ...activeFilters,
+                  labels: toggleSetValue(activeFilters.labels, value),
+                })
+              }
+            />
           </FilterSection>
-          <FilterSection title={t("sidebar.authors")} icon={<LuPenLine size={16} />} activeCount={activeFilters.authors.size} dataFor={prMode ? "prs-only" : "issues-only"} onClear={() => onActiveFiltersChange({ ...activeFilters, authors: new Set() })}>
-            <FacetChips entries={[...activeFacets.authors.entries()]} selected={activeFilters.authors} renderIcon={(name) => <Avatar login={name} size={24} className="facet-chip-avatar" />} onToggle={(value) => onActiveFiltersChange({ ...activeFilters, authors: toggleSetValue(activeFilters.authors, value) })} />
+          <FilterSection
+            title={t("sidebar.authors")}
+            icon={<LuPenLine size={16} />}
+            activeCount={activeFilters.authors.size}
+            dataFor={prMode ? "prs-only" : "issues-only"}
+            onClear={() => onActiveFiltersChange({ ...activeFilters, authors: new Set() })}
+          >
+            <FacetChips
+              entries={[...activeFacets.authors.entries()]}
+              selected={activeFilters.authors}
+              renderIcon={(name) => <Avatar login={name} size={24} className="facet-chip-avatar" />}
+              onToggle={(value) =>
+                onActiveFiltersChange({
+                  ...activeFilters,
+                  authors: toggleSetValue(activeFilters.authors, value),
+                })
+              }
+            />
           </FilterSection>
-          <FilterSection title={t("sidebar.assignees")} icon={<LuUserCheck size={16} />} activeCount={activeFilters.assignees.size} dataFor={prMode ? "prs-only" : "issues-only"} onClear={() => onActiveFiltersChange({ ...activeFilters, assignees: new Set() })}>
-            <FacetChips entries={[...activeFacets.assignees.entries()]} selected={activeFilters.assignees} renderIcon={(name) => <Avatar login={name} size={24} className="facet-chip-avatar" />} onToggle={(value) => onActiveFiltersChange({ ...activeFilters, assignees: toggleSetValue(activeFilters.assignees, value) })} />
+          <FilterSection
+            title={t("sidebar.assignees")}
+            icon={<LuUserCheck size={16} />}
+            activeCount={activeFilters.assignees.size}
+            dataFor={prMode ? "prs-only" : "issues-only"}
+            onClear={() => onActiveFiltersChange({ ...activeFilters, assignees: new Set() })}
+          >
+            <FacetChips
+              entries={[...activeFacets.assignees.entries()]}
+              selected={activeFilters.assignees}
+              renderIcon={(name) => <Avatar login={name} size={24} className="facet-chip-avatar" />}
+              onToggle={(value) =>
+                onActiveFiltersChange({
+                  ...activeFilters,
+                  assignees: toggleSetValue(activeFilters.assignees, value),
+                })
+              }
+            />
           </FilterSection>
         </>
       ) : (
         <>
-          <FilterSection title={t("sidebar.languages")} icon={<LuFileCode2 size={16} />} activeCount={repoFilters.languages.size} dataFor="repos-only" onClear={() => onRepoFiltersChange({ ...repoFilters, languages: new Set() })}>
-            <FacetChips entries={[...repoFacets.languages.entries()]} selected={repoFilters.languages} renderIcon={(name) => <LanguageIcon name={name} size={20} />} labelFor={(name) => (isUnknownLanguage(name) ? "Unknown" : name)} onToggle={(value) => onRepoFiltersChange({ ...repoFilters, languages: toggleSetValue(repoFilters.languages, value) })} />
+          <FilterSection
+            title={t("sidebar.languages")}
+            icon={<LuFileCode2 size={16} />}
+            activeCount={repoFilters.languages.size}
+            dataFor="repos-only"
+            onClear={() => onRepoFiltersChange({ ...repoFilters, languages: new Set() })}
+          >
+            <FacetChips
+              entries={[...repoFacets.languages.entries()]}
+              selected={repoFilters.languages}
+              renderIcon={(name) => <LanguageIcon name={name} size={20} />}
+              labelFor={(name) => (isUnknownLanguage(name) ? "Unknown" : name)}
+              onToggle={(value) =>
+                onRepoFiltersChange({
+                  ...repoFilters,
+                  languages: toggleSetValue(repoFilters.languages, value),
+                })
+              }
+            />
           </FilterSection>
-          <FilterSection title={t("sidebar.visibility")} icon={<LuEye size={16} />} activeCount={repoFilters.visibility === "all" ? 0 : 1} dataFor="repos-only" open onClear={() => onRepoFiltersChange({ ...repoFilters, visibility: "all" })}>
+          <FilterSection
+            title={t("sidebar.visibility")}
+            icon={<LuEye size={16} />}
+            activeCount={repoFilters.visibility === "all" ? 0 : 1}
+            dataFor="repos-only"
+            open
+            onClear={() => onRepoFiltersChange({ ...repoFilters, visibility: "all" })}
+          >
             <div className="opt-group" role="tablist">
-              {([
-                { value: "all", label: t("common.all"), Icon: LuLayers },
-                { value: "public", label: t("sidebar.public"), Icon: LuGlobe },
-                { value: "private", label: t("sidebar.private"), Icon: LuLock },
-              ] as const).map(({ value, label, Icon }) => (
-                <button key={value} className={`tip ${repoFilters.visibility === value ? "active" : ""}`} data-tip={label} aria-label={label} title={label} onClick={() => onRepoFiltersChange({ ...repoFilters, visibility: value })}><Icon size={15} /></button>
+              {(
+                [
+                  { value: "all", label: t("common.all"), Icon: LuLayers },
+                  { value: "public", label: t("sidebar.public"), Icon: LuGlobe },
+                  { value: "private", label: t("sidebar.private"), Icon: LuLock },
+                ] as const
+              ).map(({ value, label, Icon }) => (
+                <button
+                  key={value}
+                  className={`tip ${repoFilters.visibility === value ? "active" : ""}`}
+                  data-tip={label}
+                  aria-label={label}
+                  title={label}
+                  onClick={() => onRepoFiltersChange({ ...repoFilters, visibility: value })}
+                >
+                  <Icon size={15} />
+                </button>
               ))}
             </div>
           </FilterSection>
-          <FilterSection title={t("sidebar.options")} icon={<LuSlidersHorizontal size={16} />} activeCount={Number(!repoFilters.includeForks) + Number(repoFilters.includeArchived)} dataFor="repos-only" open onClear={() => onRepoFiltersChange({ ...repoFilters, includeForks: true, includeArchived: false })}>
+          <FilterSection
+            title={t("sidebar.options")}
+            icon={<LuSlidersHorizontal size={16} />}
+            activeCount={Number(!repoFilters.includeForks) + Number(repoFilters.includeArchived)}
+            dataFor="repos-only"
+            open
+            onClear={() =>
+              onRepoFiltersChange({ ...repoFilters, includeForks: true, includeArchived: false })
+            }
+          >
             <div className="opt-group" role="group">
-              <button type="button" className={`tip ${repoFilters.includeForks ? "active" : ""}`} data-tip={t("sidebar.includeForks")} aria-label={t("sidebar.includeForks")} aria-pressed={repoFilters.includeForks} onClick={() => onRepoFiltersChange({ ...repoFilters, includeForks: !repoFilters.includeForks })}><LuGitFork size={15} /></button>
-              <button type="button" className={`tip ${repoFilters.includeArchived ? "active" : ""}`} data-tip={t("sidebar.includeArchived")} aria-label={t("sidebar.includeArchived")} aria-pressed={repoFilters.includeArchived} onClick={() => onRepoFiltersChange({ ...repoFilters, includeArchived: !repoFilters.includeArchived })}><LuArchive size={15} /></button>
+              <button
+                type="button"
+                className={`tip ${repoFilters.includeForks ? "active" : ""}`}
+                data-tip={t("sidebar.includeForks")}
+                aria-label={t("sidebar.includeForks")}
+                aria-pressed={repoFilters.includeForks}
+                onClick={() =>
+                  onRepoFiltersChange({ ...repoFilters, includeForks: !repoFilters.includeForks })
+                }
+              >
+                <LuGitFork size={15} />
+              </button>
+              <button
+                type="button"
+                className={`tip ${repoFilters.includeArchived ? "active" : ""}`}
+                data-tip={t("sidebar.includeArchived")}
+                aria-label={t("sidebar.includeArchived")}
+                aria-pressed={repoFilters.includeArchived}
+                onClick={() =>
+                  onRepoFiltersChange({
+                    ...repoFilters,
+                    includeArchived: !repoFilters.includeArchived,
+                  })
+                }
+              >
+                <LuArchive size={15} />
+              </button>
             </div>
           </FilterSection>
         </>

@@ -37,7 +37,8 @@ export const es: Record<keyof typeof en, string> = {
   "accounts.viaToken": "Usa un token de acceso personal",
   "accounts.tokenLabel": "Token de acceso personal",
   "accounts.tokenRequired": "El token es obligatorio",
-  "accounts.tokenHelp": "Crea un token en {provider} con permisos de lectura para repos, issues y notificaciones.",
+  "accounts.tokenHelp":
+    "Crea un token en {provider} con permisos de lectura para repos, issues y notificaciones.",
   "common.authenticated": "Autenticado",
   "common.authenticatedExternally": "Autenticado externamente",
   "common.export": "Exportar",
@@ -187,19 +188,24 @@ export const es: Record<keyof typeof en, string> = {
   "preset.stale": "Inactivas",
   "confirm.markAllRead": "¿Marcar {count} notificación(es) como leída(s) en GitHub?",
   "auth.signIn": "Conecta una cuenta",
-  "auth.description": "Añade GitHub o una instancia compatible con Forgejo (Codeberg, autohospedada) para leer repositorios, issues y notificaciones.",
+  "auth.description":
+    "Añade GitHub o una instancia compatible con Forgejo (Codeberg, autohospedada) para leer repositorios, issues y notificaciones.",
   "auth.brandTag": "Dashboard multi-cuenta",
   "auth.changeProvider": "Cambiar proveedor",
   "auth.ghCliNotReady": "La autenticación con gh CLI no está lista.",
   "auth.tokenMissing": "GITHUB_TOKEN no está disponible.",
-  "auth.ghCliHelp": "El servidor está configurado con GH_AUTH_MODE=gh-cli. Asegúrate de que gh CLI esté instalada y hayas iniciado sesión:",
+  "auth.ghCliHelp":
+    "El servidor está configurado con GH_AUTH_MODE=gh-cli. Asegúrate de que gh CLI esté instalada y hayas iniciado sesión:",
   "auth.ghCliReload": "luego recarga esta página.",
-  "auth.tokenHelp": "El servidor está configurado con GH_AUTH_MODE=token. Exporta un personal access token como GITHUB_TOKEN y reinicia el servidor.",
+  "auth.tokenHelp":
+    "El servidor está configurado con GH_AUTH_MODE=token. Exporta un personal access token como GITHUB_TOKEN y reinicia el servidor.",
   "auth.clientMissing": "GITHUB_CLIENT_ID no está definido.",
-  "auth.clientHelp": "Registra una OAuth App en github.com/settings/developers, habilita Device Flow, luego exporta GITHUB_CLIENT_ID y reinicia el servidor. También puedes usar GH_AUTH_MODE=gh-cli para reutilizar tu sesión local de gh CLI, o GH_AUTH_MODE=token con un GITHUB_TOKEN.",
+  "auth.clientHelp":
+    "Registra una OAuth App en github.com/settings/developers, habilita Device Flow, luego exporta GITHUB_CLIENT_ID y reinicia el servidor. También puedes usar GH_AUTH_MODE=gh-cli para reutilizar tu sesión local de gh CLI, o GH_AUTH_MODE=token con un GITHUB_TOKEN.",
   "auth.continue": "Continuar",
   "auth.requestingCode": "Solicitando código del dispositivo...",
-  "auth.openVerification": "Abre la página de verificación del proveedor e introduce el código inferior.",
+  "auth.openVerification":
+    "Abre la página de verificación del proveedor e introduce el código inferior.",
   "auth.copied": "Copiado",
   "auth.copy": "Copiar",
   "auth.waiting": "Esperando autorización...",
@@ -231,7 +237,8 @@ export const es: Record<keyof typeof en, string> = {
   "repo.density": "Densidad",
   "repo.padding": "Espaciado",
   "welcome.kind": "Bienvenido",
-  "welcome.lead": "Explora tus repositorios, issues, pull requests, tráfico y actividad CI de GitHub desde un único dashboard.",
+  "welcome.lead":
+    "Explora tus repositorios, issues, pull requests, tráfico y actividad CI de GitHub desde un único dashboard.",
   "welcome.repositoriesTitle": "Repositorios",
   "welcome.repositoriesText": "salud, estrellas, forks, tráfico y releases de un vistazo.",
   "welcome.inboxTitle": "Inbox y triage",

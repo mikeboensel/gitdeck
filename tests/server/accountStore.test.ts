@@ -1,6 +1,6 @@
-import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { mkdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
+import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 const { TMP_DIR, LEGACY_TMP_DIR } = vi.hoisted(() => {
   const { tmpdir } = require("node:os") as typeof import("node:os");
@@ -100,7 +100,7 @@ describe("accountStore", () => {
     await store.init();
     const all = await store.list();
     expect(all).toHaveLength(1);
-    expect(all[0].login).toBe("alice");
+    expect(all[0]?.login).toBe("alice");
   });
 
   it("supports add/setActive/remove on persisted accounts", async () => {

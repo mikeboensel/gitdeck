@@ -1,9 +1,15 @@
 import { useMemo, useState } from "react";
+import { useI18n } from "../../i18n/I18nProvider";
 import type { GhRepo, RepoCIHealth } from "../../types/github";
 import { formatNumber, formatRelativeTime } from "../../utils/format";
-import { useI18n } from "../../i18n/I18nProvider";
 
-type SortKey = "health_asc" | "health_desc" | "failures_desc" | "runs_desc" | "recent_failure" | "name_asc";
+type SortKey =
+  | "health_asc"
+  | "health_desc"
+  | "failures_desc"
+  | "runs_desc"
+  | "recent_failure"
+  | "name_asc";
 
 interface CIHealthViewProps {
   data: RepoCIHealth[];
@@ -72,7 +78,11 @@ export function CIHealthView({ data, reposByName, onRepoClick }: CIHealthViewPro
         <span className="count-chip">{t("ci.repositoriesCount", { count: sorted.length })}</span>
         <div className="spacer" />
         <label>{t("common.sort")}</label>
-        <select className="sort" value={sort} onChange={(event) => setSort(event.target.value as SortKey)}>
+        <select
+          className="sort"
+          value={sort}
+          onChange={(event) => setSort(event.target.value as SortKey)}
+        >
           <option value="health_asc">{t("sort.mostAtRisk")}</option>
           <option value="health_desc">{t("sort.bestHealth")}</option>
           <option value="failures_desc">{t("sort.mostFailures")}</option>
@@ -117,32 +127,48 @@ export function CIHealthView({ data, reposByName, onRepoClick }: CIHealthViewPro
                   <span className="ci-rate-counts">
                     <span className="ci-count ci-count-ok">{entry.successCount}✓</span>
                     <span className="ci-count ci-count-fail">{entry.failureCount}✗</span>
-                    {entry.cancelledCount ? <span className="ci-count">{entry.cancelledCount}⊘</span> : null}
+                    {entry.cancelledCount ? (
+                      <span className="ci-count">{entry.cancelledCount}⊘</span>
+                    ) : null}
                   </span>
                 </div>
                 <div className={`ci-bar ci-bar-${label}`}>
                   <div className="ci-bar-fill" style={{ width: `${decided ? ratePct : 0}%` }} />
                 </div>
               </div>
-              <div role="cell" data-label={t("ci.runs")}>{formatNumber(entry.totalRuns)}</div>
-              <div role="cell" data-label={t("ci.avgDuration")}>{formatDuration(entry.avgDurationSec)}</div>
+              <div role="cell" data-label={t("ci.runs")}>
+                {formatNumber(entry.totalRuns)}
+              </div>
+              <div role="cell" data-label={t("ci.avgDuration")}>
+                {formatDuration(entry.avgDurationSec)}
+              </div>
               <div role="cell" className="ci-last" data-label={t("ci.lastRun")}>
                 {entry.lastRun ? (
                   <a href={entry.lastRun.url} target="_blank" rel="noopener noreferrer">
-                    <span className={`ci-conclusion ${entry.lastRun.conclusion ?? entry.lastRun.status}`}>
+                    <span
+                      className={`ci-conclusion ${entry.lastRun.conclusion ?? entry.lastRun.status}`}
+                    >
                       {entry.lastRun.conclusion ?? entry.lastRun.status}
                     </span>
-                    <span className="ci-when">{formatRelativeTime(entry.lastRun.createdAt, Date.now(), language)}</span>
+                    <span className="ci-when">
+                      {formatRelativeTime(entry.lastRun.createdAt, Date.now(), language)}
+                    </span>
                   </a>
-                ) : "—"}
+                ) : (
+                  "—"
+                )}
               </div>
               <div role="cell" className="ci-last" data-label={t("ci.lastFailure")}>
                 {entry.lastFailure ? (
                   <a href={entry.lastFailure.url} target="_blank" rel="noopener noreferrer">
                     <span className="ci-workflow">{entry.lastFailure.workflowName}</span>
-                    <span className="ci-when">{formatRelativeTime(entry.lastFailure.createdAt, Date.now(), language)}</span>
+                    <span className="ci-when">
+                      {formatRelativeTime(entry.lastFailure.createdAt, Date.now(), language)}
+                    </span>
                   </a>
-                ) : <span className="ci-none">—</span>}
+                ) : (
+                  <span className="ci-none">—</span>
+                )}
               </div>
             </div>
           );

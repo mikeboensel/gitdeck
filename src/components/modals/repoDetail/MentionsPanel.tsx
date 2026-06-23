@@ -38,7 +38,10 @@ export function MentionsPanel({
     ...mentionCode.map((item) => ({ kind: "code" as const, key: item.url, item })),
   ];
   const safeMentionsPage = clampPage(mentionsPage, mentionItems.length, mentionsPageSize);
-  const pagedMentionItems = mentionItems.slice((safeMentionsPage - 1) * mentionsPageSize, safeMentionsPage * mentionsPageSize);
+  const pagedMentionItems = mentionItems.slice(
+    (safeMentionsPage - 1) * mentionsPageSize,
+    safeMentionsPage * mentionsPageSize,
+  );
 
   return (
     <>
@@ -48,7 +51,8 @@ export function MentionsPanel({
           <strong>{formatNumber(aliases.length)}</strong>
         </div>
         <p className="modal-empty sub" style={{ marginTop: 0 }}>
-          Add owner/repo names this project used to be known by; mentions will include matches against them.
+          Add owner/repo names this project used to be known by; mentions will include matches
+          against them.
         </p>
         {aliases.length ? (
           <div className="repo-alias-list">
@@ -60,14 +64,19 @@ export function MentionsPanel({
                   aria-label={`Remove alias ${alias}`}
                   disabled={aliasBusy}
                   onClick={() => onDeleteAlias(alias)}
-                >×</button>
+                >
+                  ×
+                </button>
               </span>
             ))}
           </div>
         ) : null}
         <form
           className="repo-alias-form"
-          onSubmit={(event) => { event.preventDefault(); onSubmitAlias(); }}
+          onSubmit={(event) => {
+            event.preventDefault();
+            onSubmitAlias();
+          }}
         >
           <input
             type="text"
@@ -77,28 +86,63 @@ export function MentionsPanel({
             disabled={aliasBusy}
             spellCheck={false}
           />
-          <button type="submit" disabled={aliasBusy || !aliasInput.trim()}>Add</button>
+          <button type="submit" disabled={aliasBusy || !aliasInput.trim()}>
+            Add
+          </button>
         </form>
-        {aliasError ? <div className="modal-error" style={{ marginTop: 8 }}>{aliasError}</div> : null}
+        {aliasError ? (
+          <div className="modal-error" style={{ marginTop: 8 }}>
+            {aliasError}
+          </div>
+        ) : null}
       </section>
 
       <section>
         <div className="modal-section-title section-title-with-count">
           <span>Mentions from other repositories</span>
-          <strong>{loading && !mentionItems.length ? "..." : formatNumber(mentionItems.length)}</strong>
+          <strong>
+            {loading && !mentionItems.length ? "..." : formatNumber(mentionItems.length)}
+          </strong>
         </div>
-        {pagedMentionItems.map((entry) => entry.kind === "issue" ? (
-          <a className="mention-row compact" href={entry.item.url} target="_blank" rel="noreferrer" key={entry.key}>
-            <span className={`mr-icon ${entry.item.isPullRequest ? "pr-open" : "issue-open"}`}>{entry.item.isPullRequest ? "PR" : "I"}</span>
-            <span className="mr-main"><strong>{entry.item.title}</strong><em>{entry.item.repository.nameWithOwner} #{entry.item.number} · {formatRelativeTime(entry.item.updatedAt)}</em></span>
-          </a>
-        ) : (
-          <a className="mention-row compact" href={entry.item.url} target="_blank" rel="noreferrer" key={entry.key}>
-            <span className="mr-icon code">C</span>
-            <span className="mr-main"><strong>{entry.item.path}</strong><em>{entry.item.repository.nameWithOwner}</em></span>
-          </a>
-        ))}
-        {!loading && !mentionItems.length ? <div className="modal-empty sub">No external mentions found.</div> : null}
+        {pagedMentionItems.map((entry) =>
+          entry.kind === "issue" ? (
+            <a
+              className="mention-row compact"
+              href={entry.item.url}
+              target="_blank"
+              rel="noreferrer"
+              key={entry.key}
+            >
+              <span className={`mr-icon ${entry.item.isPullRequest ? "pr-open" : "issue-open"}`}>
+                {entry.item.isPullRequest ? "PR" : "I"}
+              </span>
+              <span className="mr-main">
+                <strong>{entry.item.title}</strong>
+                <em>
+                  {entry.item.repository.nameWithOwner} #{entry.item.number} ·{" "}
+                  {formatRelativeTime(entry.item.updatedAt)}
+                </em>
+              </span>
+            </a>
+          ) : (
+            <a
+              className="mention-row compact"
+              href={entry.item.url}
+              target="_blank"
+              rel="noreferrer"
+              key={entry.key}
+            >
+              <span className="mr-icon code">C</span>
+              <span className="mr-main">
+                <strong>{entry.item.path}</strong>
+                <em>{entry.item.repository.nameWithOwner}</em>
+              </span>
+            </a>
+          ),
+        )}
+        {!loading && !mentionItems.length ? (
+          <div className="modal-empty sub">No external mentions found.</div>
+        ) : null}
         {mentionItems.length ? (
           <Pagination
             totalItems={mentionItems.length}

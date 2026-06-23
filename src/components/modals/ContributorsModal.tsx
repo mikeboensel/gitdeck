@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { CloseIcon } from "../common/Icons";
-import { formatNumber } from "../../utils/format";
 import { errorMessage } from "../../utils/errors";
+import { formatNumber } from "../../utils/format";
+import { CloseIcon } from "../common/Icons";
 
 interface ContributorsModalProps {
   onClose: () => void;
@@ -26,7 +26,9 @@ export function ContributorsModal({ onClose }: ContributorsModalProps) {
     let cancelled = false;
     async function load() {
       try {
-        const response = await fetch(`https://api.github.com/repos/${REPO}/contributors?per_page=100`);
+        const response = await fetch(
+          `https://api.github.com/repos/${REPO}/contributors?per_page=100`,
+        );
         if (!response.ok) throw new Error(`GitHub API responded ${response.status}`);
         const data = (await response.json()) as Contributor[];
         if (!cancelled) setContributors(data.filter((c) => c.type !== "Bot"));
@@ -54,27 +56,39 @@ export function ContributorsModal({ onClose }: ContributorsModalProps) {
               <h3>{REPO}</h3>
             </div>
           </div>
-          <button className="modal-close" aria-label="Close" onClick={onClose}><CloseIcon /></button>
+          <button className="modal-close" aria-label="Close" onClick={onClose}>
+            <CloseIcon />
+          </button>
         </header>
         <div className="modal-toolbar">
           <span className="modal-count">
             <strong>{loading ? "..." : formatNumber(contributors.length)}</strong> people
           </span>
           <div className="spacer" style={{ flex: 1 }} />
-          <a className="modal-count" href={`https://github.com/${REPO}/graphs/contributors`} target="_blank" rel="noreferrer">
+          <a
+            className="modal-count"
+            href={`https://github.com/${REPO}/graphs/contributors`}
+            target="_blank"
+            rel="noreferrer"
+          >
             View on GitHub →
           </a>
         </div>
         <div className={`modal-body ${loading ? "loading" : ""}`}>
           {error ? <div className="modal-error">{error}</div> : null}
-          {!error && contributors.map((contributor) => (
-            <div className="sg-row" key={contributor.login}>
-              <img src={contributor.avatar_url} alt="" />
-              <a className="login" href={contributor.html_url} target="_blank" rel="noreferrer">{contributor.login}</a>
-              <span className="when">{formatNumber(contributor.contributions)} commits</span>
-            </div>
-          ))}
-          {!error && !loading && !contributors.length ? <div className="modal-empty">No contributors found.</div> : null}
+          {!error &&
+            contributors.map((contributor) => (
+              <div className="sg-row" key={contributor.login}>
+                <img src={contributor.avatar_url} alt="" />
+                <a className="login" href={contributor.html_url} target="_blank" rel="noreferrer">
+                  {contributor.login}
+                </a>
+                <span className="when">{formatNumber(contributor.contributions)} commits</span>
+              </div>
+            ))}
+          {!error && !loading && !contributors.length ? (
+            <div className="modal-empty">No contributors found.</div>
+          ) : null}
         </div>
       </div>
     </div>

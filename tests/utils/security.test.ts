@@ -8,9 +8,7 @@ describe("security utilities", () => {
         { updated_at: "2026-04-21T10:00:00Z" },
         { updatedAt: "2026-04-23T08:00:00Z" },
       ],
-      codeScanningAlerts: [
-        { updated_at: "2026-04-20T10:00:00Z" },
-      ],
+      codeScanningAlerts: [{ updated_at: "2026-04-20T10:00:00Z" }],
     });
 
     expect(summary.dependabotOpen).toBe(2);

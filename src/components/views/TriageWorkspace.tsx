@@ -1,12 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { GhRepo } from "../../types/github";
 import { getLabelCssVars } from "../../utils/colors";
 import { formatNumber, formatRelativeTime } from "../../utils/format";
-import { searchInboxItems, type InboxItem } from "../../utils/inbox";
+import { type InboxItem, searchInboxItems } from "../../utils/inbox";
 import { clampPage } from "../../utils/pagination";
 import { Avatar } from "../common/Avatar";
-import { Pagination } from "../common/Pagination";
 import {
   BookIcon,
   CheckIcon,
@@ -17,6 +16,7 @@ import {
   RefreshIcon,
   SearchIcon,
 } from "../common/Icons";
+import { Pagination } from "../common/Pagination";
 
 type Density = "compact" | "cozy" | "comfortable";
 
@@ -135,9 +135,21 @@ function TriagePreview({ item, repo, onRepoClick, onMarkRead }: TriagePreviewPro
         </div>
         <h2>{item.title}</h2>
         <div className="inbox-actions">
-          <a className="btn primary" href={item.url} target="_blank" rel="noreferrer" onClick={handleOpen}>Open on GitHub</a>
+          <a
+            className="btn primary"
+            href={item.url}
+            target="_blank"
+            rel="noreferrer"
+            onClick={handleOpen}
+          >
+            Open on GitHub
+          </a>
           {item.unread && item.notificationThreadId && onMarkRead ? (
-            <button className="btn" type="button" onClick={() => onMarkRead(item.notificationThreadId!)}>
+            <button
+              className="btn"
+              type="button"
+              onClick={() => onMarkRead(item.notificationThreadId!)}
+            >
               <CheckIcon /> Mark as read
             </button>
           ) : null}
@@ -153,7 +165,10 @@ function TriagePreview({ item, repo, onRepoClick, onMarkRead }: TriagePreviewPro
         <h3>Why this needs attention</h3>
         <div className="inbox-reasons expanded">
           {item.reasons.map((itemReason) => (
-            <span className={`inbox-reason tone-${itemReason.tone}`} key={`${item.id}-${itemReason.code}`}>
+            <span
+              className={`inbox-reason tone-${itemReason.tone}`}
+              key={`${item.id}-${itemReason.code}`}
+            >
               {itemReason.label}
             </span>
           ))}
@@ -186,10 +201,15 @@ function TriagePreview({ item, repo, onRepoClick, onMarkRead }: TriagePreviewPro
         <div className="inbox-reader-section">
           <h3>Pull request details</h3>
           <div className="inbox-pr-detail">
-            {item.branch ? <span>{item.branch.head} {"->"} {item.branch.base}</span> : null}
+            {item.branch ? (
+              <span>
+                {item.branch.head} {"->"} {item.branch.base}
+              </span>
+            ) : null}
             {item.diff ? (
               <span>
-                +{formatNumber(item.diff.additions)} -{formatNumber(item.diff.deletions)} across {formatNumber(item.diff.changedFiles)} files
+                +{formatNumber(item.diff.additions)} -{formatNumber(item.diff.deletions)} across{" "}
+                {formatNumber(item.diff.changedFiles)} files
               </span>
             ) : null}
           </div>
@@ -207,15 +227,29 @@ function TriageProperties({ item }: { item: InboxItem | undefined }) {
       </div>
       {item ? (
         <>
-          <PropertyRow label="Type"><span className={`inbox-kind ${item.kind}`}>{kindLabel(item)}</span></PropertyRow>
+          <PropertyRow label="Type">
+            <span className={`inbox-kind ${item.kind}`}>{kindLabel(item)}</span>
+          </PropertyRow>
           <PropertyRow label="Status">{item.status}</PropertyRow>
-          <PropertyRow label="Score"><span className={`inbox-score tone-${scoreTone(item)}`}>{formatNumber(item.score)}</span></PropertyRow>
+          <PropertyRow label="Score">
+            <span className={`inbox-score tone-${scoreTone(item)}`}>
+              {formatNumber(item.score)}
+            </span>
+          </PropertyRow>
           <PropertyRow label="Repository">{item.repository.nameWithOwner}</PropertyRow>
           <PropertyRow label="Author">{item.author?.login || "Unknown"}</PropertyRow>
-          <PropertyRow label="Assignees">{item.assignees.length ? item.assignees.map((assignee) => assignee.login).join(", ") : "None"}</PropertyRow>
+          <PropertyRow label="Assignees">
+            {item.assignees.length
+              ? item.assignees.map((assignee) => assignee.login).join(", ")
+              : "None"}
+          </PropertyRow>
           <PropertyRow label="Created">{new Date(item.createdAt).toLocaleDateString()}</PropertyRow>
           <PropertyRow label="Updated">{new Date(item.updatedAt).toLocaleDateString()}</PropertyRow>
-          {item.branch ? <PropertyRow label="Branch">{item.branch.head} {"->"} {item.branch.base}</PropertyRow> : null}
+          {item.branch ? (
+            <PropertyRow label="Branch">
+              {item.branch.head} {"->"} {item.branch.base}
+            </PropertyRow>
+          ) : null}
           <div className="inbox-property-block">
             <span>Labels</span>
             <LabelPills item={item} />
@@ -267,9 +301,14 @@ export function TriageWorkspace({
     return filteredItems.slice((safePage - 1) * pageSizeProp!, safePage * pageSizeProp!);
   }, [filteredItems, paginated, safePage, pageSizeProp]);
   const selectedItem = visibleItems.find((item) => item.id === selectedId) || visibleItems[0];
-  const selectedRepo = selectedItem ? reposByName?.get(selectedItem.repository.nameWithOwner) : undefined;
+  const selectedRepo = selectedItem
+    ? reposByName?.get(selectedItem.repository.nameWithOwner)
+    : undefined;
   const checkedItems = useMemo(
-    () => visibleItems.filter((item) => checked.has(item.id) && item.notificationThreadId && item.unread),
+    () =>
+      visibleItems.filter(
+        (item) => checked.has(item.id) && item.notificationThreadId && item.unread,
+      ),
     [visibleItems, checked],
   );
 
@@ -283,7 +322,7 @@ export function TriageWorkspace({
       return;
     }
     if (!selectedId || !visibleItems.some((item) => item.id === selectedId)) {
-      setSelectedId(visibleItems[0].id);
+      setSelectedId(visibleItems[0]!.id);
     }
   }, [selectedId, visibleItems]);
 
@@ -302,14 +341,20 @@ export function TriageWorkspace({
     if (node) node.scrollIntoView({ block: "nearest" });
   }, []);
 
-  const moveSelection = useCallback((delta: number) => {
-    if (!visibleItems.length) return;
-    const currentIndex = Math.max(0, visibleItems.findIndex((entry) => entry.id === (selectedItem?.id || "")));
-    const nextIndex = Math.min(visibleItems.length - 1, Math.max(0, currentIndex + delta));
-    const nextId = visibleItems[nextIndex].id;
-    setSelectedId(nextId);
-    focusRow(nextId);
-  }, [visibleItems, selectedItem, focusRow]);
+  const moveSelection = useCallback(
+    (delta: number) => {
+      if (!visibleItems.length) return;
+      const currentIndex = Math.max(
+        0,
+        visibleItems.findIndex((entry) => entry.id === (selectedItem?.id || "")),
+      );
+      const nextIndex = Math.min(visibleItems.length - 1, Math.max(0, currentIndex + delta));
+      const nextId = visibleItems[nextIndex]!.id;
+      setSelectedId(nextId);
+      focusRow(nextId);
+    },
+    [visibleItems, selectedItem, focusRow],
+  );
 
   const toggleCheck = useCallback((id: string) => {
     setChecked((prev) => {
@@ -364,10 +409,26 @@ export function TriageWorkspace({
       if (inEditable) return;
       if (event.metaKey || event.ctrlKey || event.altKey) return;
 
-      if (event.key === "j") { event.preventDefault(); moveSelection(1); return; }
-      if (event.key === "k") { event.preventDefault(); moveSelection(-1); return; }
-      if (event.key === "x" && selectedItem) { event.preventDefault(); toggleCheck(selectedItem.id); return; }
-      if (event.key === "e") { event.preventDefault(); markActive(); return; }
+      if (event.key === "j") {
+        event.preventDefault();
+        moveSelection(1);
+        return;
+      }
+      if (event.key === "k") {
+        event.preventDefault();
+        moveSelection(-1);
+        return;
+      }
+      if (event.key === "x" && selectedItem) {
+        event.preventDefault();
+        toggleCheck(selectedItem.id);
+        return;
+      }
+      if (event.key === "e") {
+        event.preventDefault();
+        markActive();
+        return;
+      }
       if (event.key === "Enter" && selectedItem) {
         event.preventDefault();
         if (selectedItem.unread && selectedItem.notificationThreadId && onMarkRead) {
@@ -376,23 +437,38 @@ export function TriageWorkspace({
         window.open(selectedItem.url, "_blank", "noopener,noreferrer");
         return;
       }
-      if (event.key === "?") { event.preventDefault(); setShortcutsOpen((prev) => !prev); return; }
+      if (event.key === "?") {
+        event.preventDefault();
+        setShortcutsOpen((prev) => !prev);
+        return;
+      }
     }
 
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [checked.size, clearChecked, markActive, moveSelection, onMarkRead, selectedItem, toggleCheck]);
+  }, [
+    checked.size,
+    clearChecked,
+    markActive,
+    moveSelection,
+    onMarkRead,
+    selectedItem,
+    toggleCheck,
+  ]);
 
   const cycleDensity = useCallback(() => {
     const idx = DENSITY_OPTIONS.indexOf(density);
-    setDensity(DENSITY_OPTIONS[(idx + 1) % DENSITY_OPTIONS.length]);
+    setDensity(DENSITY_OPTIONS[(idx + 1) % DENSITY_OPTIONS.length] ?? density);
   }, [density]);
 
   const allChecked = checked.size > 0 && checked.size === visibleItems.length;
   const partiallyChecked = checked.size > 0 && !allChecked;
 
   return (
-    <div className={`triage-workspace ${sidebar ? "with-mailboxes" : "embedded"} ${className}`} data-density={density}>
+    <div
+      className={`triage-workspace ${sidebar ? "with-mailboxes" : "embedded"} ${className}`}
+      data-density={density}
+    >
       {sidebar}
 
       <section className="inbox-list-pane">
@@ -418,7 +494,9 @@ export function TriageWorkspace({
               <input
                 type="checkbox"
                 checked={allChecked}
-                ref={(node) => { if (node) node.indeterminate = partiallyChecked; }}
+                ref={(node) => {
+                  if (node) node.indeterminate = partiallyChecked;
+                }}
                 onChange={(event) => (event.target.checked ? checkAll() : clearChecked())}
               />
             </label>
@@ -430,10 +508,14 @@ export function TriageWorkspace({
                     <CheckIcon /> Mark {checkedItems.length} as read
                   </button>
                 ) : null}
-                <button className="btn ghost" type="button" onClick={clearChecked}>Clear</button>
+                <button className="btn ghost" type="button" onClick={clearChecked}>
+                  Clear
+                </button>
               </>
             ) : (
-              <span className="inbox-toolbar-count muted">Tip: press <kbd>?</kbd> for shortcuts</span>
+              <span className="inbox-toolbar-count muted">
+                Tip: press <kbd>?</kbd> for shortcuts
+              </span>
             )}
             <span className="inbox-toolbar-spacer" />
             {onRefresh ? (
@@ -441,73 +523,89 @@ export function TriageWorkspace({
                 <RefreshIcon />
               </button>
             ) : null}
-            <button className="icon-btn" type="button" onClick={cycleDensity} title={`Density: ${density}`}>
+            <button
+              className="icon-btn"
+              type="button"
+              onClick={cycleDensity}
+              title={`Density: ${density}`}
+            >
               <DensityIcon />
             </button>
-            <button className="icon-btn" type="button" onClick={() => setShortcutsOpen((prev) => !prev)} title="Shortcuts">
+            <button
+              className="icon-btn"
+              type="button"
+              onClick={() => setShortcutsOpen((prev) => !prev)}
+              title="Shortcuts"
+            >
               <KeyboardIcon />
             </button>
           </div>
         </header>
         <div className="inbox-list">
-          {visibleItems.length ? visibleItems.map((item) => {
-            const isSelected = selectedItem?.id === item.id;
-            const isChecked = checked.has(item.id);
-            return (
-              <div
-                className={`inbox-row ${isSelected ? "selected" : ""} ${item.unread ? "unread" : ""} ${isChecked ? "checked" : ""}`}
-                key={item.id}
-                ref={(node) => {
-                  if (node) rowRefs.current.set(item.id, node);
-                  else rowRefs.current.delete(item.id);
-                }}
-                onClick={() => setSelectedId(item.id)}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter" || event.key === " ") {
-                    event.preventDefault();
-                    setSelectedId(item.id);
-                  }
-                }}
-              >
-                <label
-                  className="inbox-row-check"
-                  onClick={(event) => event.stopPropagation()}
+          {visibleItems.length ? (
+            visibleItems.map((item) => {
+              const isSelected = selectedItem?.id === item.id;
+              const isChecked = checked.has(item.id);
+              return (
+                <div
+                  className={`inbox-row ${isSelected ? "selected" : ""} ${item.unread ? "unread" : ""} ${isChecked ? "checked" : ""}`}
+                  key={item.id}
+                  ref={(node) => {
+                    if (node) rowRefs.current.set(item.id, node);
+                    else rowRefs.current.delete(item.id);
+                  }}
+                  onClick={() => setSelectedId(item.id)}
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      setSelectedId(item.id);
+                    }
+                  }}
                 >
-                  <input
-                    type="checkbox"
-                    checked={isChecked}
-                    onChange={() => toggleCheck(item.id)}
-                  />
-                </label>
-                <span className="inbox-row-indicator" aria-hidden="true">
-                  {item.unread ? <span className="inbox-row-dot" /> : null}
-                </span>
-                <Avatar login={item.author?.login} size={density === "compact" ? 28 : 36} />
-                <div className="inbox-row-body">
-                  <div className="inbox-row-top">
-                    <strong className="inbox-row-author">{item.author?.login || "Unknown"}</strong>
-                    <span className="inbox-row-repo">{item.repository.nameWithOwner}</span>
-                    <span className="inbox-row-num">#{item.number}</span>
-                    <em>{formatRelativeTime(item.updatedAt)}</em>
-                  </div>
-                  <div className="inbox-row-title">{item.title}</div>
-                  {density !== "compact" ? (
-                    <div className="inbox-row-meta">
-                      <span className={`inbox-kind ${item.kind}`}>
-                        {item.kind === "pull-request" ? <PulseIcon /> : <IssueIcon />}
-                        {kindLabel(item)}
-                      </span>
-                      <span className="inbox-row-summary">{primaryReason(item)}</span>
-                      <span className="inbox-row-comments">{formatNumber(item.commentsCount)} comments</span>
+                  <label className="inbox-row-check" onClick={(event) => event.stopPropagation()}>
+                    <input
+                      type="checkbox"
+                      checked={isChecked}
+                      onChange={() => toggleCheck(item.id)}
+                    />
+                  </label>
+                  <span className="inbox-row-indicator" aria-hidden="true">
+                    {item.unread ? <span className="inbox-row-dot" /> : null}
+                  </span>
+                  <Avatar login={item.author?.login} size={density === "compact" ? 28 : 36} />
+                  <div className="inbox-row-body">
+                    <div className="inbox-row-top">
+                      <strong className="inbox-row-author">
+                        {item.author?.login || "Unknown"}
+                      </strong>
+                      <span className="inbox-row-repo">{item.repository.nameWithOwner}</span>
+                      <span className="inbox-row-num">#{item.number}</span>
+                      <em>{formatRelativeTime(item.updatedAt)}</em>
                     </div>
-                  ) : null}
+                    <div className="inbox-row-title">{item.title}</div>
+                    {density !== "compact" ? (
+                      <div className="inbox-row-meta">
+                        <span className={`inbox-kind ${item.kind}`}>
+                          {item.kind === "pull-request" ? <PulseIcon /> : <IssueIcon />}
+                          {kindLabel(item)}
+                        </span>
+                        <span className="inbox-row-summary">{primaryReason(item)}</span>
+                        <span className="inbox-row-comments">
+                          {formatNumber(item.commentsCount)} comments
+                        </span>
+                      </div>
+                    ) : null}
+                  </div>
+                  <span
+                    className={`inbox-row-priority tone-${scoreTone(item)}`}
+                    aria-hidden="true"
+                  />
                 </div>
-                <span className={`inbox-row-priority tone-${scoreTone(item)}`} aria-hidden="true" />
-              </div>
-            );
-          }) : (
+              );
+            })
+          ) : (
             <div className="inbox-list-empty">
               <strong>{emptyTitle}</strong>
               <span>{emptyMessage}</span>
@@ -528,7 +626,12 @@ export function TriageWorkspace({
         ) : null}
       </section>
 
-      <TriagePreview item={selectedItem} repo={selectedRepo} onRepoClick={onRepoClick} onMarkRead={onMarkRead} />
+      <TriagePreview
+        item={selectedItem}
+        repo={selectedRepo}
+        onRepoClick={onRepoClick}
+        onMarkRead={onMarkRead}
+      />
       <TriageProperties item={selectedItem} />
 
       {shortcutsOpen ? (
@@ -536,15 +639,52 @@ export function TriageWorkspace({
           <div className="inbox-shortcuts-card" onClick={(event) => event.stopPropagation()}>
             <strong>Keyboard shortcuts</strong>
             <dl>
-              <div><dt><kbd>j</kbd> / <kbd>k</kbd></dt><dd>Next / previous item</dd></div>
-              <div><dt><kbd>Enter</kbd></dt><dd>Open on GitHub</dd></div>
-              <div><dt><kbd>e</kbd></dt><dd>Mark active as read</dd></div>
-              <div><dt><kbd>x</kbd></dt><dd>Toggle selection</dd></div>
-              <div><dt><kbd>/</kbd></dt><dd>Focus search</dd></div>
-              <div><dt><kbd>Esc</kbd></dt><dd>Clear selection / blur search</dd></div>
-              <div><dt><kbd>?</kbd></dt><dd>Toggle this help</dd></div>
+              <div>
+                <dt>
+                  <kbd>j</kbd> / <kbd>k</kbd>
+                </dt>
+                <dd>Next / previous item</dd>
+              </div>
+              <div>
+                <dt>
+                  <kbd>Enter</kbd>
+                </dt>
+                <dd>Open on GitHub</dd>
+              </div>
+              <div>
+                <dt>
+                  <kbd>e</kbd>
+                </dt>
+                <dd>Mark active as read</dd>
+              </div>
+              <div>
+                <dt>
+                  <kbd>x</kbd>
+                </dt>
+                <dd>Toggle selection</dd>
+              </div>
+              <div>
+                <dt>
+                  <kbd>/</kbd>
+                </dt>
+                <dd>Focus search</dd>
+              </div>
+              <div>
+                <dt>
+                  <kbd>Esc</kbd>
+                </dt>
+                <dd>Clear selection / blur search</dd>
+              </div>
+              <div>
+                <dt>
+                  <kbd>?</kbd>
+                </dt>
+                <dd>Toggle this help</dd>
+              </div>
             </dl>
-            <button className="btn" type="button" onClick={() => setShortcutsOpen(false)}>Close</button>
+            <button className="btn" type="button" onClick={() => setShortcutsOpen(false)}>
+              Close
+            </button>
           </div>
         </div>
       ) : null}

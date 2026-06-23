@@ -1,12 +1,12 @@
 import { useEffect, useState } from "react";
 import { fetchForks } from "../../../api/github";
 import type { ForkNode, GhRepo } from "../../../types/github";
+import { errorMessage } from "../../../utils/errors";
 import { formatNumber, formatRelativeTime } from "../../../utils/format";
 import { clampPage } from "../../../utils/pagination";
-import { Pagination } from "../../common/Pagination";
 import { ForkIcon, StarIcon } from "../../common/Icons";
+import { Pagination } from "../../common/Pagination";
 import { MODAL_PAGE_SIZE } from "./helpers";
-import { errorMessage } from "../../../utils/errors";
 
 interface ForksPanelProps {
   repo: GhRepo;
@@ -45,13 +45,18 @@ export function ForksPanel({ repo }: ForksPanelProps) {
   }, [forkDirection, forkField, repo.nameWithOwner]);
 
   const safeForksPage = clampPage(forksPage, forks.length, forksPageSize);
-  const pagedForks = forks.slice((safeForksPage - 1) * forksPageSize, safeForksPage * forksPageSize);
+  const pagedForks = forks.slice(
+    (safeForksPage - 1) * forksPageSize,
+    safeForksPage * forksPageSize,
+  );
 
   return (
     <section>
       <div className="modal-section-title section-title-with-count">
         <span>Forks</span>
-        <strong>{forksLoading && !forks.length ? "..." : formatNumber(forksTotal || forks.length)}</strong>
+        <strong>
+          {forksLoading && !forks.length ? "..." : formatNumber(forksTotal || forks.length)}
+        </strong>
       </div>
       <div className="repo-detail-subtoolbar">
         <label>
@@ -66,7 +71,10 @@ export function ForksPanel({ repo }: ForksPanelProps) {
         </label>
         <label>
           Direction
-          <select value={forkDirection} onChange={(event) => setForkDirection(event.target.value as "DESC" | "ASC")}>
+          <select
+            value={forkDirection}
+            onChange={(event) => setForkDirection(event.target.value as "DESC" | "ASC")}
+          >
             <option value="DESC">Descending</option>
             <option value="ASC">Ascending</option>
           </select>
@@ -74,21 +82,35 @@ export function ForksPanel({ repo }: ForksPanelProps) {
       </div>
       {forksError ? <div className="modal-error">{forksError}</div> : null}
       {pagedForks.map((fork) => (
-        <a className="fork-row" href={fork.url} target="_blank" rel="noreferrer" key={fork.nameWithOwner}>
+        <a
+          className="fork-row"
+          href={fork.url}
+          target="_blank"
+          rel="noreferrer"
+          key={fork.nameWithOwner}
+        >
           <img src={fork.owner.avatarUrl} alt="" />
           <div>
             <div className="fr-title">{fork.nameWithOwner}</div>
             <div className="fr-desc">{fork.description || "No description"}</div>
           </div>
           <div className="fr-meta">
-            <span className="mini-stat"><StarIcon /> {formatNumber(fork.stargazerCount)}</span>
-            <span className="mini-stat"><ForkIcon /> {formatNumber(fork.forkCount)}</span>
+            <span className="mini-stat">
+              <StarIcon /> {formatNumber(fork.stargazerCount)}
+            </span>
+            <span className="mini-stat">
+              <ForkIcon /> {formatNumber(fork.forkCount)}
+            </span>
             <span>pushed {formatRelativeTime(fork.pushedAt)}</span>
           </div>
         </a>
       ))}
-      {forksLoading && !forks.length ? <div className="modal-empty sub">Loading forks...</div> : null}
-      {!forksLoading && !forks.length && !forksError ? <div className="modal-empty sub">No forks available.</div> : null}
+      {forksLoading && !forks.length ? (
+        <div className="modal-empty sub">Loading forks...</div>
+      ) : null}
+      {!forksLoading && !forks.length && !forksError ? (
+        <div className="modal-empty sub">No forks available.</div>
+      ) : null}
       {forks.length ? (
         <Pagination
           totalItems={forks.length}

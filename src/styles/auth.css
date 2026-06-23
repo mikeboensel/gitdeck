@@ -12,8 +12,16 @@
   inset: 0;
   pointer-events: none;
   background:
-    radial-gradient(620px 320px at 22% 18%, color-mix(in srgb, var(--accent) 14%, transparent), transparent 70%),
-    radial-gradient(560px 340px at 82% 88%, color-mix(in srgb, var(--accent-2) 12%, transparent), transparent 72%);
+    radial-gradient(
+      620px 320px at 22% 18%,
+      color-mix(in srgb, var(--accent) 14%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      560px 340px at 82% 88%,
+      color-mix(in srgb, var(--accent-2) 12%, transparent),
+      transparent 72%
+    );
   filter: blur(2px);
   opacity: 0.9;
 }
@@ -43,11 +51,20 @@
   inset: -1px;
   border-radius: inherit;
   padding: 1px;
-  background: linear-gradient(140deg, color-mix(in srgb, var(--accent) 35%, transparent), transparent 45%, color-mix(in srgb, var(--accent-2) 28%, transparent));
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-          mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  background: linear-gradient(
+    140deg,
+    color-mix(in srgb, var(--accent) 35%, transparent),
+    transparent 45%,
+    color-mix(in srgb, var(--accent-2) 28%, transparent)
+  );
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
   -webkit-mask-composite: xor;
-          mask-composite: exclude;
+  mask-composite: exclude;
   opacity: 0.5;
   pointer-events: none;
 }
@@ -67,7 +84,9 @@
   flex: 0 0 auto;
   display: grid;
   place-items: center;
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 12px 28px var(--accent-shadow);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.08),
+    0 12px 28px var(--accent-shadow);
 }
 
 .auth-brand-logo img {
@@ -132,7 +151,11 @@
   cursor: pointer;
   text-align: left;
   font: inherit;
-  transition: transform 120ms ease, border-color 120ms ease, background 120ms ease, box-shadow 120ms ease;
+  transition:
+    transform 120ms ease,
+    border-color 120ms ease,
+    background 120ms ease,
+    box-shadow 120ms ease;
 }
 
 .auth-provider:hover {
@@ -170,7 +193,9 @@
 
 .auth-provider-chevron {
   color: var(--muted);
-  transition: transform 120ms ease, color 120ms ease;
+  transition:
+    transform 120ms ease,
+    color 120ms ease;
   flex: 0 0 auto;
 }
 
@@ -263,7 +288,9 @@
   word-break: break-all;
   border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent);
   text-decoration: none;
-  transition: background 120ms ease, border-color 120ms ease;
+  transition:
+    background 120ms ease,
+    border-color 120ms ease;
 }
 
 .auth-link:hover {
@@ -320,7 +347,9 @@
 }
 
 @keyframes auth-spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .auth-field {
@@ -344,7 +373,9 @@
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   letter-spacing: 0.02em;
   text-transform: none;
-  transition: border-color 120ms ease, box-shadow 120ms ease;
+  transition:
+    border-color 120ms ease,
+    box-shadow 120ms ease;
 }
 
 .auth-field input:focus-visible {
@@ -369,7 +400,10 @@
   cursor: pointer;
   margin-top: 2px;
   box-shadow: 0 6px 18px color-mix(in srgb, var(--accent) 28%, transparent);
-  transition: transform 120ms ease, box-shadow 120ms ease, filter 120ms ease;
+  transition:
+    transform 120ms ease,
+    box-shadow 120ms ease,
+    filter 120ms ease;
 }
 
 .auth-primary:hover {
@@ -393,7 +427,9 @@
   cursor: pointer;
   font-size: 12.5px;
   font-weight: 600;
-  transition: border-color 120ms ease, background 120ms ease;
+  transition:
+    border-color 120ms ease,
+    background 120ms ease;
 }
 
 .auth-secondary:hover {
@@ -415,7 +451,9 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  transition: color 120ms ease, background 120ms ease;
+  transition:
+    color 120ms ease,
+    background 120ms ease;
 }
 
 .auth-back:hover {

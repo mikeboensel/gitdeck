@@ -1,8 +1,8 @@
 import type { GhRepo } from "../types/github";
+import { errorMessage } from "../utils/errors";
 import { getReposCached } from "./dashboardData";
 import { AuthRequiredError, restApi } from "./githubClient";
 import { logger } from "./logger";
-import { errorMessage } from "../utils/errors";
 
 export interface CIRunSummary {
   id: number;
@@ -134,7 +134,7 @@ function aggregate(repo: GhRepo, runs: RawWorkflowRun[]): RepoCIHealth | null {
     inProgressCount: inProgress,
     successRate,
     avgDurationSec: durCount ? Math.round(durSum / durCount) : null,
-    lastRun: summarizeRun(runs[0]),
+    lastRun: summarizeRun(runs[0]!),
     lastFailure,
     lastSuccess,
   };
@@ -162,7 +162,7 @@ async function mapWithConcurrency<T, R>(
     while (true) {
       const idx = cursor++;
       if (idx >= items.length) return;
-      results[idx] = await worker(items[idx]);
+      results[idx] = await worker(items[idx]!);
     }
   }
   const runners = Array.from({ length: Math.min(limit, items.length) }, run);

@@ -1,12 +1,18 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { DailyRepoDigest, GhIssue, GhRepo } from "../types/github";
-import { buildDailyDigestEntries, buildDailyDigestRecord, buildPeriodDigestEntries, type DailyDigestRecord, type DigestPeriod } from "../utils/digests";
+import {
+  buildDailyDigestEntries,
+  buildDailyDigestRecord,
+  buildPeriodDigestEntries,
+  type DailyDigestRecord,
+  type DigestPeriod,
+} from "../utils/digests";
 import { DATA_DIR, DIGESTS_PATH } from "./config";
 import { sendJsonCacheable } from "./http";
 import { logger } from "./logger";
-import { fetchRepoSecuritySummary } from "./securityAlerts";
 import { maybeGenerateOpenAIDigest } from "./openaiDigest";
+import { fetchRepoSecuritySummary } from "./securityAlerts";
 
 const MAX_DIGEST_DAYS = 120;
 
@@ -47,7 +53,16 @@ export async function recordDailyDigest(repos: GhRepo[], issues: GhIssue[]): Pro
       } catch (err) {
         // Common for repos without security access — debug, not warn, to avoid per-repo spam.
         logger.debug({ err, repo: repo.nameWithOwner }, "repo security summary unavailable");
-        return [repo.nameWithOwner, { dependabotOpen: 0, codeScanningOpen: 0, totalOpen: 0, latestUpdatedAt: null, unavailable: true }] as const;
+        return [
+          repo.nameWithOwner,
+          {
+            dependabotOpen: 0,
+            codeScanningOpen: 0,
+            totalOpen: 0,
+            latestUpdatedAt: null,
+            unavailable: true,
+          },
+        ] as const;
       }
     }),
   );

@@ -1,5 +1,5 @@
-import type { DailyDigestRecord } from "../utils/digests";
 import type { DailyRepoDigest } from "../types/github";
+import type { DailyDigestRecord } from "../utils/digests";
 
 const OPENAI_API_URL = "https://api.openai.com/v1/responses";
 const OPENAI_DIGEST_MODEL = process.env.OPENAI_DIGEST_MODEL ?? "gpt-4.1-mini";
@@ -36,7 +36,10 @@ function buildDigestPrompt(record: DailyDigestRecord | DailyRepoDigest): string 
 
   const topRepos = record.repos
     .slice(0, 8)
-    .map((repo) => `${repo.repo}: stars ${repo.stars}, forks ${repo.forks}, open issues ${repo.issueCount}, stale ${repo.staleIssueCount}`)
+    .map(
+      (repo) =>
+        `${repo.repo}: stars ${repo.stars}, forks ${repo.forks}, open issues ${repo.issueCount}, stale ${repo.staleIssueCount}`,
+    )
     .join("\n");
 
   return [
@@ -52,16 +55,20 @@ function buildDigestPrompt(record: DailyDigestRecord | DailyRepoDigest): string 
   ].join("\n");
 }
 
-function extractText(response: { output?: Array<{ type?: string; content?: Array<{ type?: string; text?: string }> }> }): string {
+function extractText(response: {
+  output?: Array<{ type?: string; content?: Array<{ type?: string; text?: string }> }>;
+}): string {
   return (response.output || [])
-    .flatMap((item) => item.type === "message" ? (item.content || []) : [])
+    .flatMap((item) => (item.type === "message" ? item.content || [] : []))
     .filter((item) => item.type === "output_text" && item.text)
     .map((item) => item.text)
     .join("\n")
     .trim();
 }
 
-export async function maybeGenerateOpenAIDigest(record: DailyDigestRecord | DailyRepoDigest): Promise<OpenAIDigestResult | null> {
+export async function maybeGenerateOpenAIDigest(
+  record: DailyDigestRecord | DailyRepoDigest,
+): Promise<OpenAIDigestResult | null> {
   if (!hasOpenAIConfig()) return null;
   if (record.ai?.headline && record.ai?.briefing?.length) return record.ai;
 
@@ -69,11 +76,12 @@ export async function maybeGenerateOpenAIDigest(record: DailyDigestRecord | Dail
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
+      Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
     },
     body: JSON.stringify({
       model: OPENAI_DIGEST_MODEL,
-      instructions: "You write concise engineering daily digests. Return plain JSON with keys: headline (string), briefing (array of exactly 3 strings). Keep each string under 140 characters.",
+      instructions:
+        "You write concise engineering daily digests. Return plain JSON with keys: headline (string), briefing (array of exactly 3 strings). Keep each string under 140 characters.",
       input: buildDigestPrompt(record),
       text: {
         format: {
@@ -104,7 +112,9 @@ export async function maybeGenerateOpenAIDigest(record: DailyDigestRecord | Dail
     throw new Error(`OpenAI digest request failed with HTTP ${response.status}`);
   }
 
-  const json = await response.json() as { output?: Array<{ type?: string; content?: Array<{ type?: string; text?: string }> }> };
+  const json = (await response.json()) as {
+    output?: Array<{ type?: string; content?: Array<{ type?: string; text?: string }> }>;
+  };
   const text = extractText(json);
   if (!text) return null;
 

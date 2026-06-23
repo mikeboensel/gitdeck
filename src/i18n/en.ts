@@ -35,7 +35,8 @@ export const en = {
   "accounts.viaToken": "Use a personal access token",
   "accounts.tokenLabel": "Personal access token",
   "accounts.tokenRequired": "Token is required",
-  "accounts.tokenHelp": "Create a token on {provider} with read scopes for repos, issues and notifications.",
+  "accounts.tokenHelp":
+    "Create a token on {provider} with read scopes for repos, issues and notifications.",
   "common.authenticated": "Authenticated",
   "common.authenticatedExternally": "Authenticated externally",
   "common.export": "Export",
@@ -185,16 +186,20 @@ export const en = {
   "preset.stale": "Stale",
   "confirm.markAllRead": "Mark {count} notification{plural} as read on GitHub?",
   "auth.signIn": "Connect an account",
-  "auth.description": "Add GitHub or a Forgejo-compatible instance (Codeberg, self-hosted) to read repositories, issues and notifications.",
+  "auth.description":
+    "Add GitHub or a Forgejo-compatible instance (Codeberg, self-hosted) to read repositories, issues and notifications.",
   "auth.brandTag": "Multi-account dashboard",
   "auth.changeProvider": "Change provider",
   "auth.ghCliNotReady": "Authentication via gh CLI is not ready.",
   "auth.tokenMissing": "GITHUB_TOKEN is not available.",
-  "auth.ghCliHelp": "The server is configured with GH_AUTH_MODE=gh-cli. Make sure the gh CLI is installed and you are signed in:",
+  "auth.ghCliHelp":
+    "The server is configured with GH_AUTH_MODE=gh-cli. Make sure the gh CLI is installed and you are signed in:",
   "auth.ghCliReload": "then reload this page.",
-  "auth.tokenHelp": "The server is configured with GH_AUTH_MODE=token. Export a personal access token as GITHUB_TOKEN and restart the server.",
+  "auth.tokenHelp":
+    "The server is configured with GH_AUTH_MODE=token. Export a personal access token as GITHUB_TOKEN and restart the server.",
   "auth.clientMissing": "GITHUB_CLIENT_ID is not set.",
-  "auth.clientHelp": "Register an OAuth App at github.com/settings/developers, enable Device Flow, then export GITHUB_CLIENT_ID and restart the server. Alternatively, set GH_AUTH_MODE=gh-cli to reuse your local gh CLI session, or GH_AUTH_MODE=token with a GITHUB_TOKEN.",
+  "auth.clientHelp":
+    "Register an OAuth App at github.com/settings/developers, enable Device Flow, then export GITHUB_CLIENT_ID and restart the server. Alternatively, set GH_AUTH_MODE=gh-cli to reuse your local gh CLI session, or GH_AUTH_MODE=token with a GITHUB_TOKEN.",
   "auth.continue": "Continue",
   "auth.requestingCode": "Requesting device code...",
   "auth.openVerification": "Open the verification page on your provider and enter the code below.",
@@ -229,7 +234,8 @@ export const en = {
   "repo.density": "Density",
   "repo.padding": "Padding",
   "welcome.kind": "Welcome",
-  "welcome.lead": "Explore your GitHub repositories, issues, pull requests, traffic and CI activity from a single dashboard.",
+  "welcome.lead":
+    "Explore your GitHub repositories, issues, pull requests, traffic and CI activity from a single dashboard.",
   "welcome.repositoriesTitle": "Repositories",
   "welcome.repositoriesText": "health, stars, forks, traffic, releases at a glance.",
   "welcome.inboxTitle": "Inbox & Triage",
@@ -242,7 +248,8 @@ export const en = {
   "welcome.whatsNew": "What's new",
   "welcome.getStarted": "Get started",
   "ci.noActivity": "No CI activity",
-  "ci.noActivityText": "None of your repositories has recent workflow runs (or you don't have access to them).",
+  "ci.noActivityText":
+    "None of your repositories has recent workflow runs (or you don't have access to them).",
   "ci.repositoriesCount": "{count} repositories",
   "ci.successRate": "Success rate",
   "ci.runs": "Runs",

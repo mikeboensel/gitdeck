@@ -1,9 +1,9 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
+import { errorMessage } from "../utils/errors";
 import { getActive as getActiveAccountFromStore, init as initAccountStore } from "./accountStore";
 import { logger } from "./logger";
 import type { Account } from "./providers/types";
-import { errorMessage } from "../utils/errors";
 
 const execFileAsync = promisify(execFile);
 const USER_URL = "https://api.github.com/user";
@@ -72,7 +72,9 @@ async function loadGhCliToken(): Promise<CachedToken> {
   } catch (error) {
     const err = error as NodeJS.ErrnoException & { stderr?: string };
     if (err.code === "ENOENT") {
-      throw new Error("gh CLI is not installed. Install it from https://cli.github.com/ or switch GH_AUTH_MODE.");
+      throw new Error(
+        "gh CLI is not installed. Install it from https://cli.github.com/ or switch GH_AUTH_MODE.",
+      );
     }
     const detail = err.stderr?.trim() || err.message;
     throw new Error(`gh auth token failed: ${detail}. Run 'gh auth login' first.`);
@@ -87,7 +89,9 @@ async function loadGhCliToken(): Promise<CachedToken> {
 async function loadEnvToken(): Promise<CachedToken> {
   const token = process.env.GITHUB_TOKEN?.trim();
   if (!token) {
-    throw new Error("GITHUB_TOKEN is not set. Export a personal access token or switch GH_AUTH_MODE.");
+    throw new Error(
+      "GITHUB_TOKEN is not set. Export a personal access token or switch GH_AUTH_MODE.",
+    );
   }
   if (envCache && envCache.token === token && Date.now() - envCache.fetchedAt < GH_CACHE_TTL_MS) {
     return envCache;

@@ -10,8 +10,8 @@ import type {
   GhUser,
   ReviewDecision,
 } from "../../types/github";
-import { logger } from "../logger";
 import { errorMessage } from "../../utils/errors";
+import { logger } from "../logger";
 import type {
   Account,
   DeviceFlowPoll,
@@ -192,7 +192,11 @@ export class GitHubProvider implements Provider {
     if (!response.ok) {
       return { login: "", scope: response.headers.get("x-oauth-scopes") };
     }
-    const data = (await response.json()) as { login?: string; avatar_url?: string; html_url?: string };
+    const data = (await response.json()) as {
+      login?: string;
+      avatar_url?: string;
+      html_url?: string;
+    };
     return {
       login: data.login ?? "",
       scope: response.headers.get("x-oauth-scopes"),
@@ -229,17 +233,30 @@ export class GitHubProvider implements Provider {
     };
   }
 
-  private async restGet<T>(account: Account, path: string): Promise<{ ok: true; data: T; status: number } | { ok: false; status: number; error: string }> {
-    const url = path.startsWith("http") ? path : `${this.config.baseUrl}${path.startsWith("/") ? path : `/${path}`}`;
+  private async restGet<T>(
+    account: Account,
+    path: string,
+  ): Promise<{ ok: true; data: T; status: number } | { ok: false; status: number; error: string }> {
+    const url = path.startsWith("http")
+      ? path
+      : `${this.config.baseUrl}${path.startsWith("/") ? path : `/${path}`}`;
     const response = await fetch(url, { headers: this.restHeaders(account) });
     if (response.status === 204) return { ok: true, data: null as T, status: 204 };
     const text = await response.text();
-    if (!response.ok) return { ok: false, status: response.status, error: text || `HTTP ${response.status}` };
-    try { return { ok: true, data: JSON.parse(text) as T, status: response.status }; }
-    catch { return { ok: false, status: response.status, error: "invalid JSON" }; }
+    if (!response.ok)
+      return { ok: false, status: response.status, error: text || `HTTP ${response.status}` };
+    try {
+      return { ok: true, data: JSON.parse(text) as T, status: response.status };
+    } catch {
+      return { ok: false, status: response.status, error: "invalid JSON" };
+    }
   }
 
-  private async gqlCall<T>(account: Account, query: string, variables: Record<string, unknown>): Promise<T> {
+  private async gqlCall<T>(
+    account: Account,
+    query: string,
+    variables: Record<string, unknown>,
+  ): Promise<T> {
     const url = this.config.graphqlUrl ?? `${this.config.baseUrl}/graphql`;
     const response = await fetch(url, {
       method: "POST",
@@ -261,12 +278,14 @@ export class GitHubProvider implements Provider {
     try {
       const user = await this.restGet<{ login: string }>(account, "/user");
       if (!user.ok) {
-        if (user.status === 401) return { ok: false, error: "authentication required", needsAuth: true };
+        if (user.status === 401)
+          return { ok: false, error: "authentication required", needsAuth: true };
         return { ok: false, error: `/user: ${user.error}` };
       }
       const orgs = await this.restGet<{ login: string }[]>(account, "/user/orgs");
       if (!orgs.ok) {
-        if (orgs.status === 401) return { ok: false, error: "authentication required", needsAuth: true };
+        if (orgs.status === 401)
+          return { ok: false, error: "authentication required", needsAuth: true };
         return { ok: false, error: `/user/orgs: ${orgs.error}` };
       }
       const owners = Array.from(
@@ -274,7 +293,8 @@ export class GitHubProvider implements Provider {
       );
       return { ok: true, owners };
     } catch (error) {
-      if (error instanceof GitHubAuthRequiredError) return { ok: false, error: "authentication required", needsAuth: true };
+      if (error instanceof GitHubAuthRequiredError)
+        return { ok: false, error: "authentication required", needsAuth: true };
       return { ok: false, error: errorMessage(error) };
     }
   }
@@ -340,7 +360,11 @@ export class GitHubProvider implements Provider {
     const collected: GhIssue[] = [];
     let cursor: string | null = null;
     for (let page = 0; page < 10; page++) {
-      const data: IssueSearchResponse = await this.gqlCall<IssueSearchResponse>(account, ISSUE_SEARCH_QUERY, { q, cursor });
+      const data: IssueSearchResponse = await this.gqlCall<IssueSearchResponse>(
+        account,
+        ISSUE_SEARCH_QUERY,
+        { q, cursor },
+      );
       for (const raw of data.search.nodes) {
         if (raw.__typename !== "Issue") continue;
         const node = raw as IssueSearchNode;
@@ -370,7 +394,11 @@ export class GitHubProvider implements Provider {
     const collected: GhPullRequest[] = [];
     let cursor: string | null = null;
     for (let page = 0; page < 10; page++) {
-      const data: PullRequestSearchResponse = await this.gqlCall<PullRequestSearchResponse>(account, PR_SEARCH_QUERY, { q, cursor });
+      const data: PullRequestSearchResponse = await this.gqlCall<PullRequestSearchResponse>(
+        account,
+        PR_SEARCH_QUERY,
+        { q, cursor },
+      );
       for (const raw of data.search.nodes) {
         if (raw.__typename !== "PullRequest") continue;
         const node = raw as PullRequestSearchNode;
@@ -402,7 +430,10 @@ export class GitHubProvider implements Provider {
     return collected;
   }
 
-  async fetchNotifications(account: Account, ifModifiedSince: string | null): Promise<NotificationsFetchOutcome> {
+  async fetchNotifications(
+    account: Account,
+    ifModifiedSince: string | null,
+  ): Promise<NotificationsFetchOutcome> {
     const initial = `${this.config.baseUrl}/notifications?all=true&participating=false&per_page=50`;
     const collected: GhNotification[] = [];
     let url: string | null = initial;
@@ -411,9 +442,13 @@ export class GitHubProvider implements Provider {
     let firstStatus = 0;
     let pages = 0;
     while (url && pages < 5) {
-      const headers = this.restHeaders(account, pages === 0 && ifModifiedSince ? { "If-Modified-Since": ifModifiedSince } : undefined);
+      const headers = this.restHeaders(
+        account,
+        pages === 0 && ifModifiedSince ? { "If-Modified-Since": ifModifiedSince } : undefined,
+      );
       const response = await fetch(url, { headers });
-      if (response.status === 401) return { ok: false, error: "authentication required", needsAuth: true };
+      if (response.status === 401)
+        return { ok: false, error: "authentication required", needsAuth: true };
       const lastModified = response.headers.get("last-modified");
       const intervalHeader = response.headers.get("x-poll-interval");
       const pollInterval = intervalHeader ? Math.max(1, Number(intervalHeader)) : 60;
@@ -422,7 +457,13 @@ export class GitHubProvider implements Provider {
         firstPollInterval = pollInterval;
         firstStatus = response.status;
         if (response.status === 304) {
-          return { ok: true, refreshed: false, notifications: [], lastModified: firstLastModified, pollInterval: firstPollInterval };
+          return {
+            ok: true,
+            refreshed: false,
+            notifications: [],
+            lastModified: firstLastModified,
+            pollInterval: firstPollInterval,
+          };
         }
       }
       if (!response.ok) {
@@ -444,24 +485,43 @@ export class GitHubProvider implements Provider {
     };
   }
 
-  async markNotificationRead(account: Account, threadId: string): Promise<NotificationMutationOutcome> {
-    return this.notificationMutate(account, "PATCH", `/notifications/threads/${encodeURIComponent(threadId)}`);
+  async markNotificationRead(
+    account: Account,
+    threadId: string,
+  ): Promise<NotificationMutationOutcome> {
+    return this.notificationMutate(
+      account,
+      "PATCH",
+      `/notifications/threads/${encodeURIComponent(threadId)}`,
+    );
   }
 
-  async markAllNotificationsRead(account: Account, options: { repo?: string | null; lastReadAt?: string | null }): Promise<NotificationMutationOutcome> {
+  async markAllNotificationsRead(
+    account: Account,
+    options: { repo?: string | null; lastReadAt?: string | null },
+  ): Promise<NotificationMutationOutcome> {
     const lastReadAt = options.lastReadAt ?? new Date().toISOString();
     const path = options.repo ? `/repos/${options.repo}/notifications` : "/notifications";
     return this.notificationMutate(account, "PUT", path, { last_read_at: lastReadAt, read: true });
   }
 
-  private async notificationMutate(account: Account, method: "PATCH" | "PUT", path: string, body?: unknown): Promise<NotificationMutationOutcome> {
+  private async notificationMutate(
+    account: Account,
+    method: "PATCH" | "PUT",
+    path: string,
+    body?: unknown,
+  ): Promise<NotificationMutationOutcome> {
     try {
       const response = await fetch(`${this.config.baseUrl}${path}`, {
         method,
-        headers: this.restHeaders(account, body ? { "Content-Type": "application/json" } : undefined),
+        headers: this.restHeaders(
+          account,
+          body ? { "Content-Type": "application/json" } : undefined,
+        ),
         body: body ? JSON.stringify(body) : undefined,
       });
-      if (response.status === 401) return { ok: false, status: 401, error: "authentication required", needsAuth: true };
+      if (response.status === 401)
+        return { ok: false, status: 401, error: "authentication required", needsAuth: true };
       if (!response.ok && response.status !== 205) {
         const text = await response.text();
         return { ok: false, status: response.status, error: text || `HTTP ${response.status}` };
@@ -651,7 +711,7 @@ function parseNextLink(header: string | null): string | null {
   if (!header) return null;
   for (const part of header.split(",")) {
     const match = /<([^>]+)>;\s*rel="next"/.exec(part.trim());
-    if (match) return match[1];
+    if (match) return match[1] ?? null;
   }
   return null;
 }

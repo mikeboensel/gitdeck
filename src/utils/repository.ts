@@ -4,7 +4,7 @@ const REPO_API_PREFIX = "https://api.github.com/repos/";
 export function parseRepositoryName(raw: string | null): [string, string] | null {
   if (!raw) return null;
   const match = REPOSITORY_PATTERN.exec(raw);
-  return match ? [match[1], match[2]] : null;
+  return match ? [match[1] ?? "", match[2] ?? ""] : null;
 }
 
 export function getOwner(nameWithOwner: string): string {

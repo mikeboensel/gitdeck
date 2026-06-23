@@ -67,11 +67,18 @@ export function buildIssueFacets(issues: GhIssue[]) {
   for (const issue of issues) {
     const owner = getOwner(issue.repository.nameWithOwner);
     facets.orgs.set(owner, (facets.orgs.get(owner) || 0) + 1);
-    facets.repos.set(issue.repository.nameWithOwner, (facets.repos.get(issue.repository.nameWithOwner) || 0) + 1);
+    facets.repos.set(
+      issue.repository.nameWithOwner,
+      (facets.repos.get(issue.repository.nameWithOwner) || 0) + 1,
+    );
     for (const label of issue.labels || []) {
-      facets.labels.set(label.name, { count: (facets.labels.get(label.name)?.count || 0) + 1, color: label.color });
+      facets.labels.set(label.name, {
+        count: (facets.labels.get(label.name)?.count || 0) + 1,
+        color: label.color,
+      });
     }
-    if (issue.author?.login) facets.authors.set(issue.author.login, (facets.authors.get(issue.author.login) || 0) + 1);
+    if (issue.author?.login)
+      facets.authors.set(issue.author.login, (facets.authors.get(issue.author.login) || 0) + 1);
     for (const assignee of issue.assignees || []) {
       facets.assignees.set(assignee.login, (facets.assignees.get(assignee.login) || 0) + 1);
     }
@@ -92,11 +99,18 @@ export function buildPullRequestFacets(prs: GhPullRequest[]) {
   for (const pr of prs) {
     const owner = getOwner(pr.repository.nameWithOwner);
     facets.orgs.set(owner, (facets.orgs.get(owner) || 0) + 1);
-    facets.repos.set(pr.repository.nameWithOwner, (facets.repos.get(pr.repository.nameWithOwner) || 0) + 1);
+    facets.repos.set(
+      pr.repository.nameWithOwner,
+      (facets.repos.get(pr.repository.nameWithOwner) || 0) + 1,
+    );
     for (const label of pr.labels || []) {
-      facets.labels.set(label.name, { count: (facets.labels.get(label.name)?.count || 0) + 1, color: label.color });
+      facets.labels.set(label.name, {
+        count: (facets.labels.get(label.name)?.count || 0) + 1,
+        color: label.color,
+      });
     }
-    if (pr.author?.login) facets.authors.set(pr.author.login, (facets.authors.get(pr.author.login) || 0) + 1);
+    if (pr.author?.login)
+      facets.authors.set(pr.author.login, (facets.authors.get(pr.author.login) || 0) + 1);
     for (const assignee of pr.assignees || []) {
       facets.assignees.set(assignee.login, (facets.assignees.get(assignee.login) || 0) + 1);
     }
@@ -120,18 +134,29 @@ export function buildRepoFacets(repos: GhRepo[]) {
   return facets;
 }
 
-export function matchesIssuePreset(issue: GhIssue, preset: string, userLogin: string, now = Date.now()): boolean {
+export function matchesIssuePreset(
+  issue: GhIssue,
+  preset: string,
+  userLogin: string,
+  now = Date.now(),
+): boolean {
   if (!preset) return true;
-  if (preset === "assigned-me") return !!userLogin && (issue.assignees || []).some((assignee) => assignee.login === userLogin);
+  if (preset === "assigned-me")
+    return !!userLogin && (issue.assignees || []).some((assignee) => assignee.login === userLogin);
   if (preset === "authored-me") return !!userLogin && issue.author?.login === userLogin;
   if (preset === "no-assignee") return !(issue.assignees || []).length;
   if (preset === "week") return now - new Date(issue.createdAt).getTime() < 7 * 86_400_000;
-  if (preset === "today") return new Date(issue.updatedAt).toDateString() === new Date(now).toDateString();
+  if (preset === "today")
+    return new Date(issue.updatedAt).toDateString() === new Date(now).toDateString();
   if (preset === "stale") return now - new Date(issue.updatedAt).getTime() > 30 * 86_400_000;
   return true;
 }
 
-export function filterIssues(issues: GhIssue[], filters: IssueFilters, userLogin: string): GhIssue[] {
+export function filterIssues(
+  issues: GhIssue[],
+  filters: IssueFilters,
+  userLogin: string,
+): GhIssue[] {
   const query = filters.search.trim().toLowerCase();
   const createdFrom = filters.dates.cf ? new Date(`${filters.dates.cf}T00:00:00`).getTime() : null;
   const createdTo = filters.dates.ct ? new Date(`${filters.dates.ct}T23:59:59`).getTime() : null;
@@ -142,9 +167,21 @@ export function filterIssues(issues: GhIssue[], filters: IssueFilters, userLogin
     const owner = getOwner(issue.repository.nameWithOwner);
     if (filters.orgs.size && !filters.orgs.has(owner)) return false;
     if (filters.repos.size && !filters.repos.has(issue.repository.nameWithOwner)) return false;
-    if (filters.labels.size && ![...(issue.labels || []).map((label) => label.name)].some((label) => filters.labels.has(label))) return false;
+    if (
+      filters.labels.size &&
+      ![...(issue.labels || []).map((label) => label.name)].some((label) =>
+        filters.labels.has(label),
+      )
+    )
+      return false;
     if (filters.authors.size && !filters.authors.has(issue.author?.login || "")) return false;
-    if (filters.assignees.size && ![...(issue.assignees || []).map((assignee) => assignee.login)].some((login) => filters.assignees.has(login))) return false;
+    if (
+      filters.assignees.size &&
+      ![...(issue.assignees || []).map((assignee) => assignee.login)].some((login) =>
+        filters.assignees.has(login),
+      )
+    )
+      return false;
 
     const created = new Date(issue.createdAt).getTime();
     const updated = new Date(issue.updatedAt).getTime();
@@ -161,7 +198,9 @@ export function filterIssues(issues: GhIssue[], filters: IssueFilters, userLogin
       issue.author?.login || "",
       ...(issue.labels || []).map((label) => label.name),
       ...(issue.assignees || []).map((assignee) => assignee.login),
-    ].join(" ").toLowerCase();
+    ]
+      .join(" ")
+      .toLowerCase();
     return haystack.includes(query);
   });
 }
@@ -177,29 +216,46 @@ export function filterRepos(repos: GhRepo[], issues: GhIssue[], filters: RepoFil
     if (!filters.includeForks && repo.isFork) return false;
     if (!filters.includeArchived && repo.isArchived) return false;
     if (!query) return true;
-    return [repo.nameWithOwner, repo.description || "", language, String(issueCountForRepo(issues, repo.nameWithOwner))]
+    return [
+      repo.nameWithOwner,
+      repo.description || "",
+      language,
+      String(issueCountForRepo(issues, repo.nameWithOwner)),
+    ]
       .join(" ")
       .toLowerCase()
       .includes(query);
   });
 }
 
-export function matchesPullRequestPreset(pr: GhPullRequest, preset: string, userLogin: string, now = Date.now()): boolean {
+export function matchesPullRequestPreset(
+  pr: GhPullRequest,
+  preset: string,
+  userLogin: string,
+  now = Date.now(),
+): boolean {
   if (!preset) return true;
-  if (preset === "assigned-me") return !!userLogin && (pr.assignees || []).some((assignee) => assignee.login === userLogin);
+  if (preset === "assigned-me")
+    return !!userLogin && (pr.assignees || []).some((assignee) => assignee.login === userLogin);
   if (preset === "authored-me") return !!userLogin && pr.author?.login === userLogin;
   if (preset === "draft") return pr.isDraft;
   if (preset === "ready") return !pr.isDraft;
-  if (preset === "awaiting-review") return !pr.isDraft && pr.reviewDecision !== "APPROVED" && pr.reviewsCount === 0;
+  if (preset === "awaiting-review")
+    return !pr.isDraft && pr.reviewDecision !== "APPROVED" && pr.reviewsCount === 0;
   if (preset === "approved") return pr.reviewDecision === "APPROVED";
   if (preset === "changes-requested") return pr.reviewDecision === "CHANGES_REQUESTED";
   if (preset === "stale") return now - new Date(pr.updatedAt).getTime() > 14 * 86_400_000;
-  if (preset === "today") return new Date(pr.updatedAt).toDateString() === new Date(now).toDateString();
+  if (preset === "today")
+    return new Date(pr.updatedAt).toDateString() === new Date(now).toDateString();
   if (preset === "week") return now - new Date(pr.createdAt).getTime() < 7 * 86_400_000;
   return true;
 }
 
-export function filterPullRequests(prs: GhPullRequest[], filters: PullRequestFilters, userLogin: string): GhPullRequest[] {
+export function filterPullRequests(
+  prs: GhPullRequest[],
+  filters: PullRequestFilters,
+  userLogin: string,
+): GhPullRequest[] {
   const query = filters.search.trim().toLowerCase();
   const createdFrom = filters.dates.cf ? new Date(`${filters.dates.cf}T00:00:00`).getTime() : null;
   const createdTo = filters.dates.ct ? new Date(`${filters.dates.ct}T23:59:59`).getTime() : null;
@@ -210,9 +266,19 @@ export function filterPullRequests(prs: GhPullRequest[], filters: PullRequestFil
     const owner = getOwner(pr.repository.nameWithOwner);
     if (filters.orgs.size && !filters.orgs.has(owner)) return false;
     if (filters.repos.size && !filters.repos.has(pr.repository.nameWithOwner)) return false;
-    if (filters.labels.size && ![...(pr.labels || []).map((label) => label.name)].some((label) => filters.labels.has(label))) return false;
+    if (
+      filters.labels.size &&
+      ![...(pr.labels || []).map((label) => label.name)].some((label) => filters.labels.has(label))
+    )
+      return false;
     if (filters.authors.size && !filters.authors.has(pr.author?.login || "")) return false;
-    if (filters.assignees.size && ![...(pr.assignees || []).map((assignee) => assignee.login)].some((login) => filters.assignees.has(login))) return false;
+    if (
+      filters.assignees.size &&
+      ![...(pr.assignees || []).map((assignee) => assignee.login)].some((login) =>
+        filters.assignees.has(login),
+      )
+    )
+      return false;
 
     const created = new Date(pr.createdAt).getTime();
     const updated = new Date(pr.updatedAt).getTime();
@@ -231,7 +297,9 @@ export function filterPullRequests(prs: GhPullRequest[], filters: PullRequestFil
       pr.baseRefName,
       ...(pr.labels || []).map((label) => label.name),
       ...(pr.assignees || []).map((assignee) => assignee.login),
-    ].join(" ").toLowerCase();
+    ]
+      .join(" ")
+      .toLowerCase();
     return haystack.includes(query);
   });
 }
@@ -244,8 +312,8 @@ export function sortPullRequests(prs: GhPullRequest[], sort: string): GhPullRequ
     if (sort === "created_asc") return Date.parse(a.createdAt) - Date.parse(b.createdAt);
     if (sort === "comments_desc") return b.commentsCount - a.commentsCount;
     if (sort === "comments_asc") return a.commentsCount - b.commentsCount;
-    if (sort === "size_desc") return (b.additions + b.deletions) - (a.additions + a.deletions);
-    if (sort === "size_asc") return (a.additions + a.deletions) - (b.additions + b.deletions);
+    if (sort === "size_desc") return b.additions + b.deletions - (a.additions + a.deletions);
+    if (sort === "size_asc") return a.additions + a.deletions - (b.additions + b.deletions);
     if (sort === "files_desc") return b.changedFiles - a.changedFiles;
     if (sort === "review_pending") {
       const aPending = a.reviewsCount === 0 && !a.isDraft ? 1 : 0;
@@ -253,7 +321,8 @@ export function sortPullRequests(prs: GhPullRequest[], sort: string): GhPullRequ
       if (aPending !== bPending) return bPending - aPending;
       return Date.parse(a.createdAt) - Date.parse(b.createdAt);
     }
-    if (sort === "repo_asc") return a.repository.nameWithOwner.localeCompare(b.repository.nameWithOwner);
+    if (sort === "repo_asc")
+      return a.repository.nameWithOwner.localeCompare(b.repository.nameWithOwner);
     return Date.parse(b.updatedAt) - Date.parse(a.updatedAt);
   });
   return sorted;
@@ -267,17 +336,26 @@ export function sortIssues(issues: GhIssue[], sort: string): GhIssue[] {
     if (sort === "created_asc") return Date.parse(a.createdAt) - Date.parse(b.createdAt);
     if (sort === "comments_desc") return b.commentsCount - a.commentsCount;
     if (sort === "comments_asc") return a.commentsCount - b.commentsCount;
-    if (sort === "repo_asc") return a.repository.nameWithOwner.localeCompare(b.repository.nameWithOwner);
+    if (sort === "repo_asc")
+      return a.repository.nameWithOwner.localeCompare(b.repository.nameWithOwner);
     return Date.parse(b.updatedAt) - Date.parse(a.updatedAt);
   });
   return sorted;
 }
 
-export function sortRepos(repos: GhRepo[], issues: GhIssue[], sort: string, insightsByRepo?: Map<string, RepoInsight>): GhRepo[] {
+export function sortRepos(
+  repos: GhRepo[],
+  issues: GhIssue[],
+  sort: string,
+  insightsByRepo?: Map<string, RepoInsight>,
+): GhRepo[] {
   const sorted = [...repos];
   sorted.sort((a, b) => {
-    const issueDelta = issueCountForRepo(issues, b.nameWithOwner) - issueCountForRepo(issues, a.nameWithOwner);
-    const healthDelta = (insightsByRepo?.get(b.nameWithOwner)?.healthScore ?? 0) - (insightsByRepo?.get(a.nameWithOwner)?.healthScore ?? 0);
+    const issueDelta =
+      issueCountForRepo(issues, b.nameWithOwner) - issueCountForRepo(issues, a.nameWithOwner);
+    const healthDelta =
+      (insightsByRepo?.get(b.nameWithOwner)?.healthScore ?? 0) -
+      (insightsByRepo?.get(a.nameWithOwner)?.healthScore ?? 0);
     if (sort === "stars_asc") return a.stargazerCount - b.stargazerCount;
     if (sort === "forks_desc") return b.forkCount - a.forkCount;
     if (sort === "forks_asc") return a.forkCount - b.forkCount;

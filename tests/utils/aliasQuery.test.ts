@@ -1,9 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  buildMentionQuery,
-  isValidRepoName,
-  normalizeAliases,
-} from "../../src/utils/aliasQuery";
+import { buildMentionQuery, isValidRepoName, normalizeAliases } from "../../src/utils/aliasQuery";
 
 describe("aliasQuery utilities", () => {
   it("validates owner/repo identifiers", () => {
@@ -16,13 +12,13 @@ describe("aliasQuery utilities", () => {
 
   it("strips whitespace, dedupes, and removes the canonical name", () => {
     expect(
-      normalizeAliases("openai/codex", ["  openai/old  ", "openai/codex", "openai/old", "bad", ""])
+      normalizeAliases("openai/codex", ["  openai/old  ", "openai/codex", "openai/old", "bad", ""]),
     ).toEqual(["openai/old"]);
   });
 
   it("builds a quoted OR query including the canonical repo first", () => {
     expect(buildMentionQuery("openai/codex", ["openai/old", "old-org/codex"])).toBe(
-      `"openai/codex" OR "openai/old" OR "old-org/codex"`
+      `"openai/codex" OR "openai/old" OR "old-org/codex"`,
     );
   });
 

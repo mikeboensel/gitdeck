@@ -182,7 +182,18 @@ export function CommandPalette({
       });
     }
     return entries;
-  }, [repos, issues, pullRequests, onNavigateTab, onOpenRepo, onRefresh, onToggleTheme, onExportRepos, onExportIssues, onExportPullRequests]);
+  }, [
+    repos,
+    issues,
+    pullRequests,
+    onNavigateTab,
+    onOpenRepo,
+    onRefresh,
+    onToggleTheme,
+    onExportRepos,
+    onExportIssues,
+    onExportPullRequests,
+  ]);
 
   const results = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -248,14 +259,11 @@ export function CommandPalette({
   return (
     <div className="modal-root command-palette-root">
       <div className="modal-backdrop" onClick={onClose} />
-      <div
-        className="command-palette"
-        role="dialog"
-        aria-modal="true"
-        aria-label="Command palette"
-      >
+      <div className="command-palette" role="dialog" aria-modal="true" aria-label="Command palette">
         <div className="command-palette-input-row">
-          <span className="command-palette-icon" aria-hidden="true">⌘</span>
+          <span className="command-palette-icon" aria-hidden="true">
+            ⌘
+          </span>
           <input
             ref={inputRef}
             className="command-palette-input"
@@ -305,9 +313,16 @@ export function CommandPalette({
           )}
         </div>
         <footer className="command-palette-foot">
-          <span><kbd className="kbd kbd--sm">↑</kbd><kbd className="kbd kbd--sm">↓</kbd> navigate</span>
-          <span><kbd className="kbd kbd--sm">↵</kbd> select</span>
-          <span><kbd className="kbd kbd--sm">esc</kbd> close</span>
+          <span>
+            <kbd className="kbd kbd--sm">↑</kbd>
+            <kbd className="kbd kbd--sm">↓</kbd> navigate
+          </span>
+          <span>
+            <kbd className="kbd kbd--sm">↵</kbd> select
+          </span>
+          <span>
+            <kbd className="kbd kbd--sm">esc</kbd> close
+          </span>
         </footer>
       </div>
     </div>

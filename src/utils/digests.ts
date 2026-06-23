@@ -53,15 +53,18 @@ export function buildDailyDigestRecord(
     }
   }
 
-  const repoRecords = repos.map((repo) => ({
-    repo: repo.nameWithOwner,
-    stars: repo.stargazerCount,
-    forks: repo.forkCount,
-    issueCount: issueCountByRepo.get(repo.nameWithOwner) || 0,
-    staleIssueCount: staleIssueCountByRepo.get(repo.nameWithOwner) || 0,
-    securityAlertsCount: securityByRepo.get(repo.nameWithOwner)?.securityAlertsCount || 0,
-    securityAlertsUnavailable: securityByRepo.get(repo.nameWithOwner)?.securityAlertsUnavailable || false,
-  })).sort((a, b) => a.repo.localeCompare(b.repo));
+  const repoRecords = repos
+    .map((repo) => ({
+      repo: repo.nameWithOwner,
+      stars: repo.stargazerCount,
+      forks: repo.forkCount,
+      issueCount: issueCountByRepo.get(repo.nameWithOwner) || 0,
+      staleIssueCount: staleIssueCountByRepo.get(repo.nameWithOwner) || 0,
+      securityAlertsCount: securityByRepo.get(repo.nameWithOwner)?.securityAlertsCount || 0,
+      securityAlertsUnavailable:
+        securityByRepo.get(repo.nameWithOwner)?.securityAlertsUnavailable || false,
+    }))
+    .sort((a, b) => a.repo.localeCompare(b.repo));
   const securityAlertsCount = repoRecords.reduce((sum, repo) => sum + repo.securityAlertsCount, 0);
   const securityReposCount = repoRecords.filter((repo) => repo.securityAlertsCount > 0).length;
   const securityAlertsUnavailable = repoRecords.some((repo) => repo.securityAlertsUnavailable);
@@ -70,7 +73,9 @@ export function buildDailyDigestRecord(
     date: new Date(now).toISOString().slice(0, 10),
     repoCount: repos.length,
     issueCount: issues.length,
-    staleIssueCount: issues.filter((issue) => now - new Date(issue.updatedAt).getTime() > 30 * DAY_MS).length,
+    staleIssueCount: issues.filter(
+      (issue) => now - new Date(issue.updatedAt).getTime() > 30 * DAY_MS,
+    ).length,
     securityAlertsCount,
     securityReposCount,
     securityAlertsUnavailable,
@@ -89,7 +94,9 @@ function buildRepoDelta(current: DailyRepoRecord, previous?: DailyRepoRecord): D
   const risks = [
     issueDelta > 0 ? `Open issues ${issueDelta >= 0 ? "+" : ""}${issueDelta}.` : "",
     staleIssueDelta > 0 ? `Stale issues ${staleIssueDelta >= 0 ? "+" : ""}${staleIssueDelta}.` : "",
-    current.securityAlertsCount > 0 ? `Security alerts ${current.securityAlertsCount >= 0 ? "+" : ""}${current.securityAlertsCount}.` : "",
+    current.securityAlertsCount > 0
+      ? `Security alerts ${current.securityAlertsCount >= 0 ? "+" : ""}${current.securityAlertsCount}.`
+      : "",
   ].filter(Boolean);
   const momentum = [
     starsDelta > 0 ? `Stars ${starsDelta >= 0 ? "+" : ""}${starsDelta}.` : "",
@@ -112,12 +119,18 @@ function buildRepoDelta(current: DailyRepoRecord, previous?: DailyRepoRecord): D
     securityAlertsDelta,
     highlights: [
       `Stars ${starsDelta >= 0 ? "+" : ""}${starsDelta}, forks ${forksDelta >= 0 ? "+" : ""}${forksDelta}, open issues ${issueDelta >= 0 ? "+" : ""}${issueDelta}.`,
-      current.securityAlertsCount > 0 ? `Security alerts ${current.securityAlertsCount >= 0 ? "+" : ""}${current.securityAlertsCount}.` : "",
+      current.securityAlertsCount > 0
+        ? `Security alerts ${current.securityAlertsCount >= 0 ? "+" : ""}${current.securityAlertsCount}.`
+        : "",
     ],
     executiveSummary: [
       `${current.repo} now has ${current.issueCount} open issues, ${current.staleIssueCount} stale.`,
       `Daily movement: stars ${starsDelta >= 0 ? "+" : ""}${starsDelta}, forks ${forksDelta >= 0 ? "+" : ""}${forksDelta}, issues ${issueDelta >= 0 ? "+" : ""}${issueDelta}${current.securityAlertsCount > 0 ? `, security alerts ${current.securityAlertsCount >= 0 ? "+" : ""}${current.securityAlertsCount}` : ""}.`,
-      risks[0] || momentum[0] || (current.securityAlertsCount > 0 ? `Security alerts are active for ${current.repo}.` : "No major repo-specific movement detected."),
+      risks[0] ||
+        momentum[0] ||
+        (current.securityAlertsCount > 0
+          ? `Security alerts are active for ${current.repo}.`
+          : "No major repo-specific movement detected."),
     ],
     momentum,
     risks,
@@ -126,7 +139,10 @@ function buildRepoDelta(current: DailyRepoRecord, previous?: DailyRepoRecord): D
 }
 
 function toMarkdownDigest(
-  digest: Pick<DailyDigestEntry, "date" | "highlights" | "executiveSummary" | "momentum" | "risks"> & {
+  digest: Pick<
+    DailyDigestEntry,
+    "date" | "highlights" | "executiveSummary" | "momentum" | "risks"
+  > & {
     securityAlertsCount?: number;
     securityReposCount?: number;
     ai?: { headline: string; briefing: string[] } | null;
@@ -143,7 +159,8 @@ function toMarkdownDigest(
     }
   }
   lines.push("", "## Executive summary", ...digest.executiveSummary.map((item) => `- ${item}`));
-  if (digest.momentum.length) lines.push("", "## Momentum", ...digest.momentum.map((item) => `- ${item}`));
+  if (digest.momentum.length)
+    lines.push("", "## Momentum", ...digest.momentum.map((item) => `- ${item}`));
   if (digest.risks.length) lines.push("", "## Risks", ...digest.risks.map((item) => `- ${item}`));
   lines.push("", "## Highlights", ...digest.highlights.map((item) => `- ${item}`));
   return lines.join("\n");
@@ -187,7 +204,10 @@ function bucketByPeriod(records: DailyDigestRecord[], period: DigestPeriod): Dai
   return [...buckets.values()];
 }
 
-export function buildPeriodDigestEntries(records: DailyDigestRecord[], period: DigestPeriod): DailyDigestEntry[] {
+export function buildPeriodDigestEntries(
+  records: DailyDigestRecord[],
+  period: DigestPeriod,
+): DailyDigestEntry[] {
   const bucketed = bucketByPeriod(records, period);
   const entries = buildDailyDigestEntries(bucketed);
   if (period === "day") return entries;
@@ -207,7 +227,12 @@ export function buildDailyDigestEntries(records: DailyDigestRecord[]): DailyDige
         delta.date = record.date;
         return delta;
       })
-      .sort((a, b) => Math.abs(b.issueDelta) - Math.abs(a.issueDelta) || Math.abs(b.starsDelta) - Math.abs(a.starsDelta) || a.repo.localeCompare(b.repo));
+      .sort(
+        (a, b) =>
+          Math.abs(b.issueDelta) - Math.abs(a.issueDelta) ||
+          Math.abs(b.starsDelta) - Math.abs(a.starsDelta) ||
+          a.repo.localeCompare(b.repo),
+      );
 
     const topIssueMover = repoDeltas.find((repo) => repo.issueDelta !== 0);
     const topStarMover = repoDeltas.find((repo) => repo.starsDelta !== 0);
@@ -216,27 +241,49 @@ export function buildDailyDigestEntries(records: DailyDigestRecord[]): DailyDige
 
     const highlights = [
       `Stars ${record.totalStars - (previous?.totalStars || 0) >= 0 ? "+" : ""}${record.totalStars - (previous?.totalStars || 0)}, forks ${record.totalForks - (previous?.totalForks || 0) >= 0 ? "+" : ""}${record.totalForks - (previous?.totalForks || 0)}, open issues ${record.issueCount - (previous?.issueCount || 0) >= 0 ? "+" : ""}${record.issueCount - (previous?.issueCount || 0)}.`,
-      record.securityAlertsCount > 0 ? `Security alerts ${record.securityAlertsCount >= 0 ? "+" : ""}${record.securityAlertsCount} across ${record.securityReposCount} repos.` : "",
-      topIssueMover ? `${topIssueMover.repo} changed open issues by ${topIssueMover.issueDelta >= 0 ? "+" : ""}${topIssueMover.issueDelta}.` : "",
-      topStarMover ? `${topStarMover.repo} changed stars by ${topStarMover.starsDelta >= 0 ? "+" : ""}${topStarMover.starsDelta}.` : "",
-      topStaleMover ? `${topStaleMover.repo} changed stale issues by ${topStaleMover.staleIssueDelta >= 0 ? "+" : ""}${topStaleMover.staleIssueDelta}.` : "",
-      topSecurityMover ? `${topSecurityMover.repo} has ${topSecurityMover.securityAlertsCount} security alerts.` : "",
+      record.securityAlertsCount > 0
+        ? `Security alerts ${record.securityAlertsCount >= 0 ? "+" : ""}${record.securityAlertsCount} across ${record.securityReposCount} repos.`
+        : "",
+      topIssueMover
+        ? `${topIssueMover.repo} changed open issues by ${topIssueMover.issueDelta >= 0 ? "+" : ""}${topIssueMover.issueDelta}.`
+        : "",
+      topStarMover
+        ? `${topStarMover.repo} changed stars by ${topStarMover.starsDelta >= 0 ? "+" : ""}${topStarMover.starsDelta}.`
+        : "",
+      topStaleMover
+        ? `${topStaleMover.repo} changed stale issues by ${topStaleMover.staleIssueDelta >= 0 ? "+" : ""}${topStaleMover.staleIssueDelta}.`
+        : "",
+      topSecurityMover
+        ? `${topSecurityMover.repo} has ${topSecurityMover.securityAlertsCount} security alerts.`
+        : "",
     ].filter(Boolean);
 
     const risks = repoDeltas
-      .filter((repo) => repo.issueDelta > 0 || repo.staleIssueDelta > 0 || repo.securityAlertsCount > 0)
+      .filter(
+        (repo) => repo.issueDelta > 0 || repo.staleIssueDelta > 0 || repo.securityAlertsCount > 0,
+      )
       .slice(0, 3)
-      .map((repo) => `${repo.repo}: issues ${repo.issueDelta >= 0 ? "+" : ""}${repo.issueDelta}, stale ${repo.staleIssueDelta >= 0 ? "+" : ""}${repo.staleIssueDelta}, security ${repo.securityAlertsCount >= 0 ? "+" : ""}${repo.securityAlertsCount}.`);
+      .map(
+        (repo) =>
+          `${repo.repo}: issues ${repo.issueDelta >= 0 ? "+" : ""}${repo.issueDelta}, stale ${repo.staleIssueDelta >= 0 ? "+" : ""}${repo.staleIssueDelta}, security ${repo.securityAlertsCount >= 0 ? "+" : ""}${repo.securityAlertsCount}.`,
+      );
 
     const momentum = repoDeltas
       .filter((repo) => repo.starsDelta > 0 || repo.forksDelta > 0)
       .slice(0, 3)
-      .map((repo) => `${repo.repo}: stars ${repo.starsDelta >= 0 ? "+" : ""}${repo.starsDelta}, forks ${repo.forksDelta >= 0 ? "+" : ""}${repo.forksDelta}.`);
+      .map(
+        (repo) =>
+          `${repo.repo}: stars ${repo.starsDelta >= 0 ? "+" : ""}${repo.starsDelta}, forks ${repo.forksDelta >= 0 ? "+" : ""}${repo.forksDelta}.`,
+      );
 
     const executiveSummary = [
       `Tracked ${record.repoCount} repositories with ${record.issueCount} open issues in total.`,
       `Daily deltas: stars ${record.totalStars - (previous?.totalStars || 0) >= 0 ? "+" : ""}${record.totalStars - (previous?.totalStars || 0)}, forks ${record.totalForks - (previous?.totalForks || 0) >= 0 ? "+" : ""}${record.totalForks - (previous?.totalForks || 0)}, issues ${record.issueCount - (previous?.issueCount || 0) >= 0 ? "+" : ""}${record.issueCount - (previous?.issueCount || 0)}${record.securityAlertsCount > 0 ? `, security alerts ${record.securityAlertsCount >= 0 ? "+" : ""}${record.securityAlertsCount}` : ""}.`,
-      risks[0] || momentum[0] || (record.securityAlertsCount > 0 ? "Security alerts are active across tracked repositories." : "No significant repo-level movement detected."),
+      risks[0] ||
+        momentum[0] ||
+        (record.securityAlertsCount > 0
+          ? "Security alerts are active across tracked repositories."
+          : "No significant repo-level movement detected."),
     ];
 
     return {

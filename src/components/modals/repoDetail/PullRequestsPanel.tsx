@@ -14,9 +14,14 @@ export function PullRequestsPanel({ repo, pullRequests }: PullRequestsPanelProps
   const [repoPrsPage, setRepoPrsPage] = useState(1);
   const [repoPrsPageSize, setRepoPrsPageSize] = useState(MODAL_PAGE_SIZE);
 
-  const repoPullRequests = pullRequests.filter((pr) => pr.repository.nameWithOwner === repo.nameWithOwner);
+  const repoPullRequests = pullRequests.filter(
+    (pr) => pr.repository.nameWithOwner === repo.nameWithOwner,
+  );
   const safeRepoPrsPage = clampPage(repoPrsPage, repoPullRequests.length, repoPrsPageSize);
-  const pagedRepoPrs = repoPullRequests.slice((safeRepoPrsPage - 1) * repoPrsPageSize, safeRepoPrsPage * repoPrsPageSize);
+  const pagedRepoPrs = repoPullRequests.slice(
+    (safeRepoPrsPage - 1) * repoPrsPageSize,
+    safeRepoPrsPage * repoPrsPageSize,
+  );
 
   return (
     <section>
@@ -25,13 +30,26 @@ export function PullRequestsPanel({ repo, pullRequests }: PullRequestsPanelProps
         <strong>{formatNumber(repoPullRequests.length)}</strong>
       </div>
       {pagedRepoPrs.map((pr) => (
-        <a className="repo-detail-issue" href={pr.url} target="_blank" rel="noreferrer" key={pr.url}>
+        <a
+          className="repo-detail-issue"
+          href={pr.url}
+          target="_blank"
+          rel="noreferrer"
+          key={pr.url}
+        >
           <span>#{pr.number}</span>
           <strong>{pr.title}</strong>
-          <em>{pr.isDraft ? "Draft" : pr.reviewDecision?.replace("_", " ").toLowerCase() || "Review pending"} · {formatRelativeTime(pr.updatedAt)}</em>
+          <em>
+            {pr.isDraft
+              ? "Draft"
+              : pr.reviewDecision?.replace("_", " ").toLowerCase() || "Review pending"}{" "}
+            · {formatRelativeTime(pr.updatedAt)}
+          </em>
         </a>
       ))}
-      {!repoPullRequests.length ? <div className="modal-empty sub">No open pull requests for this repository.</div> : null}
+      {!repoPullRequests.length ? (
+        <div className="modal-empty sub">No open pull requests for this repository.</div>
+      ) : null}
       {repoPullRequests.length ? (
         <Pagination
           totalItems={repoPullRequests.length}

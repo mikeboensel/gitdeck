@@ -30,9 +30,9 @@
   --color-yellow-500: #eab308;
 
   --bg: #0f141d;
-  --bg-grad: linear-gradient(180deg, rgba(46, 230, 195, 0.055), transparent 260px),
-              radial-gradient(980px 520px at 78% -18%, rgba(98, 109, 246, 0.14), transparent 58%),
-              #0f141d;
+  --bg-grad:
+    linear-gradient(180deg, rgba(46, 230, 195, 0.055), transparent 260px),
+    radial-gradient(980px 520px at 78% -18%, rgba(98, 109, 246, 0.14), transparent 58%), #0f141d;
   --panel: #171e2a;
   --panel-2: #202938;
   --panel-3: #2a3547;
@@ -48,12 +48,12 @@
   --danger: var(--color-red-500);
   --star: var(--color-yellow-500);
   --ring: 0 0 0 3px rgba(46, 230, 195, 0.22);
-  --shadow: 0 1px 2px rgba(0,0,0,0.28), 0 18px 42px rgba(0,0,0,0.3);
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.28), 0 18px 42px rgba(0, 0, 0, 0.3);
   --scroll-thumb: #3c4960;
   --scroll-thumb-hover: #536078;
-  --hover-surface: rgba(255,255,255,0.06);
-  --hover-surface-strong: rgba(255,255,255,0.1);
-  --topbar-bg: rgba(13,19,32,0.88);
+  --hover-surface: rgba(255, 255, 255, 0.06);
+  --hover-surface-strong: rgba(255, 255, 255, 0.1);
+  --topbar-bg: rgba(13, 19, 32, 0.88);
   --button-hover-border: #536078;
   --active-start: #465166;
   --active-end: #30384a;
@@ -74,9 +74,9 @@
   color-scheme: light;
 
   --bg: #f7f9fc;
-  --bg-grad: linear-gradient(180deg, rgba(24, 185, 159, 0.06), transparent 260px),
-              radial-gradient(900px 520px at 94% -16%, rgba(98, 109, 246, 0.09), transparent 58%),
-              #f7f9fc;
+  --bg-grad:
+    linear-gradient(180deg, rgba(24, 185, 159, 0.06), transparent 260px),
+    radial-gradient(900px 520px at 94% -16%, rgba(98, 109, 246, 0.09), transparent 58%), #f7f9fc;
   --panel: #ffffff;
   --panel-2: #f0f4f9;
   --panel-3: #e5ebf4;
@@ -88,12 +88,12 @@
   --accent: var(--color-teal-600);
   --accent-2: var(--color-indigo-600);
   --ring: 0 0 0 3px rgba(24, 185, 159, 0.18);
-  --shadow: 0 1px 2px rgba(17,24,39,0.07), 0 12px 28px rgba(17,24,39,0.1);
+  --shadow: 0 1px 2px rgba(17, 24, 39, 0.07), 0 12px 28px rgba(17, 24, 39, 0.1);
   --scroll-thumb: #c2ccda;
   --scroll-thumb-hover: #9aa7ba;
-  --hover-surface: rgba(23,32,51,0.045);
-  --hover-surface-strong: rgba(23,32,51,0.08);
-  --topbar-bg: rgba(246,248,252,0.88);
+  --hover-surface: rgba(23, 32, 51, 0.045);
+  --hover-surface-strong: rgba(23, 32, 51, 0.08);
+  --topbar-bg: rgba(246, 248, 252, 0.88);
   --button-hover-border: #aeb9ca;
   --active-start: #ffffff;
   --active-end: #e5ebf4;
@@ -110,9 +110,9 @@
     color-scheme: light;
 
     --bg: #f7f9fc;
-    --bg-grad: linear-gradient(180deg, rgba(24, 185, 159, 0.06), transparent 260px),
-                radial-gradient(900px 520px at 94% -16%, rgba(98, 109, 246, 0.09), transparent 58%),
-                #f7f9fc;
+    --bg-grad:
+      linear-gradient(180deg, rgba(24, 185, 159, 0.06), transparent 260px),
+      radial-gradient(900px 520px at 94% -16%, rgba(98, 109, 246, 0.09), transparent 58%), #f7f9fc;
     --panel: #ffffff;
     --panel-2: #f0f4f9;
     --panel-3: #e5ebf4;
@@ -124,12 +124,12 @@
     --accent: var(--color-teal-600);
     --accent-2: var(--color-indigo-600);
     --ring: 0 0 0 3px rgba(24, 185, 159, 0.18);
-    --shadow: 0 1px 2px rgba(17,24,39,0.07), 0 12px 28px rgba(17,24,39,0.1);
+    --shadow: 0 1px 2px rgba(17, 24, 39, 0.07), 0 12px 28px rgba(17, 24, 39, 0.1);
     --scroll-thumb: #c2ccda;
     --scroll-thumb-hover: #9aa7ba;
-    --hover-surface: rgba(23,32,51,0.045);
-    --hover-surface-strong: rgba(23,32,51,0.08);
-    --topbar-bg: rgba(246,248,252,0.88);
+    --hover-surface: rgba(23, 32, 51, 0.045);
+    --hover-surface-strong: rgba(23, 32, 51, 0.08);
+    --topbar-bg: rgba(246, 248, 252, 0.88);
     --button-hover-border: #aeb9ca;
     --active-start: #ffffff;
     --active-end: #e5ebf4;

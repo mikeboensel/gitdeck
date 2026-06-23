@@ -37,7 +37,8 @@ export const de: Record<keyof typeof en, string> = {
   "accounts.viaToken": "Persönlichen Access-Token verwenden",
   "accounts.tokenLabel": "Persönlicher Access-Token",
   "accounts.tokenRequired": "Token ist erforderlich",
-  "accounts.tokenHelp": "Erstellen Sie einen Token auf {provider} mit Lesezugriff für Repos, Issues und Benachrichtigungen.",
+  "accounts.tokenHelp":
+    "Erstellen Sie einen Token auf {provider} mit Lesezugriff für Repos, Issues und Benachrichtigungen.",
   "common.authenticated": "Authentifiziert",
   "common.authenticatedExternally": "Extern authentifiziert",
   "common.export": "Exportieren",
@@ -187,19 +188,24 @@ export const de: Record<keyof typeof en, string> = {
   "preset.stale": "Inaktiv",
   "confirm.markAllRead": "{count} GitHub-Benachrichtigung(en) als gelesen markieren?",
   "auth.signIn": "Account verbinden",
-  "auth.description": "Füge GitHub oder eine Forgejo-kompatible Instanz (Codeberg, selbst gehostet) hinzu, um Repositories, Issues und Benachrichtigungen zu lesen.",
+  "auth.description":
+    "Füge GitHub oder eine Forgejo-kompatible Instanz (Codeberg, selbst gehostet) hinzu, um Repositories, Issues und Benachrichtigungen zu lesen.",
   "auth.brandTag": "Multi-Account-Dashboard",
   "auth.changeProvider": "Provider wechseln",
   "auth.ghCliNotReady": "Authentifizierung über gh CLI ist nicht bereit.",
   "auth.tokenMissing": "GITHUB_TOKEN ist nicht verfügbar.",
-  "auth.ghCliHelp": "Der Server ist mit GH_AUTH_MODE=gh-cli konfiguriert. Stelle sicher, dass gh CLI installiert ist und du angemeldet bist:",
+  "auth.ghCliHelp":
+    "Der Server ist mit GH_AUTH_MODE=gh-cli konfiguriert. Stelle sicher, dass gh CLI installiert ist und du angemeldet bist:",
   "auth.ghCliReload": "dann lade diese Seite neu.",
-  "auth.tokenHelp": "Der Server ist mit GH_AUTH_MODE=token konfiguriert. Exportiere ein Personal Access Token als GITHUB_TOKEN und starte den Server neu.",
+  "auth.tokenHelp":
+    "Der Server ist mit GH_AUTH_MODE=token konfiguriert. Exportiere ein Personal Access Token als GITHUB_TOKEN und starte den Server neu.",
   "auth.clientMissing": "GITHUB_CLIENT_ID ist nicht gesetzt.",
-  "auth.clientHelp": "Registriere eine OAuth App unter github.com/settings/developers, aktiviere Device Flow, exportiere GITHUB_CLIENT_ID und starte den Server neu. Alternativ setze GH_AUTH_MODE=gh-cli, um deine lokale gh CLI Sitzung zu verwenden, oder GH_AUTH_MODE=token mit einem GITHUB_TOKEN.",
+  "auth.clientHelp":
+    "Registriere eine OAuth App unter github.com/settings/developers, aktiviere Device Flow, exportiere GITHUB_CLIENT_ID und starte den Server neu. Alternativ setze GH_AUTH_MODE=gh-cli, um deine lokale gh CLI Sitzung zu verwenden, oder GH_AUTH_MODE=token mit einem GITHUB_TOKEN.",
   "auth.continue": "Fortfahren",
   "auth.requestingCode": "Gerätecode wird angefordert...",
-  "auth.openVerification": "Öffne die Verifizierungsseite des Providers und gib den Code unten ein.",
+  "auth.openVerification":
+    "Öffne die Verifizierungsseite des Providers und gib den Code unten ein.",
   "auth.copied": "Kopiert",
   "auth.copy": "Kopieren",
   "auth.waiting": "Warte auf Autorisierung...",
@@ -231,7 +237,8 @@ export const de: Record<keyof typeof en, string> = {
   "repo.density": "Dichte",
   "repo.padding": "Abstand",
   "welcome.kind": "Willkommen",
-  "welcome.lead": "Erkunde deine GitHub-Repositories, Issues, Pull Requests, Traffic und CI-Aktivität in einem Dashboard.",
+  "welcome.lead":
+    "Erkunde deine GitHub-Repositories, Issues, Pull Requests, Traffic und CI-Aktivität in einem Dashboard.",
   "welcome.repositoriesTitle": "Repositories",
   "welcome.repositoriesText": "Gesundheit, Sterne, Forks, Traffic und Releases auf einen Blick.",
   "welcome.inboxTitle": "Inbox & Triage",
@@ -244,7 +251,8 @@ export const de: Record<keyof typeof en, string> = {
   "welcome.whatsNew": "Neuigkeiten",
   "welcome.getStarted": "Loslegen",
   "ci.noActivity": "Keine CI-Aktivität",
-  "ci.noActivityText": "Keines deiner Repositories hat neue Workflow-Läufe, oder du hast keinen Zugriff.",
+  "ci.noActivityText":
+    "Keines deiner Repositories hat neue Workflow-Läufe, oder du hast keinen Zugriff.",
   "ci.repositoriesCount": "{count} Repositories",
   "ci.successRate": "Erfolgsrate",
   "ci.runs": "Läufe",
@@ -266,7 +274,8 @@ export const de: Record<keyof typeof en, string> = {
   "insights.correlation": "Korrelation",
   "insights.securityAlerts": "{count} Sicherheitswarnungen",
   "insights.securityStatus": "Sicherheitsstatus",
-  "insights.securityUnavailable": "Die Sicherheitswarnungen konnten nicht vollständig geladen werden.",
+  "insights.securityUnavailable":
+    "Die Sicherheitswarnungen konnten nicht vollständig geladen werden.",
   "alerts.emptyTitle": "Keine Sicherheitswarnungen",
   "alerts.emptyText": "Versuche einen anderen Repository-Filter oder aktualisiere das Dashboard.",
   "alerts.totalAlerts": "Sicherheitswarnungen",

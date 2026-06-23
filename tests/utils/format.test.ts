@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { formatBytes, formatExactNumber, formatNumber, formatRelativeTime } from "../../src/utils/format";
+import {
+  formatBytes,
+  formatExactNumber,
+  formatNumber,
+  formatRelativeTime,
+} from "../../src/utils/format";
 
 describe("format utilities", () => {
   it("formats relative time using the provided clock", () => {

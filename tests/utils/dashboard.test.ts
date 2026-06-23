@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import type { GhIssue, GhPullRequest, GhRepo, RepoInsight } from "../../src/types/github";
 import {
   buildIssueFacets,
   buildPullRequestFacets,
@@ -10,7 +11,6 @@ import {
   sortPullRequests,
   sortRepos,
 } from "../../src/utils/dashboard";
-import type { GhIssue, GhPullRequest, GhRepo, RepoInsight } from "../../src/types/github";
 
 const issues: GhIssue[] = [
   {
@@ -147,16 +147,20 @@ describe("dashboard utilities", () => {
   });
 
   it("filters issues by search and selected values", () => {
-    const result = filterIssues(issues, {
-      search: "contrast",
-      orgs: new Set(["acme"]),
-      repos: new Set(["acme/app"]),
-      labels: new Set(["bug"]),
-      authors: new Set(),
-      assignees: new Set(["bob"]),
-      dates: { cf: "", ct: "", uf: "", ut: "" },
-      preset: "",
-    }, "alice");
+    const result = filterIssues(
+      issues,
+      {
+        search: "contrast",
+        orgs: new Set(["acme"]),
+        repos: new Set(["acme/app"]),
+        labels: new Set(["bug"]),
+        authors: new Set(),
+        assignees: new Set(["bob"]),
+        dates: { cf: "", ct: "", uf: "", ut: "" },
+        preset: "",
+      },
+      "alice",
+    );
 
     expect(result.map((issue) => issue.number)).toEqual([1]);
   });
@@ -176,59 +180,72 @@ describe("dashboard utilities", () => {
 
   it("sorts issues and repositories", () => {
     expect(sortIssues(issues, "comments_desc").map((issue) => issue.number)).toEqual([1, 2]);
-    expect(sortRepos(repos, issues, "forks_desc").map((repo) => repo.nameWithOwner)).toEqual(["acme/cli", "acme/app"]);
+    expect(sortRepos(repos, issues, "forks_desc").map((repo) => repo.nameWithOwner)).toEqual([
+      "acme/cli",
+      "acme/app",
+    ]);
   });
 
   it("sorts repositories by health score when insight data is available", () => {
     const insights = new Map<string, RepoInsight>([
-      ["acme/app", {
-        repo: "acme/app",
-        issueCount: 1,
-        staleIssueCount: 0,
-        daysSincePush: 1,
-        daysSinceUpdate: 1,
-        starsDelta: 1,
-        forksDelta: 0,
-        releaseCount: 1,
-        totalDownloads: 10,
-        recentDownloads: 10,
-        viewsCount: 10,
-        viewsUniques: 5,
-        healthScore: 85,
-        healthLabel: "strong",
-        securityAlertsCount: 0,
-        securityAlertsUnavailable: false,
-        alerts: [],
-        opportunities: [],
-        correlations: [],
-        latestReleasePublishedAt: "2026-04-20T10:00:00Z",
-      }],
-      ["acme/cli", {
-        repo: "acme/cli",
-        issueCount: 1,
-        staleIssueCount: 1,
-        daysSincePush: 40,
-        daysSinceUpdate: 40,
-        starsDelta: null,
-        forksDelta: null,
-        releaseCount: 0,
-        totalDownloads: 0,
-        recentDownloads: 0,
-        viewsCount: 0,
-        viewsUniques: 0,
-        healthScore: 30,
-        healthLabel: "risky",
-        securityAlertsCount: 1,
-        securityAlertsUnavailable: false,
-        alerts: ["risk"],
-        opportunities: [],
-        correlations: [],
-        latestReleasePublishedAt: null,
-      }],
+      [
+        "acme/app",
+        {
+          repo: "acme/app",
+          issueCount: 1,
+          staleIssueCount: 0,
+          daysSincePush: 1,
+          daysSinceUpdate: 1,
+          starsDelta: 1,
+          forksDelta: 0,
+          releaseCount: 1,
+          totalDownloads: 10,
+          recentDownloads: 10,
+          viewsCount: 10,
+          viewsUniques: 5,
+          healthScore: 85,
+          healthLabel: "strong",
+          securityAlertsCount: 0,
+          securityAlertsUnavailable: false,
+          alerts: [],
+          opportunities: [],
+          correlations: [],
+          latestReleasePublishedAt: "2026-04-20T10:00:00Z",
+        },
+      ],
+      [
+        "acme/cli",
+        {
+          repo: "acme/cli",
+          issueCount: 1,
+          staleIssueCount: 1,
+          daysSincePush: 40,
+          daysSinceUpdate: 40,
+          starsDelta: null,
+          forksDelta: null,
+          releaseCount: 0,
+          totalDownloads: 0,
+          recentDownloads: 0,
+          viewsCount: 0,
+          viewsUniques: 0,
+          healthScore: 30,
+          healthLabel: "risky",
+          securityAlertsCount: 1,
+          securityAlertsUnavailable: false,
+          alerts: ["risk"],
+          opportunities: [],
+          correlations: [],
+          latestReleasePublishedAt: null,
+        },
+      ],
     ]);
 
-    expect(sortRepos(repos, issues, "health_desc", insights).map((repo) => repo.nameWithOwner)).toEqual(["acme/app", "acme/cli"]);
-    expect(sortRepos(repos, issues, "health_asc", insights).map((repo) => repo.nameWithOwner)).toEqual(["acme/cli", "acme/app"]);
+    expect(
+      sortRepos(repos, issues, "health_desc", insights).map((repo) => repo.nameWithOwner),
+    ).toEqual(["acme/app", "acme/cli"]);
+    expect(
+      sortRepos(repos, issues, "health_asc", insights).map((repo) => repo.nameWithOwner),
+    ).toEqual(["acme/cli", "acme/app"]);
   });
 
   it("builds PR facets from shared PR types", () => {
@@ -239,24 +256,28 @@ describe("dashboard utilities", () => {
   });
 
   it("matches PR presets for review state and draft", () => {
-    expect(matchesPullRequestPreset(pullRequests[0], "approved", "alice")).toBe(true);
-    expect(matchesPullRequestPreset(pullRequests[1], "draft", "alice")).toBe(true);
-    expect(matchesPullRequestPreset(pullRequests[1], "ready", "alice")).toBe(false);
-    expect(matchesPullRequestPreset(pullRequests[2], "awaiting-review", "alice")).toBe(true);
-    expect(matchesPullRequestPreset(pullRequests[0], "authored-me", "alice")).toBe(true);
+    expect(matchesPullRequestPreset(pullRequests[0]!, "approved", "alice")).toBe(true);
+    expect(matchesPullRequestPreset(pullRequests[1]!, "draft", "alice")).toBe(true);
+    expect(matchesPullRequestPreset(pullRequests[1]!, "ready", "alice")).toBe(false);
+    expect(matchesPullRequestPreset(pullRequests[2]!, "awaiting-review", "alice")).toBe(true);
+    expect(matchesPullRequestPreset(pullRequests[0]!, "authored-me", "alice")).toBe(true);
   });
 
   it("filters PRs by repo, author and search", () => {
-    const result = filterPullRequests(pullRequests, {
-      search: "router",
-      orgs: new Set(["acme"]),
-      repos: new Set(["acme/app"]),
-      labels: new Set(),
-      authors: new Set(["alice"]),
-      assignees: new Set(),
-      dates: { cf: "", ct: "", uf: "", ut: "" },
-      preset: "",
-    }, "alice");
+    const result = filterPullRequests(
+      pullRequests,
+      {
+        search: "router",
+        orgs: new Set(["acme"]),
+        repos: new Set(["acme/app"]),
+        labels: new Set(),
+        authors: new Set(["alice"]),
+        assignees: new Set(),
+        dates: { cf: "", ct: "", uf: "", ut: "" },
+        preset: "",
+      },
+      "alice",
+    );
     expect(result.map((pr) => pr.number)).toEqual([11]);
   });
 

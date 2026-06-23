@@ -1,5 +1,6 @@
 import type { HttpBindings } from "@hono/node-server";
 import type { OpenAPIHono } from "@hono/zod-openapi";
+import { errorMessage } from "../../utils/errors";
 import { getAuthMode } from "../authProvider";
 import { invalidateCIHealthCache } from "../ciHealth";
 import { invalidateDataCache } from "../dashboardData";
@@ -12,7 +13,6 @@ import {
   startDeviceFlow,
 } from "../oauth";
 import { json } from "../openapi/respond";
-import { errorMessage } from "../../utils/errors";
 
 type App = OpenAPIHono<{ Bindings: HttpBindings }>;
 

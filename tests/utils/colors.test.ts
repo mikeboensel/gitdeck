@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { getContrastColor, getLabelCssVars, getLanguageColor, rgbToHsl } from "../../src/utils/colors";
+import {
+  getContrastColor,
+  getLabelCssVars,
+  getLanguageColor,
+  rgbToHsl,
+} from "../../src/utils/colors";
 
 describe("color utilities", () => {
   it("selects readable contrast colors", () => {
@@ -29,9 +34,9 @@ describe("color utilities", () => {
       "--label-g": "202",
       "--label-b": "4",
     });
-    expect(vars && vars["--label-h"]).toMatch(/^\d+$/);
-    expect(vars && vars["--label-s"]).toMatch(/^\d+$/);
-    expect(vars && vars["--label-l"]).toMatch(/^\d+$/);
+    expect(vars?.["--label-h"]).toMatch(/^\d+$/);
+    expect(vars?.["--label-s"]).toMatch(/^\d+$/);
+    expect(vars?.["--label-l"]).toMatch(/^\d+$/);
   });
 
   it("accepts hex colors with leading hash", () => {

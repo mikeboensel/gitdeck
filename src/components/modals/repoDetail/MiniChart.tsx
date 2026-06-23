@@ -5,14 +5,24 @@ function chartPath(values: number[], width: number, height: number) {
   const max = Math.max(...values, 1);
   const min = Math.min(...values);
   const range = Math.max(max - min, 1);
-  return values.map((value, index) => {
-    const x = (index / (values.length - 1)) * width;
-    const y = height - ((value - min) / range) * height;
-    return `${index === 0 ? "M" : "L"} ${x.toFixed(2)} ${y.toFixed(2)}`;
-  }).join(" ");
+  return values
+    .map((value, index) => {
+      const x = (index / (values.length - 1)) * width;
+      const y = height - ((value - min) / range) * height;
+      return `${index === 0 ? "M" : "L"} ${x.toFixed(2)} ${y.toFixed(2)}`;
+    })
+    .join(" ");
 }
 
-export function MiniChart({ title, values, tone = "accent" }: { title: string; values: number[]; tone?: "accent" | "purple" | "green" | "amber" }) {
+export function MiniChart({
+  title,
+  values,
+  tone = "accent",
+}: {
+  title: string;
+  values: number[];
+  tone?: "accent" | "purple" | "green" | "amber";
+}) {
   const width = 240;
   const height = 72;
   const path = chartPath(values, width, height);
@@ -34,7 +44,9 @@ export function MiniChart({ title, values, tone = "accent" }: { title: string; v
       ) : (
         <div className="repo-chart-empty">Not enough data</div>
       )}
-      <em>{delta === 0 ? "No change" : `${delta > 0 ? "+" : ""}${formatNumber(delta)} in range`}</em>
+      <em>
+        {delta === 0 ? "No change" : `${delta > 0 ? "+" : ""}${formatNumber(delta)} in range`}
+      </em>
     </div>
   );
 }

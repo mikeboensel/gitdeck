@@ -1,13 +1,13 @@
 import type { HttpBindings } from "@hono/node-server";
 import { createRoute, type OpenAPIHono, z } from "@hono/zod-openapi";
 import { buildMentionQuery } from "../../utils/aliasQuery";
+import { errorMessage } from "../../utils/errors";
 import { nameWithOwnerFromApiUrl, parseRepositoryName } from "../../utils/repository";
 import { getAliases } from "../aliasStore";
 import { getToken, ghApiJson, restApi } from "../githubClient";
 import { logger } from "../logger";
 import { errEnvelope, okEnvelope } from "../openapi/envelope";
 import { repoField, upperEnum } from "../openapi/params";
-import { errorMessage } from "../../utils/errors";
 
 type App = OpenAPIHono<{ Bindings: HttpBindings }>;
 
@@ -56,8 +56,8 @@ function parseDependentsHtml(html: string): {
 
   const repoCountMatch = /([\d,]+)\s+Repositor(?:y|ies)/.exec(html);
   const pkgCountMatch = /([\d,]+)\s+Packages?/.exec(html);
-  const totalRepos = repoCountMatch ? Number(repoCountMatch[1].replace(/,/g, "")) : 0;
-  const totalPackages = pkgCountMatch ? Number(pkgCountMatch[1].replace(/,/g, "")) : 0;
+  const totalRepos = repoCountMatch ? Number(repoCountMatch[1]!.replace(/,/g, "")) : 0;
+  const totalPackages = pkgCountMatch ? Number(pkgCountMatch[1]!.replace(/,/g, "")) : 0;
 
   const items: DependentItem[] = [];
   const seen = new Set<string>();
@@ -65,7 +65,7 @@ function parseDependentsHtml(html: string): {
   const pagMarker = 'class="paginate-container"';
   const parts = html.split(rowMarker);
   for (let i = 1; i < parts.length; i++) {
-    let chunk = parts[i];
+    let chunk = parts[i]!;
     const pagIdx = chunk.indexOf(pagMarker);
     if (pagIdx >= 0) chunk = chunk.substring(0, pagIdx);
 
@@ -73,8 +73,8 @@ function parseDependentsHtml(html: string): {
       chunk,
     );
     if (!repoLinkMatch) continue;
-    const owner = repoLinkMatch[1];
-    const repoName = repoLinkMatch[2];
+    const owner = repoLinkMatch[1]!;
+    const repoName = repoLinkMatch[2]!;
     const nwo = `${owner}/${repoName}`;
     if (seen.has(nwo)) continue;
     seen.add(nwo);
@@ -90,9 +90,9 @@ function parseDependentsHtml(html: string): {
       repo: repoName,
       nameWithOwner: nwo,
       url: `https://github.com/${nwo}`,
-      stars: starsMatch ? Number(starsMatch[1].replace(/,/g, "")) : 0,
-      forks: forksMatch ? Number(forksMatch[1].replace(/,/g, "")) : 0,
-      avatar: avatarMatch ? avatarMatch[1].replace(/&amp;/g, "&") : "",
+      stars: starsMatch ? Number(starsMatch[1]!.replace(/,/g, "")) : 0,
+      forks: forksMatch ? Number(forksMatch[1]!.replace(/,/g, "")) : 0,
+      avatar: avatarMatch ? avatarMatch[1]!.replace(/&amp;/g, "&") : "",
     });
   }
 
@@ -106,9 +106,9 @@ function parseDependentsHtml(html: string): {
     totalRepos,
     totalPackages,
     hasNextPage: !!nextMatch,
-    nextCursor: nextMatch ? nextMatch[1] : null,
+    nextCursor: nextMatch ? (nextMatch[1] ?? null) : null,
     hasPrevPage: !!prevMatch,
-    prevCursor: prevMatch ? prevMatch[1] : null,
+    prevCursor: prevMatch ? (prevMatch[1] ?? null) : null,
     notAvailable,
   };
 }

@@ -57,7 +57,13 @@ export function isUnknownLanguage(name: string): boolean {
 export function LanguageIcon({ name, size = 14 }: { name: string; size?: number }) {
   // Repos with no detected language ("—") get an explicit "unknown" marker.
   if (isUnknownLanguage(name)) {
-    return <LuFileQuestion size={size} style={{ color: "var(--muted)", flexShrink: 0 }} aria-hidden="true" />;
+    return (
+      <LuFileQuestion
+        size={size}
+        style={{ color: "var(--muted)", flexShrink: 0 }}
+        aria-hidden="true"
+      />
+    );
   }
   const color = getLanguageColor(name);
   const Icon = LANG_ICONS[name.toLowerCase()];

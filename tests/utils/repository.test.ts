@@ -24,7 +24,9 @@ describe("repository utilities", () => {
   });
 
   it("extracts nameWithOwner from a repository API url", () => {
-    expect(nameWithOwnerFromApiUrl("https://api.github.com/repos/openai/codex")).toBe("openai/codex");
+    expect(nameWithOwnerFromApiUrl("https://api.github.com/repos/openai/codex")).toBe(
+      "openai/codex",
+    );
   });
 
   it("returns the input unchanged when it is not a repository API url", () => {

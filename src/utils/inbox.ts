@@ -1,4 +1,11 @@
-import type { GhIssue, GhLabel, GhNotification, GhPullRequest, GhUser, ReviewDecision } from "../types/github";
+import type {
+  GhIssue,
+  GhLabel,
+  GhNotification,
+  GhPullRequest,
+  GhUser,
+  ReviewDecision,
+} from "../types/github";
 
 const DAY_MS = 86_400_000;
 
@@ -99,12 +106,20 @@ function isAuthor(author: GhUser | undefined, login: string): boolean {
   return Boolean(login && author?.login === login);
 }
 
-function reason(code: InboxReasonCode, label: string, tone: InboxReasonTone = "default"): InboxReason {
+function reason(
+  code: InboxReasonCode,
+  label: string,
+  tone: InboxReasonTone = "default",
+): InboxReason {
   return { code, label, tone };
 }
 
 function inboxSort(a: InboxItem, b: InboxItem): number {
-  return Date.parse(b.updatedAt) - Date.parse(a.updatedAt) || b.score - a.score || a.repository.nameWithOwner.localeCompare(b.repository.nameWithOwner);
+  return (
+    Date.parse(b.updatedAt) - Date.parse(a.updatedAt) ||
+    b.score - a.score ||
+    a.repository.nameWithOwner.localeCompare(b.repository.nameWithOwner)
+  );
 }
 
 function buildIssueInboxItem(issue: GhIssue, userLogin: string, now: number): InboxItem {
@@ -225,7 +240,12 @@ function buildPullRequestInboxItem(pr: GhPullRequest, userLogin: string, now: nu
   };
 }
 
-export function buildInboxItems({ issues, pullRequests, userLogin = "", now = Date.now() }: BuildInboxOptions): InboxItem[] {
+export function buildInboxItems({
+  issues,
+  pullRequests,
+  userLogin = "",
+  now = Date.now(),
+}: BuildInboxOptions): InboxItem[] {
   return [
     ...pullRequests.map((pr) => buildPullRequestInboxItem(pr, userLogin, now)),
     ...issues.map((issue) => buildIssueInboxItem(issue, userLogin, now)),
@@ -263,16 +283,28 @@ export function searchInboxItems(items: InboxItem[], search = ""): InboxItem[] {
       ...item.labels.map((label) => label.name),
       ...item.assignees.map((assignee) => assignee.login),
       ...item.reasons.map((itemReason) => itemReason.label),
-    ].join(" ").toLowerCase();
+    ]
+      .join(" ")
+      .toLowerCase();
     return haystack.includes(query);
   });
 }
 
-export function filterInboxItems(items: InboxItem[], mailbox: InboxMailbox, search = ""): InboxItem[] {
-  return searchInboxItems(items.filter((item) => matchesInboxMailbox(item, mailbox)), search);
+export function filterInboxItems(
+  items: InboxItem[],
+  mailbox: InboxMailbox,
+  search = "",
+): InboxItem[] {
+  return searchInboxItems(
+    items.filter((item) => matchesInboxMailbox(item, mailbox)),
+    search,
+  );
 }
 
-const NOTIFICATION_REASON_LABEL: Record<string, { label: string; tone: InboxReasonTone; code: InboxReasonCode } | undefined> = {
+const NOTIFICATION_REASON_LABEL: Record<
+  string,
+  { label: string; tone: InboxReasonTone; code: InboxReasonCode } | undefined
+> = {
   mention: { label: "Mentioned", tone: "attention", code: "mentioned" },
   team_mention: { label: "Team mention", tone: "attention", code: "mentioned" },
   review_requested: { label: "Review requested", tone: "attention", code: "review-requested" },
@@ -285,7 +317,10 @@ function notificationKey(repo: string, number: number): string {
   return `${repo}#${number}`;
 }
 
-export function mergeNotifications(items: InboxItem[], notifications: GhNotification[] | undefined): InboxItem[] {
+export function mergeNotifications(
+  items: InboxItem[],
+  notifications: GhNotification[] | undefined,
+): InboxItem[] {
   if (!notifications?.length) return items;
   const byKey = new Map<string, GhNotification>();
   for (const note of notifications) {

@@ -124,7 +124,7 @@ function parseNextLink(header: string | null): string | null {
   if (!header) return null;
   for (const part of header.split(",")) {
     const match = /<([^>]+)>;\s*rel="next"/.exec(part.trim());
-    if (match) return match[1];
+    if (match) return match[1] ?? null;
   }
   return null;
 }
@@ -132,7 +132,9 @@ function parseNextLink(header: string | null): string | null {
 async function rest<T>(account: Account, path: string, init?: RequestInit): Promise<RestResult<T>> {
   await resolveConfig(account);
   const config = providerConfigOf(account);
-  const url = path.startsWith("http") ? path : `${config.baseUrl}${path.startsWith("/") ? path : `/${path}`}`;
+  const url = path.startsWith("http")
+    ? path
+    : `${config.baseUrl}${path.startsWith("/") ? path : `/${path}`}`;
   const response = await fetch(url, {
     ...init,
     headers: { ...authHeaders(account), ...((init?.headers as Record<string, string>) ?? {}) },
@@ -149,7 +151,12 @@ async function rest<T>(account: Account, path: string, init?: RequestInit): Prom
   }
 }
 
-async function restPaginate<T>(account: Account, path: string, perPage = 50, maxPages = 10): Promise<RestResult<T[]>> {
+async function restPaginate<T>(
+  account: Account,
+  path: string,
+  perPage = 50,
+  maxPages = 10,
+): Promise<RestResult<T[]>> {
   await resolveConfig(account);
   const config = providerConfigOf(account);
   const separator = path.includes("?") ? "&" : "?";
@@ -162,10 +169,14 @@ async function restPaginate<T>(account: Account, path: string, perPage = 50, max
   while (url && pages < maxPages) {
     const response = await fetch(url, { headers: authHeaders(account) });
     const text = await response.text();
-    if (!response.ok) return { ok: false, status: response.status, error: text || `HTTP ${response.status}` };
+    if (!response.ok)
+      return { ok: false, status: response.status, error: text || `HTTP ${response.status}` };
     let page: unknown;
-    try { page = JSON.parse(text); }
-    catch { return { ok: false, status: response.status, error: "invalid JSON" }; }
+    try {
+      page = JSON.parse(text);
+    } catch {
+      return { ok: false, status: response.status, error: "invalid JSON" };
+    }
     if (Array.isArray(page)) {
       for (const item of page) collected.push(item as T);
     } else {
@@ -197,7 +208,10 @@ function normalizeRepo(raw: ForgejoRepo): GhRepo {
   };
 }
 
-function repositoryFromIssueUrl(html_url: string, fallbackFull?: string): { name: string; nameWithOwner: string } {
+function repositoryFromIssueUrl(
+  html_url: string,
+  fallbackFull?: string,
+): { name: string; nameWithOwner: string } {
   // Forgejo issue html_url format: {webUrl}/{owner}/{repo}/issues/{n}
   try {
     const u = new URL(html_url);
@@ -217,7 +231,10 @@ function repositoryFromIssueUrl(html_url: string, fallbackFull?: string): { name
 
 function normalizeIssue(raw: ForgejoIssueLike): GhIssue {
   const repository = raw.repository?.full_name
-    ? { name: raw.repository.name ?? raw.repository.full_name.split("/")[1] ?? "", nameWithOwner: raw.repository.full_name }
+    ? {
+        name: raw.repository.name ?? raw.repository.full_name.split("/")[1] ?? "",
+        nameWithOwner: raw.repository.full_name,
+      }
     : repositoryFromIssueUrl(raw.html_url);
   return {
     repository,
@@ -226,10 +243,24 @@ function normalizeIssue(raw: ForgejoIssueLike): GhIssue {
     number: raw.number,
     createdAt: raw.created_at,
     updatedAt: raw.updated_at,
-    author: raw.user ? { login: raw.user.login ?? raw.user.username ?? "", avatarUrl: raw.user.avatar_url, url: raw.user.html_url } : undefined,
-    labels: (raw.labels ?? []).map((label) => ({ name: label.name, color: label.color, description: label.description })),
+    author: raw.user
+      ? {
+          login: raw.user.login ?? raw.user.username ?? "",
+          avatarUrl: raw.user.avatar_url,
+          url: raw.user.html_url,
+        }
+      : undefined,
+    labels: (raw.labels ?? []).map((label) => ({
+      name: label.name,
+      color: label.color,
+      description: label.description,
+    })),
     commentsCount: raw.comments ?? 0,
-    assignees: (raw.assignees ?? []).map((user) => ({ login: user.login ?? user.username ?? "", avatarUrl: user.avatar_url, url: user.html_url })),
+    assignees: (raw.assignees ?? []).map((user) => ({
+      login: user.login ?? user.username ?? "",
+      avatarUrl: user.avatar_url,
+      url: user.html_url,
+    })),
   };
 }
 
@@ -276,7 +307,7 @@ function normalizeNotification(raw: ForgejoNotification): GhNotification {
       title: raw.subject?.title ?? "",
       url: subjectUrl,
       latestCommentUrl: raw.subject?.latest_comment_url ?? null,
-      type: subjectType === "Pull" ? "PullRequest" : (subjectType || ""),
+      type: subjectType === "Pull" ? "PullRequest" : subjectType || "",
     },
     repository: {
       name: repoName,
@@ -289,32 +320,44 @@ function normalizeNotification(raw: ForgejoNotification): GhNotification {
   };
 }
 
-export async function fetchForgejoOwners(account: Account): Promise<{ ok: true; owners: string[] } | { ok: false; error: string; needsAuth?: true }> {
+export async function fetchForgejoOwners(
+  account: Account,
+): Promise<{ ok: true; owners: string[] } | { ok: false; error: string; needsAuth?: true }> {
   const user = await rest<ForgejoUser>(account, "/user");
   if (!user.ok) {
-    if (user.status === 401) return { ok: false, error: "authentication required", needsAuth: true };
+    if (user.status === 401)
+      return { ok: false, error: "authentication required", needsAuth: true };
     return { ok: false, error: `/user: ${user.error}` };
   }
   const orgs = await rest<ForgejoOrg[]>(account, "/user/orgs");
   if (!orgs.ok) {
-    if (orgs.status === 401) return { ok: false, error: "authentication required", needsAuth: true };
+    if (orgs.status === 401)
+      return { ok: false, error: "authentication required", needsAuth: true };
     return { ok: false, error: `/user/orgs: ${orgs.error}` };
   }
   const userLogin = user.data.login ?? user.data.username ?? "";
-  const orgLogins = (orgs.data ?? []).map((entry) => entry.username ?? entry.name ?? "").filter(Boolean);
+  const orgLogins = (orgs.data ?? [])
+    .map((entry) => entry.username ?? entry.name ?? "")
+    .filter(Boolean);
   const owners = Array.from(new Set([userLogin, ...orgLogins].filter(Boolean)));
   return { ok: true, owners };
 }
 
 async function fetchReposForOwner(account: Account, owner: string): Promise<GhRepo[]> {
   // Try user repos first; fall back to org repos if 404.
-  const userResult = await restPaginate<ForgejoRepo>(account, `/users/${encodeURIComponent(owner)}/repos`);
+  const userResult = await restPaginate<ForgejoRepo>(
+    account,
+    `/users/${encodeURIComponent(owner)}/repos`,
+  );
   if (userResult.ok && userResult.data.length > 0) {
     return userResult.data.map(normalizeRepo);
   }
   if (userResult.ok) return [];
   if (userResult.status !== 404) return [];
-  const orgResult = await restPaginate<ForgejoRepo>(account, `/orgs/${encodeURIComponent(owner)}/repos`);
+  const orgResult = await restPaginate<ForgejoRepo>(
+    account,
+    `/orgs/${encodeURIComponent(owner)}/repos`,
+  );
   if (!orgResult.ok) return [];
   return orgResult.data.map(normalizeRepo);
 }
@@ -333,12 +376,21 @@ export async function fetchForgejoRepos(account: Account, owners: string[]): Pro
   return result;
 }
 
-async function fetchIssueLikes(account: Account, owners: string[], type: "issues" | "pulls"): Promise<ForgejoIssueLike[]> {
+async function fetchIssueLikes(
+  account: Account,
+  owners: string[],
+  type: "issues" | "pulls",
+): Promise<ForgejoIssueLike[]> {
   if (!owners.length) return [];
   const all: ForgejoIssueLike[] = [];
   for (const owner of owners) {
     const params = new URLSearchParams({ type, state: "open", owner });
-    const result = await restPaginate<ForgejoIssueLike>(account, `/repos/issues/search?${params.toString()}`, 50, 5);
+    const result = await restPaginate<ForgejoIssueLike>(
+      account,
+      `/repos/issues/search?${params.toString()}`,
+      50,
+      5,
+    );
     if (result.ok) all.push(...result.data);
   }
   return all;
@@ -349,7 +401,10 @@ export async function fetchForgejoIssues(account: Account, owners: string[]): Pr
   return raws.filter((entry) => !entry.pull_request).map(normalizeIssue);
 }
 
-export async function fetchForgejoPullRequests(account: Account, owners: string[]): Promise<GhPullRequest[]> {
+export async function fetchForgejoPullRequests(
+  account: Account,
+  owners: string[],
+): Promise<GhPullRequest[]> {
   const raws = await fetchIssueLikes(account, owners, "pulls");
   return raws.map(normalizePullRequest);
 }
@@ -361,7 +416,10 @@ export interface ForgejoNotificationsFetchResult {
   lastModified: string | null;
 }
 
-export async function fetchForgejoNotifications(account: Account, ifModifiedSince: string | null): Promise<ForgejoNotificationsFetchResult | { error: string; needsAuth?: true }> {
+export async function fetchForgejoNotifications(
+  account: Account,
+  ifModifiedSince: string | null,
+): Promise<ForgejoNotificationsFetchResult | { error: string; needsAuth?: true }> {
   await resolveConfig(account);
   const config = providerConfigOf(account);
   const url = `${config.baseUrl}/notifications?all=true&page=1&limit=50`;
@@ -386,14 +444,27 @@ export async function fetchForgejoNotifications(account: Account, ifModifiedSinc
   };
 }
 
-export async function markForgejoThreadRead(account: Account, threadId: string): Promise<{ ok: true; status: number } | { ok: false; status: number; error: string; needsAuth?: true }> {
-  const result = await rest(account, `/notifications/threads/${encodeURIComponent(threadId)}`, { method: "PATCH" });
+export async function markForgejoThreadRead(
+  account: Account,
+  threadId: string,
+): Promise<
+  { ok: true; status: number } | { ok: false; status: number; error: string; needsAuth?: true }
+> {
+  const result = await rest(account, `/notifications/threads/${encodeURIComponent(threadId)}`, {
+    method: "PATCH",
+  });
   if (result.ok) return { ok: true, status: result.status };
-  if (result.status === 401) return { ok: false, status: 401, error: "authentication required", needsAuth: true };
+  if (result.status === 401)
+    return { ok: false, status: 401, error: "authentication required", needsAuth: true };
   return { ok: false, status: result.status, error: result.error };
 }
 
-export async function markForgejoAllRead(account: Account, options: { repo?: string | null; lastReadAt?: string | null }): Promise<{ ok: true; status: number } | { ok: false; status: number; error: string; needsAuth?: true }> {
+export async function markForgejoAllRead(
+  account: Account,
+  options: { repo?: string | null; lastReadAt?: string | null },
+): Promise<
+  { ok: true; status: number } | { ok: false; status: number; error: string; needsAuth?: true }
+> {
   const lastReadAt = options.lastReadAt ?? new Date().toISOString();
   const params = new URLSearchParams({ last_read_at: lastReadAt });
   const path = options.repo
@@ -401,6 +472,7 @@ export async function markForgejoAllRead(account: Account, options: { repo?: str
     : `/notifications?${params.toString()}`;
   const result = await rest(account, path, { method: "PUT" });
   if (result.ok) return { ok: true, status: result.status };
-  if (result.status === 401) return { ok: false, status: 401, error: "authentication required", needsAuth: true };
+  if (result.status === 401)
+    return { ok: false, status: 401, error: "authentication required", needsAuth: true };
   return { ok: false, status: result.status, error: result.error };
 }

@@ -72,9 +72,9 @@ describe("inbox utilities", () => {
     const items = buildInboxItems({ issues, pullRequests, userLogin: "bob", now });
 
     expect(items).toHaveLength(3);
-    expect(items[0].title).toBe("Ship auth cleanup");
-    expect(itemHasReason(items[0], "awaiting-review")).toBe(true);
-    expect(itemHasReason(items[0], "assigned-me")).toBe(true);
+    expect(items[0]?.title).toBe("Ship auth cleanup");
+    expect(itemHasReason(items[0]!, "awaiting-review")).toBe(true);
+    expect(itemHasReason(items[0]!, "assigned-me")).toBe(true);
   });
 
   it("detects stale unassigned issue work", () => {
@@ -105,8 +105,18 @@ describe("inbox utilities", () => {
         reason: "mention",
         updatedAt: "2026-05-02T10:00:00Z",
         lastReadAt: null,
-        subject: { title: "Production bug is still open", url: "https://api.github.com/repos/acme/app/issues/1", latestCommentUrl: null, type: "Issue" },
-        repository: { name: "app", nameWithOwner: "acme/app", private: false, htmlUrl: "https://github.com/acme/app" },
+        subject: {
+          title: "Production bug is still open",
+          url: "https://api.github.com/repos/acme/app/issues/1",
+          latestCommentUrl: null,
+          type: "Issue",
+        },
+        repository: {
+          name: "app",
+          nameWithOwner: "acme/app",
+          private: false,
+          htmlUrl: "https://github.com/acme/app",
+        },
         itemNumber: 1,
         itemHtmlUrl: "https://github.com/acme/app/issues/1",
       },
@@ -116,8 +126,18 @@ describe("inbox utilities", () => {
         reason: "review_requested",
         updatedAt: "2026-05-02T10:00:00Z",
         lastReadAt: null,
-        subject: { title: "Ship auth cleanup", url: "https://api.github.com/repos/acme/app/pulls/10", latestCommentUrl: null, type: "PullRequest" },
-        repository: { name: "app", nameWithOwner: "acme/app", private: false, htmlUrl: "https://github.com/acme/app" },
+        subject: {
+          title: "Ship auth cleanup",
+          url: "https://api.github.com/repos/acme/app/pulls/10",
+          latestCommentUrl: null,
+          type: "PullRequest",
+        },
+        repository: {
+          name: "app",
+          nameWithOwner: "acme/app",
+          private: false,
+          htmlUrl: "https://github.com/acme/app",
+        },
         itemNumber: 10,
         itemHtmlUrl: "https://github.com/acme/app/pull/10",
       },
@@ -135,7 +155,11 @@ describe("inbox utilities", () => {
     expect(pr?.notificationThreadId).toBe("222");
     expect(itemHasReason(pr!, "review-requested")).toBe(true);
 
-    expect(filterInboxItems(merged, "unread").map((entry) => entry.number).sort()).toEqual([1, 10]);
+    expect(
+      filterInboxItems(merged, "unread")
+        .map((entry) => entry.number)
+        .sort(),
+    ).toEqual([1, 10]);
     expect(filterInboxItems(merged, "mentioned").map((entry) => entry.number)).toEqual([1]);
     expect(filterInboxItems(merged, "review-requested").map((entry) => entry.number)).toEqual([10]);
   });

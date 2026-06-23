@@ -1,12 +1,12 @@
 import type { HttpBindings } from "@hono/node-server";
 import { createRoute, type OpenAPIHono, z } from "@hono/zod-openapi";
+import { errorMessage } from "../../utils/errors";
 import { parseRepositoryName } from "../../utils/repository";
 import { gql } from "../githubClient";
 import { logger } from "../logger";
 import { errEnvelope, okEnvelope } from "../openapi/envelope";
 import { pageInfo, repoField, upperEnum } from "../openapi/params";
 import { isAuthError } from "../openapi/respond";
-import { errorMessage } from "../../utils/errors";
 
 type App = OpenAPIHono<{ Bindings: HttpBindings }>;
 

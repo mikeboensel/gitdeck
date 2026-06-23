@@ -73,7 +73,12 @@ describe("insight utilities", () => {
 
   it("creates risk alerts for inactive repositories with open issues", () => {
     const risky = buildRepoInsight({
-      repo: { ...repo, pushedAt: "2026-01-01T10:00:00Z", updatedAt: "2026-01-01T10:00:00Z", history: [] },
+      repo: {
+        ...repo,
+        pushedAt: "2026-01-01T10:00:00Z",
+        updatedAt: "2026-01-01T10:00:00Z",
+        history: [],
+      },
       issues,
       viewsCount: 280,
       releaseCount: 0,
@@ -86,6 +91,8 @@ describe("insight utilities", () => {
     expect(risky.healthLabel).toBe("risky");
     expect(risky.alerts.some((alert) => /No push/i.test(alert))).toBe(true);
     expect(risky.alerts.some((alert) => /security alerts/i.test(alert))).toBe(true);
-    expect(risky.opportunities.some((item) => /without any formal releases/i.test(item))).toBe(true);
+    expect(risky.opportunities.some((item) => /without any formal releases/i.test(item))).toBe(
+      true,
+    );
   });
 });

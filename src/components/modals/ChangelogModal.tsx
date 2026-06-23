@@ -1,8 +1,8 @@
 import { useMemo } from "react";
 import changelogSource from "../../../CHANGELOG.md?raw";
 import { parseChangelog } from "../../utils/changelog";
-import { CloseIcon } from "../common/Icons";
 import { APP_VERSION } from "../../version";
+import { CloseIcon } from "../common/Icons";
 
 interface ChangelogModalProps {
   onClose: () => void;
@@ -23,18 +23,31 @@ export function ChangelogModal({ onClose }: ChangelogModalProps) {
               <h3>v{APP_VERSION}</h3>
             </div>
           </div>
-          <button className="modal-close" aria-label="Close" onClick={onClose}><CloseIcon /></button>
+          <button className="modal-close" aria-label="Close" onClick={onClose}>
+            <CloseIcon />
+          </button>
         </header>
         <div className="modal-body changelog-body">
           {entries.length === 0 ? (
-            <div className="modal-empty">No release notes yet. Releases will appear here once published.</div>
+            <div className="modal-empty">
+              No release notes yet. Releases will appear here once published.
+            </div>
           ) : null}
           {entries.map((entry) => (
             <article className="changelog-entry" key={entry.version}>
               <header className="changelog-version">
                 <span className="changelog-version-tag">v{entry.version}</span>
                 {entry.date ? <span className="changelog-version-date">{entry.date}</span> : null}
-                {entry.url ? <a className="changelog-version-link" href={entry.url} target="_blank" rel="noreferrer">Compare →</a> : null}
+                {entry.url ? (
+                  <a
+                    className="changelog-version-link"
+                    href={entry.url}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Compare →
+                  </a>
+                ) : null}
               </header>
               {entry.sections.map((section) => (
                 <section className="changelog-section" key={section.title}>
@@ -42,9 +55,21 @@ export function ChangelogModal({ onClose }: ChangelogModalProps) {
                   <ul>
                     {section.items.map((item, index) => (
                       <li key={index}>
-                        {item.scope ? <strong className="changelog-scope">{item.scope}:</strong> : null}{" "}
+                        {item.scope ? (
+                          <strong className="changelog-scope">{item.scope}:</strong>
+                        ) : null}{" "}
                         {item.text}
-                        {item.url ? <a className="changelog-commit" href={item.url} target="_blank" rel="noreferrer"> ↗</a> : null}
+                        {item.url ? (
+                          <a
+                            className="changelog-commit"
+                            href={item.url}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            {" "}
+                            ↗
+                          </a>
+                        ) : null}
                       </li>
                     ))}
                   </ul>

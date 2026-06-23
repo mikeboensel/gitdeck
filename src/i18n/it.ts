@@ -37,7 +37,8 @@ export const it: Record<keyof typeof en, string> = {
   "accounts.viaToken": "Usa un personal access token",
   "accounts.tokenLabel": "Personal access token",
   "accounts.tokenRequired": "Il token è obbligatorio",
-  "accounts.tokenHelp": "Crea un token su {provider} con permessi di lettura per repo, issue e notifiche.",
+  "accounts.tokenHelp":
+    "Crea un token su {provider} con permessi di lettura per repo, issue e notifiche.",
   "common.authenticated": "Autenticato",
   "common.authenticatedExternally": "Autenticato esternamente",
   "common.export": "Esporta",
@@ -187,19 +188,24 @@ export const it: Record<keyof typeof en, string> = {
   "preset.stale": "Inattive",
   "confirm.markAllRead": "Vuoi segnare {count} notifica{plural} come lette su GitHub?",
   "auth.signIn": "Connetti un account",
-  "auth.description": "Aggiungi GitHub o un'istanza Forgejo (Codeberg, self-hosted) per leggere repository, issue e notifiche.",
+  "auth.description":
+    "Aggiungi GitHub o un'istanza Forgejo (Codeberg, self-hosted) per leggere repository, issue e notifiche.",
   "auth.brandTag": "Dashboard multi-account",
   "auth.changeProvider": "Cambia provider",
   "auth.ghCliNotReady": "L'autenticazione tramite gh CLI non è pronta.",
   "auth.tokenMissing": "GITHUB_TOKEN non è disponibile.",
-  "auth.ghCliHelp": "Il server è configurato con GH_AUTH_MODE=gh-cli. Verifica che gh CLI sia installato e di aver effettuato l'accesso:",
+  "auth.ghCliHelp":
+    "Il server è configurato con GH_AUTH_MODE=gh-cli. Verifica che gh CLI sia installato e di aver effettuato l'accesso:",
   "auth.ghCliReload": "poi ricarica questa pagina.",
-  "auth.tokenHelp": "Il server è configurato con GH_AUTH_MODE=token. Esporta un personal access token come GITHUB_TOKEN e riavvia il server.",
+  "auth.tokenHelp":
+    "Il server è configurato con GH_AUTH_MODE=token. Esporta un personal access token come GITHUB_TOKEN e riavvia il server.",
   "auth.clientMissing": "GITHUB_CLIENT_ID non è impostato.",
-  "auth.clientHelp": "Registra una OAuth App su github.com/settings/developers, abilita il Device Flow, poi esporta GITHUB_CLIENT_ID e riavvia il server. In alternativa, imposta GH_AUTH_MODE=gh-cli per riutilizzare la sessione locale di gh CLI, oppure GH_AUTH_MODE=token con un GITHUB_TOKEN.",
+  "auth.clientHelp":
+    "Registra una OAuth App su github.com/settings/developers, abilita il Device Flow, poi esporta GITHUB_CLIENT_ID e riavvia il server. In alternativa, imposta GH_AUTH_MODE=gh-cli per riutilizzare la sessione locale di gh CLI, oppure GH_AUTH_MODE=token con un GITHUB_TOKEN.",
   "auth.continue": "Continua",
   "auth.requestingCode": "Richiesta codice dispositivo...",
-  "auth.openVerification": "Apri la pagina di verifica del provider e inserisci il codice qui sotto.",
+  "auth.openVerification":
+    "Apri la pagina di verifica del provider e inserisci il codice qui sotto.",
   "auth.copied": "Copiato",
   "auth.copy": "Copia",
   "auth.waiting": "In attesa di autorizzazione...",
@@ -231,7 +237,8 @@ export const it: Record<keyof typeof en, string> = {
   "repo.density": "Densità",
   "repo.padding": "Spaziatura",
   "welcome.kind": "Benvenuto",
-  "welcome.lead": "Esplora i tuoi repository, le issue, le pull request, il traffico e l'attività CI di GitHub da un'unica dashboard.",
+  "welcome.lead":
+    "Esplora i tuoi repository, le issue, le pull request, il traffico e l'attività CI di GitHub da un'unica dashboard.",
   "welcome.repositoriesTitle": "Repository",
   "welcome.repositoriesText": "salute, stelle, fork, traffico e release a colpo d'occhio.",
   "welcome.inboxTitle": "Inbox e triage",
@@ -244,7 +251,8 @@ export const it: Record<keyof typeof en, string> = {
   "welcome.whatsNew": "Novità",
   "welcome.getStarted": "Inizia",
   "ci.noActivity": "Nessuna attività CI",
-  "ci.noActivityText": "Nessuno dei tuoi repository ha esecuzioni di workflow recenti (oppure non hai i permessi per accedervi).",
+  "ci.noActivityText":
+    "Nessuno dei tuoi repository ha esecuzioni di workflow recenti (oppure non hai i permessi per accedervi).",
   "ci.repositoriesCount": "{count} repository",
   "ci.successRate": "Tasso di successo",
   "ci.runs": "Esecuzioni",

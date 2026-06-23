@@ -83,7 +83,9 @@ export interface ReadResult {
 function patchCacheThreadRead(threadId: string): void {
   if (!cache) return;
   const next = cache.state.notifications.map((entry) =>
-    entry.id === threadId ? { ...entry, unread: false, lastReadAt: new Date().toISOString() } : entry,
+    entry.id === threadId
+      ? { ...entry, unread: false, lastReadAt: new Date().toISOString() }
+      : entry,
   );
   cache = { state: { ...cache.state, notifications: next }, expiresAt: cache.expiresAt };
 }
@@ -109,11 +111,16 @@ export async function markThreadRead(threadId: string): Promise<ReadResult> {
   return { ok: false, status: result.status, error: result.error, needsAuth: result.needsAuth };
 }
 
-export async function markAllRead(options: { repo?: string | null; lastReadAt?: string | null } = {}): Promise<ReadResult> {
+export async function markAllRead(
+  options: { repo?: string | null; lastReadAt?: string | null } = {},
+): Promise<ReadResult> {
   const lastReadAt = options.lastReadAt ?? new Date().toISOString();
   const active = await resolveActive();
   if (!active) return { ok: false, status: 401, error: "authentication required", needsAuth: true };
-  const result = await active.provider.markAllNotificationsRead(active.account, { repo: options.repo, lastReadAt });
+  const result = await active.provider.markAllNotificationsRead(active.account, {
+    repo: options.repo,
+    lastReadAt,
+  });
   if (result.ok) {
     patchCacheAllRead(options.repo ?? null, lastReadAt);
     return { ok: true, status: result.status };

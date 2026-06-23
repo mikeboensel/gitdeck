@@ -1,5 +1,6 @@
 import type { HttpBindings } from "@hono/node-server";
 import type { OpenAPIHono } from "@hono/zod-openapi";
+import { errorMessage } from "../../utils/errors";
 import {
   add as addAccount,
   getActive as getActiveAccount,
@@ -16,7 +17,6 @@ import { invalidateNotificationsCache } from "../notifications";
 import { json } from "../openapi/respond";
 import { getProvider, getProviderForAccount } from "../providers/registry";
 import type { ProviderIdentity } from "../providers/types";
-import { errorMessage } from "../../utils/errors";
 
 type App = OpenAPIHono<{ Bindings: HttpBindings }>;
 

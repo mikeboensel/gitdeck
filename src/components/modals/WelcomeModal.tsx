@@ -1,6 +1,6 @@
-import { CloseIcon } from "../common/Icons";
-import { APP_VERSION } from "../../version";
 import { useI18n } from "../../i18n/I18nProvider";
+import { APP_VERSION } from "../../version";
+import { CloseIcon } from "../common/Icons";
 
 interface WelcomeModalProps {
   onClose: () => void;
@@ -21,23 +21,35 @@ export function WelcomeModal({ onClose, onViewChangelog }: WelcomeModalProps) {
               <h3>gh-dashboard</h3>
             </div>
           </div>
-          <button className="modal-close" aria-label={t("common.close")} onClick={onClose}><CloseIcon /></button>
+          <button className="modal-close" aria-label={t("common.close")} onClick={onClose}>
+            <CloseIcon />
+          </button>
         </header>
         <div className="modal-body welcome-body">
-          <p className="welcome-lead">
-            {t("welcome.lead")}
-          </p>
+          <p className="welcome-lead">{t("welcome.lead")}</p>
           <ul className="welcome-list">
-            <li><strong>{t("welcome.repositoriesTitle")}</strong> - {t("welcome.repositoriesText")}</li>
-            <li><strong>{t("welcome.inboxTitle")}</strong> - {t("welcome.inboxText")}</li>
-            <li><strong>{t("welcome.insightsTitle")}</strong> - {t("welcome.insightsText")}</li>
-            <li><strong>{t("welcome.localTitle")}</strong> - {t("welcome.localText")}</li>
+            <li>
+              <strong>{t("welcome.repositoriesTitle")}</strong> - {t("welcome.repositoriesText")}
+            </li>
+            <li>
+              <strong>{t("welcome.inboxTitle")}</strong> - {t("welcome.inboxText")}
+            </li>
+            <li>
+              <strong>{t("welcome.insightsTitle")}</strong> - {t("welcome.insightsText")}
+            </li>
+            <li>
+              <strong>{t("welcome.localTitle")}</strong> - {t("welcome.localText")}
+            </li>
           </ul>
           <div className="welcome-meta">{t("welcome.version", { version: APP_VERSION })}</div>
         </div>
         <footer className="welcome-foot">
-          <button type="button" className="btn ghost" onClick={onViewChangelog}>{t("welcome.whatsNew")}</button>
-          <button type="button" className="btn primary" onClick={onClose}>{t("welcome.getStarted")}</button>
+          <button type="button" className="btn ghost" onClick={onViewChangelog}>
+            {t("welcome.whatsNew")}
+          </button>
+          <button type="button" className="btn primary" onClick={onClose}>
+            {t("welcome.getStarted")}
+          </button>
         </footer>
       </div>
     </div>

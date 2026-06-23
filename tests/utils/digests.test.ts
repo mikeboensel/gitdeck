@@ -23,7 +23,7 @@ const reposDay1: GhRepo[] = [
 
 const reposDay2: GhRepo[] = [
   {
-    ...reposDay1[0],
+    ...reposDay1[0]!,
     stargazerCount: 14,
     forkCount: 3,
   },
@@ -73,7 +73,7 @@ describe("daily digest utilities", () => {
     expect(record.issueCount).toBe(1);
     expect(record.securityAlertsCount).toBe(2);
     expect(record.securityReposCount).toBe(1);
-    expect(record.repos[0].issueCount).toBe(1);
+    expect(record.repos[0]?.issueCount).toBe(1);
   });
 
   it("computes daily deltas and highlights", () => {
@@ -91,12 +91,12 @@ describe("daily digest utilities", () => {
     );
     const entries = buildDailyDigestEntries([day1, day2]);
 
-    expect(entries[0].date).toBe("2026-04-21");
-    expect(entries[0].starsDelta).toBe(4);
-    expect(entries[0].issueDelta).toBe(1);
-    expect(entries[0].securityAlertsCount).toBe(3);
-    expect(entries[0].repos[0].securityAlertsCount).toBe(3);
-    expect(entries[0].repos[0].issueDelta).toBe(1);
-    expect(entries[0].highlights.length).toBeGreaterThan(0);
+    expect(entries[0]?.date).toBe("2026-04-21");
+    expect(entries[0]?.starsDelta).toBe(4);
+    expect(entries[0]?.issueDelta).toBe(1);
+    expect(entries[0]?.securityAlertsCount).toBe(3);
+    expect(entries[0]?.repos[0]?.securityAlertsCount).toBe(3);
+    expect(entries[0]?.repos[0]?.issueDelta).toBe(1);
+    expect(entries[0]?.highlights.length).toBeGreaterThan(0);
   });
 });

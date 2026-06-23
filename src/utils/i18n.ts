@@ -1,4 +1,4 @@
-import { translations, type TranslationKey } from "../i18n/translations";
+import { type TranslationKey, translations } from "../i18n/translations";
 
 export type Language = keyof typeof translations;
 
@@ -26,7 +26,9 @@ export function detectLanguage(languages: readonly string[] = []): Language {
   return DEFAULT_LANGUAGE;
 }
 
-export function readPersistedLanguage(storage: Pick<Storage, "getItem"> | undefined): Language | null {
+export function readPersistedLanguage(
+  storage: Pick<Storage, "getItem"> | undefined,
+): Language | null {
   try {
     return normalizeLanguage(storage?.getItem(LANGUAGE_STORAGE_KEY));
   } catch {
@@ -34,7 +36,10 @@ export function readPersistedLanguage(storage: Pick<Storage, "getItem"> | undefi
   }
 }
 
-export function persistLanguage(storage: Pick<Storage, "setItem"> | undefined, language: Language): void {
+export function persistLanguage(
+  storage: Pick<Storage, "setItem"> | undefined,
+  language: Language,
+): void {
   try {
     storage?.setItem(LANGUAGE_STORAGE_KEY, language);
   } catch {
@@ -42,9 +47,13 @@ export function persistLanguage(storage: Pick<Storage, "setItem"> | undefined, l
   }
 }
 
-export function translate(language: Language, key: TranslationKey, replacements: Replacements = {}): string {
+export function translate(
+  language: Language,
+  key: TranslationKey,
+  replacements: Replacements = {},
+): string {
   const template = translations[language][key] ?? translations[DEFAULT_LANGUAGE][key] ?? key;
-  return template.replace(/\{(\w+)\}/g, (match, token) => (
-    Object.prototype.hasOwnProperty.call(replacements, token) ? String(replacements[token]) : match
-  ));
+  return template.replace(/\{(\w+)\}/g, (match, token) =>
+    Object.hasOwn(replacements, token) ? String(replacements[token]) : match,
+  );
 }

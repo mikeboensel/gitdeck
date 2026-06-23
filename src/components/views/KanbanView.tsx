@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { fetchProject, fetchProjects, moveProjectItem } from "../../api/github";
-import { CompressIcon, ExpandIcon } from "../common/Icons";
 import type { ProjectDetails, ProjectItem, ProjectSummary } from "../../types/github";
-import { formatRelativeTime } from "../../utils/format";
 import { errorMessage } from "../../utils/errors";
+import { formatRelativeTime } from "../../utils/format";
+import { CompressIcon, ExpandIcon } from "../common/Icons";
 
 const OPTION_COLORS: Record<string, string> = {
   GRAY: "#8b949e",
@@ -17,7 +17,10 @@ const OPTION_COLORS: Record<string, string> = {
 };
 
 function statusValueOf(item: ProjectItem, fieldId: string) {
-  return (item.fieldValues?.nodes || []).find((value) => value.__typename === "ProjectV2ItemFieldSingleSelectValue" && value.field?.id === fieldId);
+  return (item.fieldValues?.nodes || []).find(
+    (value) =>
+      value.__typename === "ProjectV2ItemFieldSingleSelectValue" && value.field?.id === fieldId,
+  );
 }
 
 export function KanbanView() {
@@ -96,7 +99,12 @@ export function KanbanView() {
     if (current === optionId) return;
     setPending((items) => new Set(items).add(item.id));
     try {
-      await moveProjectItem({ projectId: project.id, itemId: item.id, fieldId: statusField.id, optionId: optionId || null });
+      await moveProjectItem({
+        projectId: project.id,
+        itemId: item.id,
+        fieldId: statusField.id,
+        optionId: optionId || null,
+      });
       const next = await fetchProject(project.id);
       setProject(next.project);
     } catch (err) {
@@ -142,22 +150,46 @@ export function KanbanView() {
     return (
       <div className="view-kanban" ref={boardRef} style={{ display: "block" }}>
         <div className="kanban-toolbar">
-          <span className="count-chip"><strong>{projects.length}</strong> boards</span>
+          <span className="count-chip">
+            <strong>{projects.length}</strong> boards
+          </span>
           <div className="spacer" style={{ flex: 1 }} />
           {fullscreenButton}
-          <button className="btn" onClick={loadProjects}>Reload</button>
+          <button className="btn" onClick={loadProjects}>
+            Reload
+          </button>
         </div>
         {error ? <div className="kanban-info-banner">{error}</div> : null}
-        {loading ? <div className="empty"><div className="big">Loading boards…</div></div> : (
+        {loading ? (
+          <div className="empty">
+            <div className="big">Loading boards…</div>
+          </div>
+        ) : (
           <div className="repos-grid">
             {projects.map((item) => (
-              <article className="repo-card" key={item.id} tabIndex={0} onClick={() => openProject(item.id)} onKeyDown={(event) => event.key === "Enter" && openProject(item.id)}>
+              <article
+                className="repo-card"
+                key={item.id}
+                tabIndex={0}
+                onClick={() => openProject(item.id)}
+                onKeyDown={(event) => event.key === "Enter" && openProject(item.id)}
+              >
                 <div className="rc-head">
-                  <div className="rc-title"><a>{item.owner?.login || "Project"}<span className="slash">/</span>{item.title}</a></div>
-                  <div className="repo-badges"><span className="rb fork">{item.items?.totalCount ?? 0} items</span></div>
+                  <div className="rc-title">
+                    <a>
+                      {item.owner?.login || "Project"}
+                      <span className="slash">/</span>
+                      {item.title}
+                    </a>
+                  </div>
+                  <div className="repo-badges">
+                    <span className="rb fork">{item.items?.totalCount ?? 0} items</span>
+                  </div>
                 </div>
                 <div className="repo-desc">{item.shortDescription || "No description"}</div>
-                <div className="rc-stats"><span>updated {item.updatedAt ? formatRelativeTime(item.updatedAt) : "—"}</span></div>
+                <div className="rc-stats">
+                  <span>updated {item.updatedAt ? formatRelativeTime(item.updatedAt) : "—"}</span>
+                </div>
               </article>
             ))}
           </div>
@@ -170,7 +202,9 @@ export function KanbanView() {
     return (
       <div className="view-kanban" ref={boardRef} style={{ display: "block" }}>
         <div className="kanban-toolbar">
-          <button className="btn" onClick={() => setProject(null)}>All boards</button>
+          <button className="btn" onClick={() => setProject(null)}>
+            All boards
+          </button>
           <div className="spacer" style={{ flex: 1 }} />
           {fullscreenButton}
         </div>
@@ -179,17 +213,29 @@ export function KanbanView() {
     );
   }
 
-  const columns = [...statusField.options, { id: "", name: "No status", color: "GRAY" }].map((option) => ({
-    option,
-    items: project.items.filter((item) => (statusValueOf(item, statusField.id)?.optionId || "") === option.id),
-  }));
+  const columns = [...statusField.options, { id: "", name: "No status", color: "GRAY" }].map(
+    (option) => ({
+      option,
+      items: project.items.filter(
+        (item) => (statusValueOf(item, statusField.id)?.optionId || "") === option.id,
+      ),
+    }),
+  );
 
   return (
     <div className="view-kanban" ref={boardRef} style={{ display: "block" }}>
       <div className="kanban-toolbar">
-        <button className="btn" onClick={() => setProject(null)}>All boards</button>
-        <span className="kanban-meta"><a href={project.url} target="_blank" rel="noreferrer">{project.owner?.login} / {project.title}</a></span>
-        <span className="count-chip"><strong>{project.items.length}</strong> items</span>
+        <button className="btn" onClick={() => setProject(null)}>
+          All boards
+        </button>
+        <span className="kanban-meta">
+          <a href={project.url} target="_blank" rel="noreferrer">
+            {project.owner?.login} / {project.title}
+          </a>
+        </span>
+        <span className="count-chip">
+          <strong>{project.items.length}</strong> items
+        </span>
         <div className="spacer" style={{ flex: 1 }} />
         {fullscreenButton}
       </div>
@@ -202,26 +248,62 @@ export function KanbanView() {
             data-option={option.id}
             onDragOver={(event) => event.preventDefault()}
             onDrop={(event) => {
-              const item = project.items.find((candidate) => candidate.id === event.dataTransfer.getData("text/plain"));
+              const item = project.items.find(
+                (candidate) => candidate.id === event.dataTransfer.getData("text/plain"),
+              );
               if (item) void moveItem(item, option.id);
             }}
           >
             <div className="kcol-head">
-              <span className="dot" style={{ background: OPTION_COLORS[option.color || "GRAY"] || "#8b949e" }} />
+              <span
+                className="dot"
+                style={{ background: OPTION_COLORS[option.color || "GRAY"] || "#8b949e" }}
+              />
               <h4>{option.name}</h4>
               <span className="count">{items.length}</span>
             </div>
             <div className="kcol-body">
-              {items.length ? items.map((item) => {
-                const content = item.content || {};
-                return (
-                  <article className={`kcard ${pending.has(item.id) ? "pending" : ""}`} key={item.id} draggable onDragStart={(event) => event.dataTransfer.setData("text/plain", item.id)}>
-                    <div className="kcard-repo"><span className={`kcard-type ${content.__typename || item.type}`}>{content.__typename === "PullRequest" ? "PR" : content.__typename || item.type}</span><span className="owner-name">{content.repository?.nameWithOwner || "Draft"}</span></div>
-                    <div className="kcard-title">{content.url ? <a href={content.url} target="_blank" rel="noreferrer">{content.title}</a> : content.title}</div>
-                    <div className="kcard-meta">{content.number ? `#${content.number}` : ""}<span>{content.updatedAt ? formatRelativeTime(content.updatedAt) : ""}</span></div>
-                  </article>
-                );
-              }) : <div className="kcol-empty">No items</div>}
+              {items.length ? (
+                items.map((item) => {
+                  const content = item.content || {};
+                  return (
+                    <article
+                      className={`kcard ${pending.has(item.id) ? "pending" : ""}`}
+                      key={item.id}
+                      draggable
+                      onDragStart={(event) => event.dataTransfer.setData("text/plain", item.id)}
+                    >
+                      <div className="kcard-repo">
+                        <span className={`kcard-type ${content.__typename || item.type}`}>
+                          {content.__typename === "PullRequest"
+                            ? "PR"
+                            : content.__typename || item.type}
+                        </span>
+                        <span className="owner-name">
+                          {content.repository?.nameWithOwner || "Draft"}
+                        </span>
+                      </div>
+                      <div className="kcard-title">
+                        {content.url ? (
+                          <a href={content.url} target="_blank" rel="noreferrer">
+                            {content.title}
+                          </a>
+                        ) : (
+                          content.title
+                        )}
+                      </div>
+                      <div className="kcard-meta">
+                        {content.number ? `#${content.number}` : ""}
+                        <span>
+                          {content.updatedAt ? formatRelativeTime(content.updatedAt) : ""}
+                        </span>
+                      </div>
+                    </article>
+                  );
+                })
+              ) : (
+                <div className="kcol-empty">No items</div>
+              )}
             </div>
           </section>
         ))}

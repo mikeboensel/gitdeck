@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { fetchForks, fetchStargazers } from "../../api/github";
 import type { ForkNode, StargazerNode } from "../../types/github";
+import { errorMessage } from "../../utils/errors";
 import { formatExactNumber, formatNumber, formatRelativeTime } from "../../utils/format";
 import { CloseIcon, ForkIcon, StarIcon } from "../common/Icons";
-import { errorMessage } from "../../utils/errors";
 
 export type MetricKind = "stars" | "forks";
 
@@ -14,7 +14,12 @@ interface RepositoryMetricModalProps {
   onClose: () => void;
 }
 
-export function RepositoryMetricModal({ kind, repo, totalCount, onClose }: RepositoryMetricModalProps) {
+export function RepositoryMetricModal({
+  kind,
+  repo,
+  totalCount,
+  onClose,
+}: RepositoryMetricModalProps) {
   const [direction, setDirection] = useState<"ASC" | "DESC">("DESC");
   const [forkField, setForkField] = useState("PUSHED_AT");
   const [loading, setLoading] = useState(false);
@@ -63,16 +68,25 @@ export function RepositoryMetricModal({ kind, repo, totalCount, onClose }: Repos
       <div className="modal" role="dialog" aria-modal="true">
         <header className="modal-head">
           <div className="modal-title">
-            <span className={`modal-icon ${kind}`}>{kind === "stars" ? <StarIcon /> : <ForkIcon />}</span>
+            <span className={`modal-icon ${kind}`}>
+              {kind === "stars" ? <StarIcon /> : <ForkIcon />}
+            </span>
             <div style={{ minWidth: 0 }}>
               <div className="kind">{kind === "stars" ? "Stars" : "Forks"}</div>
               <h3>{repo}</h3>
             </div>
           </div>
-          <button className="modal-close" aria-label="Close" onClick={onClose}><CloseIcon /></button>
+          <button className="modal-close" aria-label="Close" onClick={onClose}>
+            <CloseIcon />
+          </button>
         </header>
         <div className="modal-toolbar">
-          <span className="modal-count"><strong>{displayedTotal === undefined ? "..." : formatExactNumber(displayedTotal)}</strong> total</span>
+          <span className="modal-count">
+            <strong>
+              {displayedTotal === undefined ? "..." : formatExactNumber(displayedTotal)}
+            </strong>{" "}
+            total
+          </span>
           <div className="spacer" style={{ flex: 1 }} />
           {kind === "forks" ? (
             <select value={forkField} onChange={(event) => setForkField(event.target.value)}>
@@ -83,31 +97,53 @@ export function RepositoryMetricModal({ kind, repo, totalCount, onClose }: Repos
               <option value="NAME">Name</option>
             </select>
           ) : null}
-          <select value={direction} onChange={(event) => setDirection(event.target.value as "ASC" | "DESC")}>
+          <select
+            value={direction}
+            onChange={(event) => setDirection(event.target.value as "ASC" | "DESC")}
+          >
             <option value="DESC">Descending</option>
             <option value="ASC">Ascending</option>
           </select>
         </div>
         <div className={`modal-body ${loading ? "loading" : ""}`}>
           {error ? <div className="modal-error">{error}</div> : null}
-          {!error && kind === "stars" && stargazers.map((edge) => (
-            <div className="sg-row" key={`${edge.node.login}-${edge.starredAt}`}>
-              <img src={edge.node.avatarUrl} alt="" />
-              <a className="login" href={edge.node.url} target="_blank" rel="noreferrer">{edge.node.login}</a>
-              <span className="when" title={new Date(edge.starredAt).toLocaleString()}>{formatRelativeTime(edge.starredAt)}</span>
-            </div>
-          ))}
-          {!error && kind === "forks" && forks.map((fork) => (
-            <div className="fork-row" key={fork.nameWithOwner}>
-              <img src={fork.owner.avatarUrl} alt="" />
-              <div>
-                <div className="fr-title"><a href={fork.url} target="_blank" rel="noreferrer">{fork.nameWithOwner}</a></div>
-                <div className="fr-desc">{fork.description || "No description"}</div>
+          {!error &&
+            kind === "stars" &&
+            stargazers.map((edge) => (
+              <div className="sg-row" key={`${edge.node.login}-${edge.starredAt}`}>
+                <img src={edge.node.avatarUrl} alt="" />
+                <a className="login" href={edge.node.url} target="_blank" rel="noreferrer">
+                  {edge.node.login}
+                </a>
+                <span className="when" title={new Date(edge.starredAt).toLocaleString()}>
+                  {formatRelativeTime(edge.starredAt)}
+                </span>
               </div>
-              <div className="fr-meta"><span className="mini-stat">★ {formatNumber(fork.stargazerCount)}</span><span>{formatRelativeTime(fork.pushedAt)}</span></div>
-            </div>
-          ))}
-          {!error && !loading && ((kind === "stars" && !stargazers.length) || (kind === "forks" && !forks.length)) ? <div className="modal-empty">No results to show.</div> : null}
+            ))}
+          {!error &&
+            kind === "forks" &&
+            forks.map((fork) => (
+              <div className="fork-row" key={fork.nameWithOwner}>
+                <img src={fork.owner.avatarUrl} alt="" />
+                <div>
+                  <div className="fr-title">
+                    <a href={fork.url} target="_blank" rel="noreferrer">
+                      {fork.nameWithOwner}
+                    </a>
+                  </div>
+                  <div className="fr-desc">{fork.description || "No description"}</div>
+                </div>
+                <div className="fr-meta">
+                  <span className="mini-stat">★ {formatNumber(fork.stargazerCount)}</span>
+                  <span>{formatRelativeTime(fork.pushedAt)}</span>
+                </div>
+              </div>
+            ))}
+          {!error &&
+          !loading &&
+          ((kind === "stars" && !stargazers.length) || (kind === "forks" && !forks.length)) ? (
+            <div className="modal-empty">No results to show.</div>
+          ) : null}
         </div>
       </div>
     </div>

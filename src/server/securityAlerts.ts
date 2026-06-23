@@ -1,6 +1,6 @@
-import { restApiPaginate } from "./githubClient";
-import { buildRepoSecuritySummary } from "../utils/security";
 import type { RepoSecuritySummary } from "../types/github";
+import { buildRepoSecuritySummary } from "../utils/security";
+import { restApiPaginate } from "./githubClient";
 
 const CACHE_TTL_MS = 5 * 60 * 1000;
 
@@ -11,7 +11,9 @@ interface SecurityAlertRecord {
   updated_at?: string | null;
 }
 
-async function fetchOpenAlerts(path: string): Promise<{ alerts: SecurityAlertRecord[]; unavailable: boolean }> {
+async function fetchOpenAlerts(
+  path: string,
+): Promise<{ alerts: SecurityAlertRecord[]; unavailable: boolean }> {
   const result = await restApiPaginate<SecurityAlertRecord>(path);
   if (!result.ok) {
     return { alerts: [], unavailable: true };

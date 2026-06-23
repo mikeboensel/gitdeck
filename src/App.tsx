@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { invalidate as invalidateCache, peek, swr } from "./api/cache";
 import {
   AuthRequiredClientError,
   fetchAuthStatus,
@@ -14,28 +15,46 @@ import {
   markAllNotificationsRead,
   markNotificationRead,
 } from "./api/github";
-import { invalidate as invalidateCache, peek, swr } from "./api/cache";
+import {
+  CACHE_KEY,
+  defaultIssueFilters,
+  defaultPrFilters,
+  defaultRepoFilters,
+  detailTabFromParams,
+  downloadJson,
+  metricKindFromParams,
+  TAB_ROUTES,
+  type Tab,
+  tabFromPath,
+} from "./appHelpers";
 import { AuthGate } from "./components/AuthGate";
-import { RepositoryDetailsModal, type DetailTab } from "./components/modals/RepositoryDetailsModal";
-import { RepositoryMetricModal, type MetricKind } from "./components/modals/RepositoryMetricModal";
-import { ContributorsModal } from "./components/modals/ContributorsModal";
-import { ChangelogModal } from "./components/modals/ChangelogModal";
-import { WelcomeModal } from "./components/modals/WelcomeModal";
-import { CommandPalette } from "./components/modals/CommandPalette";
-import { Footer } from "./components/Footer";
-import { TopBar } from "./components/TopBar";
-import { SidebarControls, type InboxSidebarState } from "./components/SidebarControls";
-import { Pagination } from "./components/common/Pagination";
 import { BoardIcon, BookIcon, InboxIcon, IssueIcon, PulseIcon } from "./components/common/Icons";
-import { IssueList } from "./components/views/IssueList";
-import { PullRequestList } from "./components/views/PullRequestList";
+import { Pagination } from "./components/common/Pagination";
+import { Footer } from "./components/Footer";
+import { ChangelogModal } from "./components/modals/ChangelogModal";
+import { CommandPalette } from "./components/modals/CommandPalette";
+import { ContributorsModal } from "./components/modals/ContributorsModal";
+import { type DetailTab, RepositoryDetailsModal } from "./components/modals/RepositoryDetailsModal";
+import { type MetricKind, RepositoryMetricModal } from "./components/modals/RepositoryMetricModal";
+import { WelcomeModal } from "./components/modals/WelcomeModal";
+import { type InboxSidebarState, SidebarControls } from "./components/SidebarControls";
+import { TopBar } from "./components/TopBar";
+import { CIHealthView } from "./components/views/CIHealthView";
 import { DailyDigestView } from "./components/views/DailyDigestView";
 import { InboxView } from "./components/views/InboxView";
 import { InsightsView } from "./components/views/InsightsView";
-import { ReposView, REPO_DENSITY_OPTIONS, type RepoDensity, type RepoLayout } from "./components/views/ReposView";
-import { RepoViewControls } from "./components/views/RepoViewControls";
+import { IssueList } from "./components/views/IssueList";
 import { KanbanView } from "./components/views/KanbanView";
-import { CIHealthView } from "./components/views/CIHealthView";
+import { PullRequestList } from "./components/views/PullRequestList";
+import {
+  REPO_DENSITY_OPTIONS,
+  type RepoDensity,
+  type RepoLayout,
+  ReposView,
+} from "./components/views/ReposView";
+import { RepoViewControls } from "./components/views/RepoViewControls";
+import { useAccounts, useCapability } from "./contexts/AccountContext";
+import { useI18n } from "./i18n/I18nProvider";
 import type {
   CIHealthData,
   DailyDigestEntry,
@@ -52,7 +71,6 @@ import type {
   RepoInsightsData,
   ReposData,
 } from "./types/github";
-import { buildInboxItems, INBOX_MAILBOXES, matchesInboxMailbox, mergeNotifications, type InboxMailbox } from "./utils/inbox";
 import {
   buildIssueFacets,
   buildPullRequestFacets,
@@ -60,32 +78,30 @@ import {
   filterIssues,
   filterPullRequests,
   filterRepos,
-  sortIssues,
-  sortPullRequests,
-  sortRepos,
   type IssueFilters,
   type PullRequestFilters,
   type RepoFilters,
+  sortIssues,
+  sortPullRequests,
+  sortRepos,
 } from "./utils/dashboard";
-import { clampPage } from "./utils/pagination";
-import { formatNumber } from "./utils/format";
-import { clearStatsCache, readStatsCache, writeStatsCache } from "./utils/statsCache";
-import { clearFiltersCache, hydrateFilters, readFiltersCache, writeFiltersCache } from "./utils/filtersCache";
-import { useI18n } from "./i18n/I18nProvider";
-import { useAccounts, useCapability } from "./contexts/AccountContext";
 import { errorMessage } from "./utils/errors";
 import {
-  CACHE_KEY,
-  TAB_ROUTES,
-  defaultIssueFilters,
-  defaultPrFilters,
-  defaultRepoFilters,
-  detailTabFromParams,
-  downloadJson,
-  metricKindFromParams,
-  tabFromPath,
-  type Tab,
-} from "./appHelpers";
+  clearFiltersCache,
+  hydrateFilters,
+  readFiltersCache,
+  writeFiltersCache,
+} from "./utils/filtersCache";
+import { formatNumber } from "./utils/format";
+import {
+  buildInboxItems,
+  INBOX_MAILBOXES,
+  type InboxMailbox,
+  matchesInboxMailbox,
+  mergeNotifications,
+} from "./utils/inbox";
+import { clampPage } from "./utils/pagination";
+import { clearStatsCache, readStatsCache, writeStatsCache } from "./utils/statsCache";
 
 type Theme = "dark" | "light" | "auto";
 type TextSize = "small" | "normal" | "large";
@@ -120,7 +136,9 @@ export function App() {
   const [owners, setOwners] = useState<string[]>([]);
   const [repoInsights, setRepoInsights] = useState<RepoInsight[]>([]);
   const [dailyDigests, setDailyDigests] = useState<DailyDigestEntry[]>([]);
-  const [digestPeriod, setDigestPeriod] = useState<DigestPeriod>(() => (localStorage.getItem("gh-dash.digestPeriod") as DigestPeriod) || "day");
+  const [digestPeriod, setDigestPeriod] = useState<DigestPeriod>(
+    () => (localStorage.getItem("gh-dash.digestPeriod") as DigestPeriod) || "day",
+  );
   const [ciHealth, setCiHealth] = useState<RepoCIHealth[]>([]);
   const [fetchedAt, setFetchedAt] = useState("");
   const [loading, setLoading] = useState(false);
@@ -129,32 +147,60 @@ export function App() {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [contributorsOpen, setContributorsOpen] = useState(false);
   const [changelogOpen, setChangelogOpen] = useState(false);
-  const [welcomeOpen, setWelcomeOpen] = useState(() => !localStorage.getItem("gh-dash.welcomeSeen"));
+  const [welcomeOpen, setWelcomeOpen] = useState(
+    () => !localStorage.getItem("gh-dash.welcomeSeen"),
+  );
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [notifications, setNotifications] = useState<GhNotification[]>([]);
   const [pollInterval, setPollInterval] = useState(60);
   const [mailbox, setMailbox] = useState<InboxMailbox>("inbox");
   const [inboxPage, setInboxPage] = useState(1);
-  const [inboxPageSize, setInboxPageSize] = useState(Number(localStorage.getItem("gh-dash.inboxPageSize")) || 20);
+  const [inboxPageSize, setInboxPageSize] = useState(
+    Number(localStorage.getItem("gh-dash.inboxPageSize")) || 20,
+  );
   const [inboxSearch, setInboxSearch] = useState("");
-  const [theme, setTheme] = useState<Theme>(() => (localStorage.getItem("gh-dash.theme") as Theme) || "dark");
-  const [textSize, setTextSize] = useState<TextSize>(() => (localStorage.getItem("gh-dash.textSize") as TextSize) || "normal");
-  const [issueFilters, setIssueFilters] = useState<IssueFilters>(() => cachedFiltersOnMount?.hydrated.issueFilters ?? defaultIssueFilters());
-  const [prFilters, setPrFilters] = useState<PullRequestFilters>(() => cachedFiltersOnMount?.hydrated.prFilters ?? defaultPrFilters());
-  const [repoFilters, setRepoFilters] = useState<RepoFilters>(() => cachedFiltersOnMount?.hydrated.repoFilters ?? defaultRepoFilters());
-  const [issueSort, setIssueSort] = useState(() => cachedFiltersOnMount?.sorts?.issueSort || "updated_desc");
+  const [theme, setTheme] = useState<Theme>(
+    () => (localStorage.getItem("gh-dash.theme") as Theme) || "dark",
+  );
+  const [textSize, setTextSize] = useState<TextSize>(
+    () => (localStorage.getItem("gh-dash.textSize") as TextSize) || "normal",
+  );
+  const [issueFilters, setIssueFilters] = useState<IssueFilters>(
+    () => cachedFiltersOnMount?.hydrated.issueFilters ?? defaultIssueFilters(),
+  );
+  const [prFilters, setPrFilters] = useState<PullRequestFilters>(
+    () => cachedFiltersOnMount?.hydrated.prFilters ?? defaultPrFilters(),
+  );
+  const [repoFilters, setRepoFilters] = useState<RepoFilters>(
+    () => cachedFiltersOnMount?.hydrated.repoFilters ?? defaultRepoFilters(),
+  );
+  const [issueSort, setIssueSort] = useState(
+    () => cachedFiltersOnMount?.sorts?.issueSort || "updated_desc",
+  );
   const [prSort, setPrSort] = useState(() => cachedFiltersOnMount?.sorts?.prSort || "updated_desc");
-  const [repoSort, setRepoSort] = useState(() => cachedFiltersOnMount?.sorts?.repoSort || "stars_desc");
+  const [repoSort, setRepoSort] = useState(
+    () => cachedFiltersOnMount?.sorts?.repoSort || "stars_desc",
+  );
   // Page numbers are intentionally NOT cached — they're ephemeral positions,
   // not preferences. After a refresh, page 1 is always the correct start.
   const [issuePage, setIssuePage] = useState(1);
   const [prPage, setPrPage] = useState(1);
   const [repoPage, setRepoPage] = useState(1);
-  const [issuePageSize, setIssuePageSize] = useState(Number(localStorage.getItem("gh-dash.issuesPageSize")) || 20);
-  const [prPageSize, setPrPageSize] = useState(Number(localStorage.getItem("gh-dash.prsPageSize")) || 20);
-  const [repoPageSize, setRepoPageSize] = useState(Number(localStorage.getItem("gh-dash.reposPageSize")) || 20);
-  const [repoLayout, setRepoLayout] = useState<RepoLayout>(() => (localStorage.getItem("gh-dash.repoLayout") as RepoLayout) || "grid");
-  const [repoDensity, setRepoDensity] = useState<RepoDensity>(() => (localStorage.getItem("gh-dash.repoDensity") as RepoDensity) || "cozy");
+  const [issuePageSize, setIssuePageSize] = useState(
+    Number(localStorage.getItem("gh-dash.issuesPageSize")) || 20,
+  );
+  const [prPageSize, setPrPageSize] = useState(
+    Number(localStorage.getItem("gh-dash.prsPageSize")) || 20,
+  );
+  const [repoPageSize, setRepoPageSize] = useState(
+    Number(localStorage.getItem("gh-dash.reposPageSize")) || 20,
+  );
+  const [repoLayout, setRepoLayout] = useState<RepoLayout>(
+    () => (localStorage.getItem("gh-dash.repoLayout") as RepoLayout) || "grid",
+  );
+  const [repoDensity, setRepoDensity] = useState<RepoDensity>(
+    () => (localStorage.getItem("gh-dash.repoDensity") as RepoDensity) || "cozy",
+  );
   const abortRef = useRef<AbortController | null>(null);
   const initialLoadRef = useRef(false);
 
@@ -211,8 +257,8 @@ export function App() {
     void swr<ReposData>(CACHE_KEY.repos, (signal) => fetchRepos(fresh, signal), {
       fresh,
       signal: controller.signal,
-    }).promise
-      .then((data) => {
+    })
+      .promise.then((data) => {
         if (controller.signal.aborted) return;
         setRepos(data.repos);
         setOwners(data.owners);
@@ -223,8 +269,8 @@ export function App() {
     void swr<IssuesData>(CACHE_KEY.issues, (signal) => fetchIssues(fresh, signal), {
       fresh,
       signal: controller.signal,
-    }).promise
-      .then((data) => {
+    })
+      .promise.then((data) => {
         if (controller.signal.aborted) return;
         setIssues(data.issues);
       }, handleFailure)
@@ -233,8 +279,8 @@ export function App() {
     void swr<PullRequestsData>(CACHE_KEY.prs, (signal) => fetchPullRequests(fresh, signal), {
       fresh,
       signal: controller.signal,
-    }).promise
-      .then((data) => {
+    })
+      .promise.then((data) => {
         if (controller.signal.aborted) return;
         setPullRequests(data.pullRequests);
       }, handleFailure)
@@ -298,12 +344,10 @@ export function App() {
     const cached = peek<RepoInsightsData>(CACHE_KEY.insights);
     if (cached) setRepoInsights(cached.insights);
     const controller = new AbortController();
-    swr<RepoInsightsData>(
-      CACHE_KEY.insights,
-      (signal) => fetchRepoInsights(false, signal),
-      { signal: controller.signal },
-    ).promise
-      .then((data) => {
+    swr<RepoInsightsData>(CACHE_KEY.insights, (signal) => fetchRepoInsights(false, signal), {
+      signal: controller.signal,
+    })
+      .promise.then((data) => {
         if (!controller.signal.aborted) setRepoInsights(data.insights);
       })
       .catch(() => {});
@@ -318,8 +362,8 @@ export function App() {
     const controller = new AbortController();
     swr<CIHealthData>(CACHE_KEY.ciHealth, (signal) => fetchCIHealth(false, signal), {
       signal: controller.signal,
-    }).promise
-      .then((data) => {
+    })
+      .promise.then((data) => {
         if (!controller.signal.aborted) setCiHealth(data.repos);
       })
       .catch(() => {});
@@ -329,14 +373,15 @@ export function App() {
   useEffect(() => {
     if (authState !== "authenticated") return;
     if (tab !== "digests") return;
-    const cacheKey = digestPeriod === "day" ? CACHE_KEY.digests : `${CACHE_KEY.digests}?period=${digestPeriod}`;
+    const cacheKey =
+      digestPeriod === "day" ? CACHE_KEY.digests : `${CACHE_KEY.digests}?period=${digestPeriod}`;
     const cached = peek<DailyDigestsData>(cacheKey);
     if (cached) setDailyDigests(cached.digests);
     const controller = new AbortController();
     swr<DailyDigestsData>(cacheKey, (signal) => fetchDailyDigests(signal, digestPeriod), {
       signal: controller.signal,
-    }).promise
-      .then((data) => {
+    })
+      .promise.then((data) => {
         if (!controller.signal.aborted) setDailyDigests(data.digests);
       })
       .catch(() => {});
@@ -416,15 +461,29 @@ export function App() {
     return () => window.removeEventListener("keydown", handler);
   }, []);
 
-  useEffect(() => localStorage.setItem("gh-dash.issuesPageSize", String(issuePageSize)), [issuePageSize]);
+  useEffect(
+    () => localStorage.setItem("gh-dash.issuesPageSize", String(issuePageSize)),
+    [issuePageSize],
+  );
   useEffect(() => localStorage.setItem("gh-dash.prsPageSize", String(prPageSize)), [prPageSize]);
-  useEffect(() => localStorage.setItem("gh-dash.reposPageSize", String(repoPageSize)), [repoPageSize]);
+  useEffect(
+    () => localStorage.setItem("gh-dash.reposPageSize", String(repoPageSize)),
+    [repoPageSize],
+  );
   useEffect(() => localStorage.setItem("gh-dash.repoLayout", repoLayout), [repoLayout]);
   useEffect(() => localStorage.setItem("gh-dash.repoDensity", repoDensity), [repoDensity]);
   const cycleRepoDensity = useCallback(() => {
-    setRepoDensity((current) => REPO_DENSITY_OPTIONS[(REPO_DENSITY_OPTIONS.indexOf(current) + 1) % REPO_DENSITY_OPTIONS.length]);
+    setRepoDensity(
+      (current) =>
+        REPO_DENSITY_OPTIONS[
+          (REPO_DENSITY_OPTIONS.indexOf(current) + 1) % REPO_DENSITY_OPTIONS.length
+        ] ?? current,
+    );
   }, []);
-  useEffect(() => localStorage.setItem("gh-dash.inboxPageSize", String(inboxPageSize)), [inboxPageSize]);
+  useEffect(
+    () => localStorage.setItem("gh-dash.inboxPageSize", String(inboxPageSize)),
+    [inboxPageSize],
+  );
 
   const refreshNotifications = useCallback(async (fresh = false) => {
     try {
@@ -443,18 +502,25 @@ export function App() {
 
   useEffect(() => {
     if (authState !== "authenticated" || !pollInterval) return;
-    const id = window.setInterval(() => { void refreshNotifications(); }, Math.max(30, pollInterval) * 1000);
+    const id = window.setInterval(() => {
+      void refreshNotifications();
+    }, Math.max(30, pollInterval) * 1000);
     return () => window.clearInterval(id);
   }, [authState, pollInterval, refreshNotifications]);
 
-  const handleMarkRead = useCallback(async (threadId: string) => {
-    setNotifications((prev) => prev.map((entry) => (entry.id === threadId ? { ...entry, unread: false } : entry)));
-    try {
-      await markNotificationRead(threadId);
-    } catch {
-      void refreshNotifications(true);
-    }
-  }, [refreshNotifications]);
+  const handleMarkRead = useCallback(
+    async (threadId: string) => {
+      setNotifications((prev) =>
+        prev.map((entry) => (entry.id === threadId ? { ...entry, unread: false } : entry)),
+      );
+      try {
+        await markNotificationRead(threadId);
+      } catch {
+        void refreshNotifications(true);
+      }
+    },
+    [refreshNotifications],
+  );
 
   const userLoginValue = owners[0] || "";
   const inboxItems = useMemo(() => {
@@ -472,11 +538,22 @@ export function App() {
     }
     return counts;
   }, [inboxItems]);
-  const inboxUnreadCount = useMemo(() => inboxItems.filter((item) => item.unread).length, [inboxItems]);
+  const inboxUnreadCount = useMemo(
+    () => inboxItems.filter((item) => item.unread).length,
+    [inboxItems],
+  );
 
   const handleMarkAllRead = useCallback(async () => {
     if (!inboxUnreadCount) return;
-    if (!window.confirm(t("confirm.markAllRead", { count: inboxUnreadCount, plural: inboxUnreadCount === 1 ? "" : "s" }))) return;
+    if (
+      !window.confirm(
+        t("confirm.markAllRead", {
+          count: inboxUnreadCount,
+          plural: inboxUnreadCount === 1 ? "" : "s",
+        }),
+      )
+    )
+      return;
     const previous = notifications;
     setNotifications((prev) => prev.map((entry) => ({ ...entry, unread: false })));
     try {
@@ -491,7 +568,10 @@ export function App() {
     counts: inboxCounts,
     totalCount: inboxItems.length,
     unreadCount: inboxUnreadCount,
-    onMailboxChange: (next) => { setMailbox(next); setInboxPage(1); },
+    onMailboxChange: (next) => {
+      setMailbox(next);
+      setInboxPage(1);
+    },
     onMarkAllRead: () => void handleMarkAllRead(),
   };
 
@@ -504,50 +584,112 @@ export function App() {
   const issueFacets = useMemo(() => buildIssueFacets(issues), [issues]);
   const prFacets = useMemo(() => buildPullRequestFacets(pullRequests), [pullRequests]);
   const repoFacets = useMemo(() => buildRepoFacets(repos), [repos]);
-  const insightsByRepo = useMemo(() => new Map(repoInsights.map((insight) => [insight.repo, insight])), [repoInsights]);
-  const filteredIssues = useMemo(() => sortIssues(filterIssues(issues, issueFilters, userLogin), issueSort), [issues, issueFilters, issueSort, userLogin]);
-  const filteredPullRequests = useMemo(() => sortPullRequests(filterPullRequests(pullRequests, prFilters, userLogin), prSort), [pullRequests, prFilters, prSort, userLogin]);
-  const filteredRepos = useMemo(() => sortRepos(filterRepos(repos, issues, repoFilters), issues, repoSort, insightsByRepo), [repos, issues, repoFilters, repoSort, insightsByRepo]);
+  const insightsByRepo = useMemo(
+    () => new Map(repoInsights.map((insight) => [insight.repo, insight])),
+    [repoInsights],
+  );
+  const filteredIssues = useMemo(
+    () => sortIssues(filterIssues(issues, issueFilters, userLogin), issueSort),
+    [issues, issueFilters, issueSort, userLogin],
+  );
+  const filteredPullRequests = useMemo(
+    () => sortPullRequests(filterPullRequests(pullRequests, prFilters, userLogin), prSort),
+    [pullRequests, prFilters, prSort, userLogin],
+  );
+  const filteredRepos = useMemo(
+    () => sortRepos(filterRepos(repos, issues, repoFilters), issues, repoSort, insightsByRepo),
+    [repos, issues, repoFilters, repoSort, insightsByRepo],
+  );
   const filteredInsights = useMemo(
-    () => filteredRepos
-      .map((repo) => insightsByRepo.get(repo.nameWithOwner))
-      .filter((value): value is RepoInsight => Boolean(value))
-      .filter((insight) => insight.alerts.length || insight.opportunities.length || insight.correlations.length),
-    [filteredRepos, insightsByRepo]
+    () =>
+      filteredRepos
+        .map((repo) => insightsByRepo.get(repo.nameWithOwner))
+        .filter((value): value is RepoInsight => Boolean(value))
+        .filter(
+          (insight) =>
+            insight.alerts.length || insight.opportunities.length || insight.correlations.length,
+        ),
+    [filteredRepos, insightsByRepo],
   );
   const securityInsights = useMemo(
-    () => filteredRepos
-      .map((repo) => insightsByRepo.get(repo.nameWithOwner))
-      .filter((value): value is RepoInsight => Boolean(value))
-      .filter((insight) => insight.securityAlertsCount > 0),
-    [filteredRepos, insightsByRepo]
+    () =>
+      filteredRepos
+        .map((repo) => insightsByRepo.get(repo.nameWithOwner))
+        .filter((value): value is RepoInsight => Boolean(value))
+        .filter((insight) => insight.securityAlertsCount > 0),
+    [filteredRepos, insightsByRepo],
   );
   const issuePageSafe = clampPage(issuePage, filteredIssues.length, issuePageSize);
   const prPageSafe = clampPage(prPage, filteredPullRequests.length, prPageSize);
   const repoPageSafe = clampPage(repoPage, filteredRepos.length, repoPageSize);
-  const visibleIssues = filteredIssues.slice((issuePageSafe - 1) * issuePageSize, issuePageSafe * issuePageSize);
-  const visiblePullRequests = filteredPullRequests.slice((prPageSafe - 1) * prPageSize, prPageSafe * prPageSize);
-  const visibleRepos = filteredRepos.slice((repoPageSafe - 1) * repoPageSize, repoPageSafe * repoPageSize);
+  const visibleIssues = filteredIssues.slice(
+    (issuePageSafe - 1) * issuePageSize,
+    issuePageSafe * issuePageSize,
+  );
+  const visiblePullRequests = filteredPullRequests.slice(
+    (prPageSafe - 1) * prPageSize,
+    prPageSafe * prPageSize,
+  );
+  const visibleRepos = filteredRepos.slice(
+    (repoPageSafe - 1) * repoPageSize,
+    repoPageSafe * repoPageSize,
+  );
   const draftCount = pullRequests.filter((pr) => pr.isDraft).length;
-  const awaitingReviewCount = pullRequests.filter((pr) => !pr.isDraft && pr.reviewsCount === 0).length;
+  const awaitingReviewCount = pullRequests.filter(
+    (pr) => !pr.isDraft && pr.reviewsCount === 0,
+  ).length;
   const approvedCount = pullRequests.filter((pr) => pr.reviewDecision === "APPROVED").length;
-  const stalePrCount = pullRequests.filter((pr) => Date.now() - new Date(pr.updatedAt).getTime() > 14 * 86_400_000).length;
-  const averageHealth = repoInsights.length ? Math.round(repoInsights.reduce((sum, insight) => sum + insight.healthScore, 0) / repoInsights.length) : 0;
+  const stalePrCount = pullRequests.filter(
+    (pr) => Date.now() - new Date(pr.updatedAt).getTime() > 14 * 86_400_000,
+  ).length;
+  const averageHealth = repoInsights.length
+    ? Math.round(
+        repoInsights.reduce((sum, insight) => sum + insight.healthScore, 0) / repoInsights.length,
+      )
+    : 0;
   const totalAlerts = repoInsights.reduce((sum, insight) => sum + insight.alerts.length, 0);
-  const totalSecurityAlerts = repoInsights.reduce((sum, insight) => sum + insight.securityAlertsCount, 0);
-  const securityRepoCount = repoInsights.filter((insight) => insight.securityAlertsCount > 0).length;
-  const securityInsightsAlertCount = securityInsights.reduce((sum, insight) => sum + insight.alerts.length, 0);
-  const securityAverageHealth = securityInsights.length ? Math.round(securityInsights.reduce((sum, insight) => sum + insight.healthScore, 0) / securityInsights.length) : 0;
-  const reposByName = useMemo(() => new Map(repos.map((repo) => [repo.nameWithOwner, repo])), [repos]);
+  const totalSecurityAlerts = repoInsights.reduce(
+    (sum, insight) => sum + insight.securityAlertsCount,
+    0,
+  );
+  const securityRepoCount = repoInsights.filter(
+    (insight) => insight.securityAlertsCount > 0,
+  ).length;
+  const securityInsightsAlertCount = securityInsights.reduce(
+    (sum, insight) => sum + insight.alerts.length,
+    0,
+  );
+  const securityAverageHealth = securityInsights.length
+    ? Math.round(
+        securityInsights.reduce((sum, insight) => sum + insight.healthScore, 0) /
+          securityInsights.length,
+      )
+    : 0;
+  const reposByName = useMemo(
+    () => new Map(repos.map((repo) => [repo.nameWithOwner, repo])),
+    [repos],
+  );
   const repoModal = useMemo(
-    () => (routeRepoName && !routeMetricKind ? reposByName.get(routeRepoName) ?? null : null),
+    () => (routeRepoName && !routeMetricKind ? (reposByName.get(routeRepoName) ?? null) : null),
     [reposByName, routeMetricKind, routeRepoName],
   );
-  const metricRepo = routeMetricKind && routeRepoName ? reposByName.get(routeRepoName) ?? null : null;
-  const metricTotalCount = routeMetricKind === "stars" ? metricRepo?.stargazerCount : routeMetricKind === "forks" ? metricRepo?.forkCount : undefined;
+  const metricRepo =
+    routeMetricKind && routeRepoName ? (reposByName.get(routeRepoName) ?? null) : null;
+  const metricTotalCount =
+    routeMetricKind === "stars"
+      ? metricRepo?.stargazerCount
+      : routeMetricKind === "forks"
+        ? metricRepo?.forkCount
+        : undefined;
 
   if (authState === "checking") {
-    return <div className="auth-gate"><div className="auth-card"><p className="auth-status">{t("common.loadingEllipsis")}</p></div></div>;
+    return (
+      <div className="auth-gate">
+        <div className="auth-card">
+          <p className="auth-status">{t("common.loadingEllipsis")}</p>
+        </div>
+      </div>
+    );
   }
 
   if (authState === "anonymous") {
@@ -574,10 +716,14 @@ export function App() {
     t("summary.prs", { count: pullRequests.length }),
     t("summary.repos", { count: repos.length }),
     t("summary.orgs", { count: owners.length }),
-    ...(totalSecurityAlerts > 0 ? [t("summary.securityAlerts", { count: totalSecurityAlerts })] : []),
+    ...(totalSecurityAlerts > 0
+      ? [t("summary.securityAlerts", { count: totalSecurityAlerts })]
+      : []),
     ...(loading ? [t("summary.loading")] : []),
   ].join(" · ");
-  const lastUpdated = fetchedAt ? t("common.updatedAt", { time: new Date(fetchedAt).toLocaleTimeString() }) : "";
+  const lastUpdated = fetchedAt
+    ? t("common.updatedAt", { time: new Date(fetchedAt).toLocaleTimeString() })
+    : "";
 
   function setSearch(value: string) {
     if (tab === "inbox") {
@@ -596,7 +742,8 @@ export function App() {
   }
 
   function resetFilters() {
-    if (tab === "repos" || tab === "insights" || tab === "alerts" || tab === "digests") setRepoFilters(defaultRepoFilters());
+    if (tab === "repos" || tab === "insights" || tab === "alerts" || tab === "digests")
+      setRepoFilters(defaultRepoFilters());
     else if (tab === "prs") setPrFilters(defaultPrFilters());
     else setIssueFilters(defaultIssueFilters());
     clearFiltersCache();
@@ -632,14 +779,44 @@ export function App() {
   }
 
   const tabs = [
-    { key: "inbox" as const, label: t("tabs.inbox"), count: issues.length + pullRequests.length, icon: <InboxIcon /> },
-    { key: "repos" as const, label: t("tabs.repositories"), count: repos.length, icon: <BookIcon /> },
+    {
+      key: "inbox" as const,
+      label: t("tabs.inbox"),
+      count: issues.length + pullRequests.length,
+      icon: <InboxIcon />,
+    },
+    {
+      key: "repos" as const,
+      label: t("tabs.repositories"),
+      count: repos.length,
+      icon: <BookIcon />,
+    },
     { key: "issues" as const, label: t("tabs.issues"), count: issues.length, icon: <IssueIcon /> },
-    { key: "prs" as const, label: t("tabs.pullRequests"), count: pullRequests.length, icon: <PulseIcon /> },
-    { key: "insights" as const, label: t("tabs.insights"), count: filteredInsights.length, icon: <PulseIcon /> },
-    { key: "alerts" as const, label: t("tabs.alerts"), count: totalSecurityAlerts, icon: <PulseIcon /> },
+    {
+      key: "prs" as const,
+      label: t("tabs.pullRequests"),
+      count: pullRequests.length,
+      icon: <PulseIcon />,
+    },
+    {
+      key: "insights" as const,
+      label: t("tabs.insights"),
+      count: filteredInsights.length,
+      icon: <PulseIcon />,
+    },
+    {
+      key: "alerts" as const,
+      label: t("tabs.alerts"),
+      count: totalSecurityAlerts,
+      icon: <PulseIcon />,
+    },
     { key: "ci" as const, label: t("tabs.ci"), count: ciHealth.length, icon: <PulseIcon /> },
-    { key: "digests" as const, label: t("tabs.digest"), count: dailyDigests.length, icon: <PulseIcon /> },
+    {
+      key: "digests" as const,
+      label: t("tabs.digest"),
+      count: dailyDigests.length,
+      icon: <PulseIcon />,
+    },
     ...(projectsEnabled
       ? [{ key: "kanban" as const, label: t("tabs.board"), count: "—", icon: <BoardIcon /> }]
       : []),
@@ -666,7 +843,12 @@ export function App() {
       <div className="tabs-bar">
         <div className="tabs" role="tablist">
           {tabs.map((item) => (
-            <button className={`tab ${tab === item.key ? "active" : ""}`} key={item.key} role="tab" onClick={() => navigateTab(item.key)}>
+            <button
+              className={`tab ${tab === item.key ? "active" : ""}`}
+              key={item.key}
+              role="tab"
+              onClick={() => navigateTab(item.key)}
+            >
               {item.icon}
               {item.label} <span className="tab-badge">{item.count}</span>
             </button>
@@ -685,9 +867,18 @@ export function App() {
           prFacets={prFacets}
           repoFacets={repoFacets}
           onSearchChange={setSearch}
-          onIssueFiltersChange={(next) => { setIssueFilters(next); setIssuePage(1); }}
-          onPrFiltersChange={(next) => { setPrFilters(next); setPrPage(1); }}
-          onRepoFiltersChange={(next) => { setRepoFilters(next); setRepoPage(1); }}
+          onIssueFiltersChange={(next) => {
+            setIssueFilters(next);
+            setIssuePage(1);
+          }}
+          onPrFiltersChange={(next) => {
+            setPrFilters(next);
+            setPrPage(1);
+          }}
+          onRepoFiltersChange={(next) => {
+            setRepoFilters(next);
+            setRepoPage(1);
+          }}
           onReset={resetFilters}
           onClose={() => setFiltersOpen(false)}
           authLogin={authLogin || undefined}
@@ -708,23 +899,64 @@ export function App() {
               onMarkRead={(threadId) => void handleMarkRead(threadId)}
               onRefresh={() => void refreshNotifications(true)}
               onPageChange={setInboxPage}
-              onPageSizeChange={(size) => { setInboxPageSize(size); setInboxPage(1); }}
+              onPageSizeChange={(size) => {
+                setInboxPageSize(size);
+                setInboxPage(1);
+              }}
             />
           ) : null}
 
           {tab === "issues" ? (
             <div className="view-issues" style={{ display: "block" }}>
               <section className="stats">
-                <div className="stat"><div className="k">{t("stats.openIssues")}</div><div className="v">{formatNumber(filteredIssues.length)}</div><div className="sub">{t("stats.matchingFilters")}</div></div>
-                <div className="stat"><div className="k">{t("stats.repositories")}</div><div className="v">{new Set(filteredIssues.map((issue) => issue.repository.nameWithOwner)).size}</div><div className="sub">{t("stats.withOpenIssues")}</div></div>
-                <div className="stat"><div className="k">{t("stats.organizations")}</div><div className="v">{new Set(filteredIssues.map((issue) => issue.repository.nameWithOwner.split("/")[0])).size}</div><div className="sub">{t("stats.includingPersonal")}</div></div>
-                <div className="stat"><div className="k">{t("stats.stale30")}</div><div className="v">{filteredIssues.filter((issue) => Date.now() - new Date(issue.updatedAt).getTime() > 30 * 86_400_000).length}</div><div className="sub">{t("stats.noRecentActivity")}</div></div>
+                <div className="stat">
+                  <div className="k">{t("stats.openIssues")}</div>
+                  <div className="v">{formatNumber(filteredIssues.length)}</div>
+                  <div className="sub">{t("stats.matchingFilters")}</div>
+                </div>
+                <div className="stat">
+                  <div className="k">{t("stats.repositories")}</div>
+                  <div className="v">
+                    {new Set(filteredIssues.map((issue) => issue.repository.nameWithOwner)).size}
+                  </div>
+                  <div className="sub">{t("stats.withOpenIssues")}</div>
+                </div>
+                <div className="stat">
+                  <div className="k">{t("stats.organizations")}</div>
+                  <div className="v">
+                    {
+                      new Set(
+                        filteredIssues.map((issue) => issue.repository.nameWithOwner.split("/")[0]),
+                      ).size
+                    }
+                  </div>
+                  <div className="sub">{t("stats.includingPersonal")}</div>
+                </div>
+                <div className="stat">
+                  <div className="k">{t("stats.stale30")}</div>
+                  <div className="v">
+                    {
+                      filteredIssues.filter(
+                        (issue) =>
+                          Date.now() - new Date(issue.updatedAt).getTime() > 30 * 86_400_000,
+                      ).length
+                    }
+                  </div>
+                  <div className="sub">{t("stats.noRecentActivity")}</div>
+                </div>
               </section>
               <div className="toolbar">
-                <span className="count-chip"><strong>{visibleIssues.length}</strong> {t("common.of")} <span>{filteredIssues.length}</span> {t("common.shown")}</span>
+                <span className="count-chip">
+                  <strong>{visibleIssues.length}</strong> {t("common.of")}{" "}
+                  <span>{filteredIssues.length}</span> {t("common.shown")}
+                </span>
                 <div className="spacer" />
                 <label>{t("common.sort")}</label>
-                <select className="sort" value={issueSort} onChange={(event) => setIssueSort(event.target.value)}>
+                <select
+                  className="sort"
+                  value={issueSort}
+                  onChange={(event) => setIssueSort(event.target.value)}
+                >
                   <option value="updated_desc">{t("sort.recentlyUpdated")}</option>
                   <option value="updated_asc">{t("sort.leastRecentlyUpdated")}</option>
                   <option value="created_desc">{t("sort.newest")}</option>
@@ -735,24 +967,63 @@ export function App() {
                 </select>
               </div>
               <IssueList issues={visibleIssues} />
-              <Pagination totalItems={filteredIssues.length} page={issuePageSafe} pageSize={issuePageSize} onPageChange={setIssuePage} onPageSizeChange={(size) => { setIssuePageSize(size); setIssuePage(1); }} />
+              <Pagination
+                totalItems={filteredIssues.length}
+                page={issuePageSafe}
+                pageSize={issuePageSize}
+                onPageChange={setIssuePage}
+                onPageSizeChange={(size) => {
+                  setIssuePageSize(size);
+                  setIssuePage(1);
+                }}
+              />
             </div>
           ) : null}
 
           {tab === "prs" ? (
             <div className="view-prs" style={{ display: "block" }}>
               <section className="stats">
-                <div className="stat"><div className="k">{t("stats.openPrs")}</div><div className="v">{formatNumber(filteredPullRequests.length)}</div><div className="sub">{t("stats.matchingFilters")}</div></div>
-                <div className="stat"><div className="k">{t("stats.drafts")}</div><div className="v">{formatNumber(draftCount)}</div><div className="sub">{t("stats.acrossAllPrs")}</div></div>
-                <div className="stat"><div className="k">{t("stats.awaitingReview")}</div><div className="v">{formatNumber(awaitingReviewCount)}</div><div className="sub">{t("stats.noReviewYet")}</div></div>
-                <div className="stat"><div className="k">{t("stats.approved")}</div><div className="v">{formatNumber(approvedCount)}</div><div className="sub">{t("stats.readyToMerge")}</div></div>
-                <div className="stat"><div className="k">{t("stats.stale14")}</div><div className="v">{formatNumber(stalePrCount)}</div><div className="sub">{t("stats.noRecentActivity")}</div></div>
+                <div className="stat">
+                  <div className="k">{t("stats.openPrs")}</div>
+                  <div className="v">{formatNumber(filteredPullRequests.length)}</div>
+                  <div className="sub">{t("stats.matchingFilters")}</div>
+                </div>
+                <div className="stat">
+                  <div className="k">{t("stats.drafts")}</div>
+                  <div className="v">{formatNumber(draftCount)}</div>
+                  <div className="sub">{t("stats.acrossAllPrs")}</div>
+                </div>
+                <div className="stat">
+                  <div className="k">{t("stats.awaitingReview")}</div>
+                  <div className="v">{formatNumber(awaitingReviewCount)}</div>
+                  <div className="sub">{t("stats.noReviewYet")}</div>
+                </div>
+                <div className="stat">
+                  <div className="k">{t("stats.approved")}</div>
+                  <div className="v">{formatNumber(approvedCount)}</div>
+                  <div className="sub">{t("stats.readyToMerge")}</div>
+                </div>
+                <div className="stat">
+                  <div className="k">{t("stats.stale14")}</div>
+                  <div className="v">{formatNumber(stalePrCount)}</div>
+                  <div className="sub">{t("stats.noRecentActivity")}</div>
+                </div>
               </section>
               <div className="toolbar">
-                <span className="count-chip"><strong>{visiblePullRequests.length}</strong> {t("common.of")} <span>{filteredPullRequests.length}</span> {t("common.shown")}</span>
+                <span className="count-chip">
+                  <strong>{visiblePullRequests.length}</strong> {t("common.of")}{" "}
+                  <span>{filteredPullRequests.length}</span> {t("common.shown")}
+                </span>
                 <div className="spacer" />
                 <label>{t("common.preset")}</label>
-                <select className="sort" value={prFilters.preset} onChange={(event) => { setPrFilters({ ...prFilters, preset: event.target.value }); setPrPage(1); }}>
+                <select
+                  className="sort"
+                  value={prFilters.preset}
+                  onChange={(event) => {
+                    setPrFilters({ ...prFilters, preset: event.target.value });
+                    setPrPage(1);
+                  }}
+                >
                   <option value="">{t("common.all")}</option>
                   <option value="ready">{t("preset.ready")}</option>
                   <option value="draft">{t("preset.draft")}</option>
@@ -764,7 +1035,11 @@ export function App() {
                   <option value="stale">{t("preset.stale")}</option>
                 </select>
                 <label>{t("common.sort")}</label>
-                <select className="sort" value={prSort} onChange={(event) => setPrSort(event.target.value)}>
+                <select
+                  className="sort"
+                  value={prSort}
+                  onChange={(event) => setPrSort(event.target.value)}
+                >
                   <option value="updated_desc">{t("sort.recentlyUpdated")}</option>
                   <option value="updated_asc">{t("sort.leastRecentlyUpdated")}</option>
                   <option value="created_desc">{t("sort.newest")}</option>
@@ -778,24 +1053,67 @@ export function App() {
                 </select>
               </div>
               <PullRequestList pullRequests={visiblePullRequests} />
-              <Pagination totalItems={filteredPullRequests.length} page={prPageSafe} pageSize={prPageSize} onPageChange={setPrPage} onPageSizeChange={(size) => { setPrPageSize(size); setPrPage(1); }} />
+              <Pagination
+                totalItems={filteredPullRequests.length}
+                page={prPageSafe}
+                pageSize={prPageSize}
+                onPageChange={setPrPage}
+                onPageSizeChange={(size) => {
+                  setPrPageSize(size);
+                  setPrPage(1);
+                }}
+              />
             </div>
           ) : null}
 
           {tab === "repos" ? (
             <div className="view-repos" style={{ display: "block" }}>
               <section className="stats">
-                <div className="stat"><div className="k">{t("stats.repositories")}</div><div className="v">{formatNumber(filteredRepos.length)}</div><div className="sub">{t("stats.matchingFilters")}</div></div>
-                <div className="stat"><div className="k">{t("stats.totalStars")}</div><div className="v">{formatNumber(filteredRepos.reduce((sum, repo) => sum + repo.stargazerCount, 0))}</div><div className="sub">{t("stats.acrossShown")}</div></div>
-                <div className="stat"><div className="k">{t("stats.totalForks")}</div><div className="v">{formatNumber(filteredRepos.reduce((sum, repo) => sum + repo.forkCount, 0))}</div><div className="sub">{t("stats.acrossShown")}</div></div>
-                <div className="stat"><div className="k">{t("stats.averageHealth")}</div><div className="v">{formatNumber(averageHealth)}</div><div className="sub">{t("stats.fromRepoSignals")}</div></div>
+                <div className="stat">
+                  <div className="k">{t("stats.repositories")}</div>
+                  <div className="v">{formatNumber(filteredRepos.length)}</div>
+                  <div className="sub">{t("stats.matchingFilters")}</div>
+                </div>
+                <div className="stat">
+                  <div className="k">{t("stats.totalStars")}</div>
+                  <div className="v">
+                    {formatNumber(
+                      filteredRepos.reduce((sum, repo) => sum + repo.stargazerCount, 0),
+                    )}
+                  </div>
+                  <div className="sub">{t("stats.acrossShown")}</div>
+                </div>
+                <div className="stat">
+                  <div className="k">{t("stats.totalForks")}</div>
+                  <div className="v">
+                    {formatNumber(filteredRepos.reduce((sum, repo) => sum + repo.forkCount, 0))}
+                  </div>
+                  <div className="sub">{t("stats.acrossShown")}</div>
+                </div>
+                <div className="stat">
+                  <div className="k">{t("stats.averageHealth")}</div>
+                  <div className="v">{formatNumber(averageHealth)}</div>
+                  <div className="sub">{t("stats.fromRepoSignals")}</div>
+                </div>
               </section>
               <div className="toolbar">
-                <span className="count-chip"><strong>{visibleRepos.length}</strong> {t("common.of")} <span>{filteredRepos.length}</span> {t("common.shown")}</span>
+                <span className="count-chip">
+                  <strong>{visibleRepos.length}</strong> {t("common.of")}{" "}
+                  <span>{filteredRepos.length}</span> {t("common.shown")}
+                </span>
                 <div className="spacer" />
-                <RepoViewControls layout={repoLayout} density={repoDensity} onLayoutChange={setRepoLayout} onCycleDensity={cycleRepoDensity} />
+                <RepoViewControls
+                  layout={repoLayout}
+                  density={repoDensity}
+                  onLayoutChange={setRepoLayout}
+                  onCycleDensity={cycleRepoDensity}
+                />
                 <label>{t("common.sort")}</label>
-                <select className="sort" value={repoSort} onChange={(event) => setRepoSort(event.target.value)}>
+                <select
+                  className="sort"
+                  value={repoSort}
+                  onChange={(event) => setRepoSort(event.target.value)}
+                >
                   <option value="stars_desc">{t("sort.mostStars")}</option>
                   <option value="stars_asc">{t("sort.fewestStars")}</option>
                   <option value="forks_desc">{t("sort.mostForks")}</option>
@@ -816,33 +1134,87 @@ export function App() {
                 issues={issues}
                 insightsByRepo={insightsByRepo}
                 onRepoClick={openRepoModal}
-                onIssuesClick={(repo) => { setIssueFilters({ ...issueFilters, repos: new Set([repo]) }); navigateTab("issues"); }}
+                onIssuesClick={(repo) => {
+                  setIssueFilters({ ...issueFilters, repos: new Set([repo]) });
+                  navigateTab("issues");
+                }}
                 onStarsClick={(repo) => openMetricModal(repo, "stars")}
                 onForksClick={(repo) => openMetricModal(repo, "forks")}
               />
-              <Pagination totalItems={filteredRepos.length} page={repoPageSafe} pageSize={repoPageSize} onPageChange={setRepoPage} onPageSizeChange={(size) => { setRepoPageSize(size); setRepoPage(1); }} />
+              <Pagination
+                totalItems={filteredRepos.length}
+                page={repoPageSafe}
+                pageSize={repoPageSize}
+                onPageChange={setRepoPage}
+                onPageSizeChange={(size) => {
+                  setRepoPageSize(size);
+                  setRepoPage(1);
+                }}
+              />
             </div>
           ) : null}
 
           {tab === "insights" ? (
             <div className="view-insights" style={{ display: "block" }}>
               <section className="stats">
-                <div className="stat"><div className="k">{t("stats.averageHealth")}</div><div className="v">{formatNumber(averageHealth)}</div><div className="sub">{t("stats.acrossTrackedRepos")}</div></div>
-                <div className="stat"><div className="k">{t("stats.alertCount")}</div><div className="v">{formatNumber(totalAlerts)}</div><div className="sub">{t("stats.activeRisksDetected")}</div></div>
-                <div className="stat"><div className="k">{t("stats.reposWithInsights")}</div><div className="v">{formatNumber(filteredInsights.length)}</div><div className="sub">{t("stats.alertsOpportunitiesCorrelations")}</div></div>
-                <div className="stat"><div className="k">{t("stats.atRiskRepos")}</div><div className="v">{formatNumber(repoInsights.filter((insight) => insight.healthLabel === "risky").length)}</div><div className="sub">{t("stats.healthScoreUnder55")}</div></div>
+                <div className="stat">
+                  <div className="k">{t("stats.averageHealth")}</div>
+                  <div className="v">{formatNumber(averageHealth)}</div>
+                  <div className="sub">{t("stats.acrossTrackedRepos")}</div>
+                </div>
+                <div className="stat">
+                  <div className="k">{t("stats.alertCount")}</div>
+                  <div className="v">{formatNumber(totalAlerts)}</div>
+                  <div className="sub">{t("stats.activeRisksDetected")}</div>
+                </div>
+                <div className="stat">
+                  <div className="k">{t("stats.reposWithInsights")}</div>
+                  <div className="v">{formatNumber(filteredInsights.length)}</div>
+                  <div className="sub">{t("stats.alertsOpportunitiesCorrelations")}</div>
+                </div>
+                <div className="stat">
+                  <div className="k">{t("stats.atRiskRepos")}</div>
+                  <div className="v">
+                    {formatNumber(
+                      repoInsights.filter((insight) => insight.healthLabel === "risky").length,
+                    )}
+                  </div>
+                  <div className="sub">{t("stats.healthScoreUnder55")}</div>
+                </div>
               </section>
-              <InsightsView insights={filteredInsights} reposByName={reposByName} onRepoClick={openRepoModal} />
+              <InsightsView
+                insights={filteredInsights}
+                reposByName={reposByName}
+                onRepoClick={openRepoModal}
+              />
             </div>
           ) : null}
 
           {tab === "alerts" ? (
             <div className="view-alerts" style={{ display: "block" }}>
               <section className="stats">
-                <div className="stat"><div className="k">{t("alerts.totalAlerts")}</div><div className="v">{formatNumber(totalSecurityAlerts)}</div><div className="sub">{t("alerts.affectedRepos", { count: formatNumber(securityRepoCount) })}</div></div>
-                <div className="stat"><div className="k">{t("alerts.reposWithAlerts")}</div><div className="v">{formatNumber(securityRepoCount)}</div><div className="sub">{t("alerts.securityFocusedView")}</div></div>
-                <div className="stat"><div className="k">{t("stats.averageHealth")}</div><div className="v">{formatNumber(securityAverageHealth)}</div><div className="sub">{t("alerts.acrossSecurityRepos")}</div></div>
-                <div className="stat"><div className="k">{t("stats.alertCount")}</div><div className="v">{formatNumber(securityInsightsAlertCount)}</div><div className="sub">{t("alerts.repoInsightAlerts")}</div></div>
+                <div className="stat">
+                  <div className="k">{t("alerts.totalAlerts")}</div>
+                  <div className="v">{formatNumber(totalSecurityAlerts)}</div>
+                  <div className="sub">
+                    {t("alerts.affectedRepos", { count: formatNumber(securityRepoCount) })}
+                  </div>
+                </div>
+                <div className="stat">
+                  <div className="k">{t("alerts.reposWithAlerts")}</div>
+                  <div className="v">{formatNumber(securityRepoCount)}</div>
+                  <div className="sub">{t("alerts.securityFocusedView")}</div>
+                </div>
+                <div className="stat">
+                  <div className="k">{t("stats.averageHealth")}</div>
+                  <div className="v">{formatNumber(securityAverageHealth)}</div>
+                  <div className="sub">{t("alerts.acrossSecurityRepos")}</div>
+                </div>
+                <div className="stat">
+                  <div className="k">{t("stats.alertCount")}</div>
+                  <div className="v">{formatNumber(securityInsightsAlertCount)}</div>
+                  <div className="sub">{t("alerts.repoInsightAlerts")}</div>
+                </div>
               </section>
               <InsightsView
                 insights={securityInsights}
@@ -854,38 +1226,134 @@ export function App() {
             </div>
           ) : null}
 
-          {tab === "ci" ? (
-            (() => {
-              const totalRuns = ciHealth.reduce((sum, entry) => sum + entry.totalRuns, 0);
-              const totalFailures = ciHealth.reduce((sum, entry) => sum + entry.failureCount, 0);
-              const failingRepos = ciHealth.filter((entry) => entry.failureCount > 0).length;
-              const decided = ciHealth.reduce((sum, entry) => sum + entry.successCount + entry.failureCount, 0);
-              const successes = ciHealth.reduce((sum, entry) => sum + entry.successCount, 0);
-              const avgSuccessPct = decided ? Math.round((successes / decided) * 100) : 0;
-              return (
-                <div className="view-ci" style={{ display: "block" }}>
-                  <section className="stats">
-                    <div className="stat"><div className="k">{t("stats.reposWithCi")}</div><div className="v">{formatNumber(ciHealth.length)}</div><div className="sub">{t("stats.recentWorkflowRuns")}</div></div>
-                    <div className="stat"><div className="k">{t("stats.totalRuns")}</div><div className="v">{formatNumber(totalRuns)}</div><div className="sub">{t("stats.lastRunsPerRepo", { count: ciHealth[0]?.totalRuns ?? 30 })}</div></div>
-                    <div className="stat"><div className="k">{t("stats.avgSuccess")}</div><div className="v">{avgSuccessPct}%</div><div className="sub">{t("stats.acrossDecidedRuns")}</div></div>
-                    <div className="stat"><div className="k">{t("stats.failingRepos")}</div><div className="v">{formatNumber(failingRepos)}</div><div className="sub">{t("stats.failuresTotal", { count: formatNumber(totalFailures) })}</div></div>
-                  </section>
-                  <CIHealthView data={ciHealth} reposByName={reposByName} onRepoClick={openRepoModal} />
-                </div>
-              );
-            })()
-          ) : null}
+          {tab === "ci"
+            ? (() => {
+                const totalRuns = ciHealth.reduce((sum, entry) => sum + entry.totalRuns, 0);
+                const totalFailures = ciHealth.reduce((sum, entry) => sum + entry.failureCount, 0);
+                const failingRepos = ciHealth.filter((entry) => entry.failureCount > 0).length;
+                const decided = ciHealth.reduce(
+                  (sum, entry) => sum + entry.successCount + entry.failureCount,
+                  0,
+                );
+                const successes = ciHealth.reduce((sum, entry) => sum + entry.successCount, 0);
+                const avgSuccessPct = decided ? Math.round((successes / decided) * 100) : 0;
+                return (
+                  <div className="view-ci" style={{ display: "block" }}>
+                    <section className="stats">
+                      <div className="stat">
+                        <div className="k">{t("stats.reposWithCi")}</div>
+                        <div className="v">{formatNumber(ciHealth.length)}</div>
+                        <div className="sub">{t("stats.recentWorkflowRuns")}</div>
+                      </div>
+                      <div className="stat">
+                        <div className="k">{t("stats.totalRuns")}</div>
+                        <div className="v">{formatNumber(totalRuns)}</div>
+                        <div className="sub">
+                          {t("stats.lastRunsPerRepo", { count: ciHealth[0]?.totalRuns ?? 30 })}
+                        </div>
+                      </div>
+                      <div className="stat">
+                        <div className="k">{t("stats.avgSuccess")}</div>
+                        <div className="v">{avgSuccessPct}%</div>
+                        <div className="sub">{t("stats.acrossDecidedRuns")}</div>
+                      </div>
+                      <div className="stat">
+                        <div className="k">{t("stats.failingRepos")}</div>
+                        <div className="v">{formatNumber(failingRepos)}</div>
+                        <div className="sub">
+                          {t("stats.failuresTotal", { count: formatNumber(totalFailures) })}
+                        </div>
+                      </div>
+                    </section>
+                    <CIHealthView
+                      data={ciHealth}
+                      reposByName={reposByName}
+                      onRepoClick={openRepoModal}
+                    />
+                  </div>
+                );
+              })()
+            : null}
 
           {tab === "digests" ? (
             <div className="view-digests" style={{ display: "block" }}>
               <section className="stats">
-                <div className="stat"><div className="k">{digestPeriod === "day" ? t("stats.digestDays") : digestPeriod === "week" ? t("stats.digestWeeks") : t("stats.digestMonths")}</div><div className="v">{formatNumber(dailyDigests.length)}</div><div className="sub">{digestPeriod === "day" ? t("stats.daysWithSavedSnapshots") : t("stats.periodsAggregated")}</div></div>
-                <div className="stat"><div className="k">{t("stats.latestIssueDelta")}</div><div className="v">{dailyDigests[0] ? `${dailyDigests[0].issueDelta >= 0 ? "+" : ""}${formatNumber(dailyDigests[0].issueDelta)}` : "0"}</div><div className="sub">{t("stats.vsPrevious", { period: digestPeriod === "day" ? t("period.day") : t(`period.${digestPeriod}`) })}</div></div>
-                <div className="stat"><div className="k">{t("stats.latestStarsDelta")}</div><div className="v">{dailyDigests[0] ? `${dailyDigests[0].starsDelta >= 0 ? "+" : ""}${formatNumber(dailyDigests[0].starsDelta)}` : "0"}</div><div className="sub">{t("stats.vsPrevious", { period: digestPeriod === "day" ? t("period.day") : t(`period.${digestPeriod}`) })}</div></div>
-                <div className="stat"><div className="k">{t("stats.latestStaleDelta")}</div><div className="v">{dailyDigests[0] ? `${dailyDigests[0].staleIssueDelta >= 0 ? "+" : ""}${formatNumber(dailyDigests[0].staleIssueDelta)}` : "0"}</div><div className="sub">{t("stats.vsPrevious", { period: digestPeriod === "day" ? t("period.day") : t(`period.${digestPeriod}`) })}</div></div>
-                <div className="stat"><div className="k">{t("alerts.totalAlerts")}</div><div className="v">{dailyDigests[0] ? formatNumber(dailyDigests[0].securityAlertsCount) : "0"}</div><div className="sub">{dailyDigests[0] ? t("digest.securityRepos", { count: formatNumber(dailyDigests[0].securityReposCount) }) : t("digest.securityUnavailable")}</div></div>
+                <div className="stat">
+                  <div className="k">
+                    {digestPeriod === "day"
+                      ? t("stats.digestDays")
+                      : digestPeriod === "week"
+                        ? t("stats.digestWeeks")
+                        : t("stats.digestMonths")}
+                  </div>
+                  <div className="v">{formatNumber(dailyDigests.length)}</div>
+                  <div className="sub">
+                    {digestPeriod === "day"
+                      ? t("stats.daysWithSavedSnapshots")
+                      : t("stats.periodsAggregated")}
+                  </div>
+                </div>
+                <div className="stat">
+                  <div className="k">{t("stats.latestIssueDelta")}</div>
+                  <div className="v">
+                    {dailyDigests[0]
+                      ? `${dailyDigests[0].issueDelta >= 0 ? "+" : ""}${formatNumber(dailyDigests[0].issueDelta)}`
+                      : "0"}
+                  </div>
+                  <div className="sub">
+                    {t("stats.vsPrevious", {
+                      period:
+                        digestPeriod === "day" ? t("period.day") : t(`period.${digestPeriod}`),
+                    })}
+                  </div>
+                </div>
+                <div className="stat">
+                  <div className="k">{t("stats.latestStarsDelta")}</div>
+                  <div className="v">
+                    {dailyDigests[0]
+                      ? `${dailyDigests[0].starsDelta >= 0 ? "+" : ""}${formatNumber(dailyDigests[0].starsDelta)}`
+                      : "0"}
+                  </div>
+                  <div className="sub">
+                    {t("stats.vsPrevious", {
+                      period:
+                        digestPeriod === "day" ? t("period.day") : t(`period.${digestPeriod}`),
+                    })}
+                  </div>
+                </div>
+                <div className="stat">
+                  <div className="k">{t("stats.latestStaleDelta")}</div>
+                  <div className="v">
+                    {dailyDigests[0]
+                      ? `${dailyDigests[0].staleIssueDelta >= 0 ? "+" : ""}${formatNumber(dailyDigests[0].staleIssueDelta)}`
+                      : "0"}
+                  </div>
+                  <div className="sub">
+                    {t("stats.vsPrevious", {
+                      period:
+                        digestPeriod === "day" ? t("period.day") : t(`period.${digestPeriod}`),
+                    })}
+                  </div>
+                </div>
+                <div className="stat">
+                  <div className="k">{t("alerts.totalAlerts")}</div>
+                  <div className="v">
+                    {dailyDigests[0] ? formatNumber(dailyDigests[0].securityAlertsCount) : "0"}
+                  </div>
+                  <div className="sub">
+                    {dailyDigests[0]
+                      ? t("digest.securityRepos", {
+                          count: formatNumber(dailyDigests[0].securityReposCount),
+                        })
+                      : t("digest.securityUnavailable")}
+                  </div>
+                </div>
               </section>
-              <DailyDigestView digests={dailyDigests} period={digestPeriod} onPeriodChange={setDigestPeriod} />
+              <DailyDigestView
+                digests={dailyDigests}
+                period={digestPeriod}
+                onPeriodChange={setDigestPeriod}
+              />
             </div>
           ) : null}
 

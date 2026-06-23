@@ -1,13 +1,13 @@
+import { LuGlobe, LuLock } from "react-icons/lu";
+import { useRightClickMenu } from "../../contexts/RightClickMenuProvider";
+import { useI18n } from "../../i18n/I18nProvider";
+import { buildRepoMenu } from "../../menus/repoMenu";
 import type { GhIssue, GhRepo, RepoInsight } from "../../types/github";
 import { getLanguageColor } from "../../utils/colors";
-import { formatNumber, formatRelativeTime } from "../../utils/format";
 import { issueCountForRepo } from "../../utils/dashboard";
-import { LuGlobe, LuLock } from "react-icons/lu";
+import { formatNumber, formatRelativeTime } from "../../utils/format";
 import { Avatar } from "../common/Avatar";
 import { ForkIcon, IssueIcon, StarIcon } from "../common/Icons";
-import { useI18n } from "../../i18n/I18nProvider";
-import { useRightClickMenu } from "../../contexts/RightClickMenuProvider";
-import { buildRepoMenu } from "../../menus/repoMenu";
 
 interface RepoGridProps {
   repos: GhRepo[];
@@ -19,11 +19,24 @@ interface RepoGridProps {
   onForksClick: (repo: string) => void;
 }
 
-export function RepoGrid({ repos, issues, insightsByRepo, onRepoClick, onIssuesClick, onStarsClick, onForksClick }: RepoGridProps) {
+export function RepoGrid({
+  repos,
+  issues,
+  insightsByRepo,
+  onRepoClick,
+  onIssuesClick,
+  onStarsClick,
+  onForksClick,
+}: RepoGridProps) {
   const { language, t } = useI18n();
   const { open } = useRightClickMenu();
   if (!repos.length) {
-    return <div className="empty"><div className="big">{t("empty.reposTitle")}</div><div>{t("empty.tryClearing")}</div></div>;
+    return (
+      <div className="empty">
+        <div className="big">{t("empty.reposTitle")}</div>
+        <div>{t("empty.tryClearing")}</div>
+      </div>
+    );
   }
 
   return (
@@ -55,12 +68,35 @@ export function RepoGrid({ repos, issues, insightsByRepo, onRepoClick, onIssuesC
             <div className="rc-head">
               <Avatar login={repo.owner.login} size={28} />
               <div className="rc-title">
-                <a href={repo.url} target="_blank" rel="noreferrer" onClick={(event) => event.stopPropagation()}><span className="owner">{repo.owner.login}</span><span className="slash">/</span>{repo.name}</a>
+                <a
+                  href={repo.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  onClick={(event) => event.stopPropagation()}
+                >
+                  <span className="owner">{repo.owner.login}</span>
+                  <span className="slash">/</span>
+                  {repo.name}
+                </a>
               </div>
               <div className="repo-badges">
-                {repo.isPrivate
-                  ? <span className="rb rb-icon private tip" data-tip={t("repo.private")} aria-label={t("repo.private")}><LuLock size={11} /></span>
-                  : <span className="rb rb-icon tip" data-tip={t("repo.public")} aria-label={t("repo.public")}><LuGlobe size={11} /></span>}
+                {repo.isPrivate ? (
+                  <span
+                    className="rb rb-icon private tip"
+                    data-tip={t("repo.private")}
+                    aria-label={t("repo.private")}
+                  >
+                    <LuLock size={11} />
+                  </span>
+                ) : (
+                  <span
+                    className="rb rb-icon tip"
+                    data-tip={t("repo.public")}
+                    aria-label={t("repo.public")}
+                  >
+                    <LuGlobe size={11} />
+                  </span>
+                )}
                 {repo.isArchived ? <span className="rb archived">{t("repo.archived")}</span> : null}
                 {repo.isFork ? <span className="rb fork">{t("repo.fork")}</span> : null}
               </div>
@@ -68,17 +104,69 @@ export function RepoGrid({ repos, issues, insightsByRepo, onRepoClick, onIssuesC
             <div className="repo-desc">{repo.description || t("repo.noDescription")}</div>
             {insight ? (
               <div className="repo-health-row">
-                <span className={`repo-health-pill ${insight.healthLabel}`}>{t("repo.health", { score: insight.healthScore })}</span>
-                {insight.alerts[0] ? <span className="repo-health-note">{insight.alerts[0]}</span> : insight.opportunities[0] ? <span className="repo-health-note">{insight.opportunities[0]}</span> : null}
-                {insight.securityAlertsCount > 0 ? <span className="repo-health-note">{t("insights.securityAlerts", { count: formatNumber(insight.securityAlertsCount) })}</span> : insight.securityAlertsUnavailable ? <span className="repo-health-note">{t("insights.securityUnavailable")}</span> : null}
+                <span className={`repo-health-pill ${insight.healthLabel}`}>
+                  {t("repo.health", { score: insight.healthScore })}
+                </span>
+                {insight.alerts[0] ? (
+                  <span className="repo-health-note">{insight.alerts[0]}</span>
+                ) : insight.opportunities[0] ? (
+                  <span className="repo-health-note">{insight.opportunities[0]}</span>
+                ) : null}
+                {insight.securityAlertsCount > 0 ? (
+                  <span className="repo-health-note">
+                    {t("insights.securityAlerts", {
+                      count: formatNumber(insight.securityAlertsCount),
+                    })}
+                  </span>
+                ) : insight.securityAlertsUnavailable ? (
+                  <span className="repo-health-note">{t("insights.securityUnavailable")}</span>
+                ) : null}
               </div>
             ) : null}
             <div className="rc-stats">
-              <button className={`rc-stat strong star ${repo.stargazerCount ? "clickable" : ""}`} onClick={(event) => { event.stopPropagation(); if (repo.stargazerCount) onStarsClick(repo.nameWithOwner); }}><StarIcon /> {formatNumber(repo.stargazerCount)}</button>
-              <button className={`rc-stat strong fork ${repo.forkCount ? "clickable" : ""}`} onClick={(event) => { event.stopPropagation(); if (repo.forkCount) onForksClick(repo.nameWithOwner); }}><ForkIcon /> {formatNumber(repo.forkCount)}</button>
-              <button className={`rc-stat iss ${issueCount ? "clickable" : ""}`} onClick={(event) => { event.stopPropagation(); if (issueCount) onIssuesClick(repo.nameWithOwner); }}><IssueIcon /> {issueCount}</button>
-              {primaryLanguage ? <span className="rc-lang"><span className="lang-dot" style={{ background: getLanguageColor(primaryLanguage) }} />{primaryLanguage}</span> : null}
-              <span>{t("repo.pushed", { time: repo.pushedAt ? formatRelativeTime(repo.pushedAt, Date.now(), language) : "-" })}</span>
+              <button
+                className={`rc-stat strong star ${repo.stargazerCount ? "clickable" : ""}`}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  if (repo.stargazerCount) onStarsClick(repo.nameWithOwner);
+                }}
+              >
+                <StarIcon /> {formatNumber(repo.stargazerCount)}
+              </button>
+              <button
+                className={`rc-stat strong fork ${repo.forkCount ? "clickable" : ""}`}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  if (repo.forkCount) onForksClick(repo.nameWithOwner);
+                }}
+              >
+                <ForkIcon /> {formatNumber(repo.forkCount)}
+              </button>
+              <button
+                className={`rc-stat iss ${issueCount ? "clickable" : ""}`}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  if (issueCount) onIssuesClick(repo.nameWithOwner);
+                }}
+              >
+                <IssueIcon /> {issueCount}
+              </button>
+              {primaryLanguage ? (
+                <span className="rc-lang">
+                  <span
+                    className="lang-dot"
+                    style={{ background: getLanguageColor(primaryLanguage) }}
+                  />
+                  {primaryLanguage}
+                </span>
+              ) : null}
+              <span>
+                {t("repo.pushed", {
+                  time: repo.pushedAt
+                    ? formatRelativeTime(repo.pushedAt, Date.now(), language)
+                    : "-",
+                })}
+              </span>
             </div>
           </article>
         );

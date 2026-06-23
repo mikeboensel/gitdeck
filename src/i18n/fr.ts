@@ -37,7 +37,8 @@ export const fr: Record<keyof typeof en, string> = {
   "accounts.viaToken": "Utiliser un token d'accès personnel",
   "accounts.tokenLabel": "Token d'accès personnel",
   "accounts.tokenRequired": "Le token est requis",
-  "accounts.tokenHelp": "Créez un token sur {provider} avec les portées de lecture pour dépôts, issues et notifications.",
+  "accounts.tokenHelp":
+    "Créez un token sur {provider} avec les portées de lecture pour dépôts, issues et notifications.",
   "common.authenticated": "Authentifié",
   "common.authenticatedExternally": "Authentifié en externe",
   "common.export": "Exporter",
@@ -187,19 +188,24 @@ export const fr: Record<keyof typeof en, string> = {
   "preset.stale": "Inactif",
   "confirm.markAllRead": "Marquer {count} notification{plural} comme lue sur GitHub ?",
   "auth.signIn": "Connecter un compte",
-  "auth.description": "Ajoutez GitHub ou une instance compatible Forgejo (Codeberg, auto-hébergée) pour lire dépôts, issues et notifications.",
+  "auth.description":
+    "Ajoutez GitHub ou une instance compatible Forgejo (Codeberg, auto-hébergée) pour lire dépôts, issues et notifications.",
   "auth.brandTag": "Tableau de bord multi-comptes",
   "auth.changeProvider": "Changer de fournisseur",
   "auth.ghCliNotReady": "L'authentification via gh CLI n'est pas prête.",
   "auth.tokenMissing": "GITHUB_TOKEN n'est pas disponible.",
-  "auth.ghCliHelp": "Le serveur est configuré avec GH_AUTH_MODE=gh-cli. Vérifiez que gh CLI est installée et que vous êtes connecté :",
+  "auth.ghCliHelp":
+    "Le serveur est configuré avec GH_AUTH_MODE=gh-cli. Vérifiez que gh CLI est installée et que vous êtes connecté :",
   "auth.ghCliReload": "puis rechargez cette page.",
-  "auth.tokenHelp": "Le serveur est configuré avec GH_AUTH_MODE=token. Exportez un personal access token en GITHUB_TOKEN et redémarrez le serveur.",
+  "auth.tokenHelp":
+    "Le serveur est configuré avec GH_AUTH_MODE=token. Exportez un personal access token en GITHUB_TOKEN et redémarrez le serveur.",
   "auth.clientMissing": "GITHUB_CLIENT_ID n'est pas défini.",
-  "auth.clientHelp": "Enregistrez une OAuth App sur github.com/settings/developers, activez Device Flow, puis exportez GITHUB_CLIENT_ID et redémarrez le serveur. Sinon, définissez GH_AUTH_MODE=gh-cli pour réutiliser votre session gh CLI locale, ou GH_AUTH_MODE=token avec un GITHUB_TOKEN.",
+  "auth.clientHelp":
+    "Enregistrez une OAuth App sur github.com/settings/developers, activez Device Flow, puis exportez GITHUB_CLIENT_ID et redémarrez le serveur. Sinon, définissez GH_AUTH_MODE=gh-cli pour réutiliser votre session gh CLI locale, ou GH_AUTH_MODE=token avec un GITHUB_TOKEN.",
   "auth.continue": "Continuer",
   "auth.requestingCode": "Demande du code appareil...",
-  "auth.openVerification": "Ouvrez la page de vérification du fournisseur et saisissez le code ci-dessous.",
+  "auth.openVerification":
+    "Ouvrez la page de vérification du fournisseur et saisissez le code ci-dessous.",
   "auth.copied": "Copié",
   "auth.copy": "Copier",
   "auth.waiting": "En attente d'autorisation...",
@@ -231,7 +237,8 @@ export const fr: Record<keyof typeof en, string> = {
   "repo.density": "Densité",
   "repo.padding": "Espacement",
   "welcome.kind": "Bienvenue",
-  "welcome.lead": "Explorez vos dépôts GitHub, issues, pull requests, trafic et activité CI depuis un seul tableau de bord.",
+  "welcome.lead":
+    "Explorez vos dépôts GitHub, issues, pull requests, trafic et activité CI depuis un seul tableau de bord.",
   "welcome.repositoriesTitle": "Dépôts",
   "welcome.repositoriesText": "santé, étoiles, forks, trafic et releases en un coup d'oeil.",
   "welcome.inboxTitle": "Boîte et triage",
@@ -244,7 +251,8 @@ export const fr: Record<keyof typeof en, string> = {
   "welcome.whatsNew": "Nouveautés",
   "welcome.getStarted": "Commencer",
   "ci.noActivity": "Aucune activité CI",
-  "ci.noActivityText": "Aucun de vos dépôts n'a d'exécutions de workflow récentes, ou vous n'y avez pas accès.",
+  "ci.noActivityText":
+    "Aucun de vos dépôts n'a d'exécutions de workflow récentes, ou vous n'y avez pas accès.",
   "ci.repositoriesCount": "{count} dépôts",
   "ci.successRate": "Taux de succès",
   "ci.runs": "Exécutions",
@@ -284,13 +292,15 @@ export const fr: Record<keyof typeof en, string> = {
   "digest.vsPreviousMonth": "vs mois précédent",
   "digest.weekOf": "Semaine du {from} - {to}",
   "digest.empty": "Aucun digest {period}",
-  "digest.emptyText": "Actualisez le tableau de bord sur plusieurs jours pour construire l'historique.",
+  "digest.emptyText":
+    "Actualisez le tableau de bord sur plusieurs jours pour construire l'historique.",
   "digest.reposTracked": "{count} dépôts suivis",
   "digest.forksDelta": "forks {value}",
   "digest.issuesDelta": "issues {value}",
   "digest.securityAlerts": "{count} alertes de sécurité",
   "digest.securityRepos": "{count} dépôts concernés",
-  "digest.securityUnavailable": "Les alertes de sécurité peuvent nécessiter des autorisations supplémentaires.",
+  "digest.securityUnavailable":
+    "Les alertes de sécurité peuvent nécessiter des autorisations supplémentaires.",
   "digest.copyMarkdown": "Copier Markdown",
   "digest.executiveSummary": "Résumé exécutif",
   "digest.momentum": "Momentum",

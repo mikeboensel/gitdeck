@@ -37,6 +37,7 @@ export const app = new OpenAPIHono<{ Bindings: HttpBindings }>({
           .join("; ") || "invalid request";
       return c.json({ ok: false, error: message }, 400);
     }
+    return undefined;
   },
 });
 

@@ -1,8 +1,4 @@
-import type {
-  GhIssue,
-  GhPullRequest,
-  GhRepo,
-} from "../../types/github";
+import type { GhIssue, GhPullRequest, GhRepo } from "../../types/github";
 import {
   fetchForgejoIssues,
   fetchForgejoNotifications,
@@ -96,7 +92,10 @@ export class ForgejoProvider implements Provider {
     return fetchForgejoPullRequests(account, owners);
   }
 
-  async fetchNotifications(account: Account, ifModifiedSince: string | null): Promise<NotificationsFetchOutcome> {
+  async fetchNotifications(
+    account: Account,
+    ifModifiedSince: string | null,
+  ): Promise<NotificationsFetchOutcome> {
     const result = await fetchForgejoNotifications(account, ifModifiedSince);
     if ("error" in result) return { ok: false, error: result.error, needsAuth: result.needsAuth };
     return {
@@ -108,13 +107,19 @@ export class ForgejoProvider implements Provider {
     };
   }
 
-  async markNotificationRead(account: Account, threadId: string): Promise<NotificationMutationOutcome> {
+  async markNotificationRead(
+    account: Account,
+    threadId: string,
+  ): Promise<NotificationMutationOutcome> {
     const result = await markForgejoThreadRead(account, threadId);
     if (result.ok) return { ok: true, status: result.status };
     return { ok: false, status: result.status, error: result.error, needsAuth: result.needsAuth };
   }
 
-  async markAllNotificationsRead(account: Account, options: { repo?: string | null; lastReadAt?: string | null }): Promise<NotificationMutationOutcome> {
+  async markAllNotificationsRead(
+    account: Account,
+    options: { repo?: string | null; lastReadAt?: string | null },
+  ): Promise<NotificationMutationOutcome> {
     const result = await markForgejoAllRead(account, options);
     if (result.ok) return { ok: true, status: result.status };
     return { ok: false, status: result.status, error: result.error, needsAuth: result.needsAuth };

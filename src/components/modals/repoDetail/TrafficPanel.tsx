@@ -23,12 +23,20 @@ export function TrafficPanel({ details, trafficDetails }: TrafficPanelProps) {
         <div className="repo-detail-traffic-card">
           <span className="repo-detail-traffic-label">Views (last 14 days)</span>
           <strong>{views ? formatNumber(views.count) : "n/a"}</strong>
-          <em>{views ? `${formatNumber(views.uniques)} unique visitors` : "Traffic data may require admin access."}</em>
+          <em>
+            {views
+              ? `${formatNumber(views.uniques)} unique visitors`
+              : "Traffic data may require admin access."}
+          </em>
         </div>
         <div className="repo-detail-traffic-card">
           <span className="repo-detail-traffic-label">Clones (last 14 days)</span>
           <strong>{clones ? formatNumber(clones.count) : "n/a"}</strong>
-          <em>{clones ? `${formatNumber(clones.uniques)} unique cloners` : "Clone data may require admin access."}</em>
+          <em>
+            {clones
+              ? `${formatNumber(clones.uniques)} unique cloners`
+              : "Clone data may require admin access."}
+          </em>
         </div>
       </div>
       <div className="repo-chart-grid">
@@ -37,7 +45,8 @@ export function TrafficPanel({ details, trafficDetails }: TrafficPanelProps) {
       </div>
       {trafficForbidden ? (
         <div className="modal-info-banner">
-          Traffic breakdown is not available for this repository with the current GitHub permissions.
+          Traffic breakdown is not available for this repository with the current GitHub
+          permissions.
         </div>
       ) : null}
       {referrers.length ? (

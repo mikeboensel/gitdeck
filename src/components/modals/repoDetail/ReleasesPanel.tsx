@@ -18,11 +18,16 @@ export function ReleasesPanel({ details, loading }: ReleasesPanelProps) {
   const totalReleaseDownloads = releases.reduce((sum, release) => sum + release.totalDownloads, 0);
   const releasesPageSize = 10;
   const safeReleasesPage = clampPage(releasesPage, releases.length, releasesPageSize);
-  const pagedReleases = releases.slice((safeReleasesPage - 1) * releasesPageSize, safeReleasesPage * releasesPageSize);
+  const pagedReleases = releases.slice(
+    (safeReleasesPage - 1) * releasesPageSize,
+    safeReleasesPage * releasesPageSize,
+  );
 
   function toggleRelease(releaseId: number) {
     setOpenReleaseIds((current) =>
-      current.includes(releaseId) ? current.filter((id) => id !== releaseId) : [...current, releaseId]
+      current.includes(releaseId)
+        ? current.filter((id) => id !== releaseId)
+        : [...current, releaseId],
     );
   }
 
@@ -36,12 +41,18 @@ export function ReleasesPanel({ details, loading }: ReleasesPanelProps) {
         <div className="repo-detail-traffic-card">
           <span className="repo-detail-traffic-label">Release downloads</span>
           <strong>{formatNumber(totalReleaseDownloads)}</strong>
-          <em>{releases.length ? `${formatNumber(releases.length)} total releases` : "No releases found."}</em>
+          <em>
+            {releases.length
+              ? `${formatNumber(releases.length)} total releases`
+              : "No releases found."}
+          </em>
         </div>
         <div className="repo-detail-traffic-card">
           <span className="repo-detail-traffic-label">Latest release</span>
           <strong>{releases[0]?.tag_name || "n/a"}</strong>
-          <em>{releases[0] ? formatReleaseDate(releases[0].published_at) : "No release published."}</em>
+          <em>
+            {releases[0] ? formatReleaseDate(releases[0].published_at) : "No release published."}
+          </em>
         </div>
       </div>
       {releases.length ? (
@@ -56,27 +67,47 @@ export function ReleasesPanel({ details, loading }: ReleasesPanelProps) {
               >
                 <div>
                   <strong>{release.name || release.tag_name}</strong>
-                  <span>{release.tag_name} · {formatReleaseDate(release.published_at)}</span>
+                  <span>
+                    {release.tag_name} · {formatReleaseDate(release.published_at)}
+                  </span>
                 </div>
                 <span>{formatNumber(release.totalDownloads)} downloads</span>
               </button>
               {openReleaseIds.includes(release.id) ? (
                 release.assets.length ? (
                   <div className="repo-detail-release-assets">
-                    <a className="repo-detail-release-link" href={release.html_url} target="_blank" rel="noreferrer">
+                    <a
+                      className="repo-detail-release-link"
+                      href={release.html_url}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
                       <span>Open release on GitHub</span>
                       <em>{release.tag_name}</em>
                     </a>
                     {release.assets.map((asset) => (
-                      <a href={asset.browser_download_url || release.html_url} target="_blank" rel="noreferrer" key={asset.id}>
+                      <a
+                        href={asset.browser_download_url || release.html_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        key={asset.id}
+                      >
                         <span>{asset.name}</span>
-                        <em>{formatNumber(asset.download_count)} downloads · {formatBytes(asset.size || 0)}</em>
+                        <em>
+                          {formatNumber(asset.download_count)} downloads ·{" "}
+                          {formatBytes(asset.size || 0)}
+                        </em>
                       </a>
                     ))}
                   </div>
                 ) : (
                   <div className="repo-detail-release-assets">
-                    <a className="repo-detail-release-link" href={release.html_url} target="_blank" rel="noreferrer">
+                    <a
+                      className="repo-detail-release-link"
+                      href={release.html_url}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
                       <span>Open release on GitHub</span>
                       <em>{release.tag_name}</em>
                     </a>
@@ -88,7 +119,9 @@ export function ReleasesPanel({ details, loading }: ReleasesPanelProps) {
           ))}
         </div>
       ) : null}
-      {!loading && !releases.length ? <div className="modal-empty sub">No releases available.</div> : null}
+      {!loading && !releases.length ? (
+        <div className="modal-empty sub">No releases available.</div>
+      ) : null}
       {releases.length ? (
         <Pagination
           totalItems={releases.length}

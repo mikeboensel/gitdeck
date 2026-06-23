@@ -199,7 +199,7 @@ export async function getActive(): Promise<Account | null> {
     if (persisted) return persisted;
   }
   // If no persisted active, prefer an ephemeral env-based account.
-  if (s.ephemeral.length > 0) return s.ephemeral[0];
+  if (s.ephemeral.length > 0) return s.ephemeral[0]!;
   return s.persisted.accounts[0] ?? null;
 }
 
@@ -236,7 +236,7 @@ export async function update(id: string, patch: Partial<Account>): Promise<Accou
   const s = await ensureState();
   const idx = s.persisted.accounts.findIndex((account) => account.id === id);
   if (idx >= 0) {
-    const merged = { ...s.persisted.accounts[idx], ...patch, id };
+    const merged = { ...s.persisted.accounts[idx]!, ...patch, id };
     s.persisted.accounts = [
       ...s.persisted.accounts.slice(0, idx),
       merged,
@@ -247,7 +247,7 @@ export async function update(id: string, patch: Partial<Account>): Promise<Accou
   }
   const eIdx = s.ephemeral.findIndex((account) => account.id === id);
   if (eIdx >= 0) {
-    const merged = { ...s.ephemeral[eIdx], ...patch, id };
+    const merged = { ...s.ephemeral[eIdx]!, ...patch, id };
     s.ephemeral = [...s.ephemeral.slice(0, eIdx), merged, ...s.ephemeral.slice(eIdx + 1)];
     return merged;
   }

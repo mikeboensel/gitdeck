@@ -52,10 +52,17 @@ function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((item) => typeof item === "string");
 }
 
-function isDateFilters(value: unknown): value is { cf: string; ct: string; uf: string; ut: string } {
+function isDateFilters(
+  value: unknown,
+): value is { cf: string; ct: string; uf: string; ut: string } {
   if (!value || typeof value !== "object") return false;
   const obj = value as Record<string, unknown>;
-  return typeof obj.cf === "string" && typeof obj.ct === "string" && typeof obj.uf === "string" && typeof obj.ut === "string";
+  return (
+    typeof obj.cf === "string" &&
+    typeof obj.ct === "string" &&
+    typeof obj.uf === "string" &&
+    typeof obj.ut === "string"
+  );
 }
 
 function validateShape(parsed: unknown): parsed is CachedFilters {

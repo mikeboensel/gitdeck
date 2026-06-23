@@ -13,7 +13,11 @@ export function Avatar({ login, size = 36, className }: AvatarProps) {
       style={{ width: size, height: size }}
       aria-hidden="true"
     >
-      {url ? <img src={url} alt="" loading="lazy" referrerPolicy="no-referrer" /> : <span>{initials}</span>}
+      {url ? (
+        <img src={url} alt="" loading="lazy" referrerPolicy="no-referrer" />
+      ) : (
+        <span>{initials}</span>
+      )}
     </span>
   );
 }

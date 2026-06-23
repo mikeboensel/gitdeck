@@ -1,5 +1,5 @@
-import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { rm } from "node:fs/promises";
+import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 const { TMP_DIR } = vi.hoisted(() => {
   const { tmpdir } = require("node:os") as typeof import("node:os");

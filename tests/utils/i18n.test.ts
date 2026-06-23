@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
-  LANGUAGE_STORAGE_KEY,
   detectLanguage,
   isSupportedLanguage,
+  LANGUAGE_STORAGE_KEY,
   normalizeLanguage,
   persistLanguage,
   readPersistedLanguage,

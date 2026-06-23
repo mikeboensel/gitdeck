@@ -1,5 +1,5 @@
-import { PAGE_SIZES, getPageWindow } from "../../utils/pagination";
 import { useI18n } from "../../i18n/I18nProvider";
+import { getPageWindow, PAGE_SIZES } from "../../utils/pagination";
 
 interface PaginationProps {
   totalItems: number;
@@ -10,7 +10,14 @@ interface PaginationProps {
   showPageSize?: boolean;
 }
 
-export function Pagination({ totalItems, page, pageSize, onPageChange, onPageSizeChange, showPageSize = true }: PaginationProps) {
+export function Pagination({
+  totalItems,
+  page,
+  pageSize,
+  onPageChange,
+  onPageSizeChange,
+  showPageSize = true,
+}: PaginationProps) {
   const { t } = useI18n();
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
   if (totalItems <= pageSize && pageSize === PAGE_SIZES[2]) return null;
@@ -19,19 +26,48 @@ export function Pagination({ totalItems, page, pageSize, onPageChange, onPageSiz
 
   return (
     <div className="pagination">
-      <span className="info">{from}-{to} {t("common.of")} {totalItems}</span>
+      <span className="info">
+        {from}-{to} {t("common.of")} {totalItems}
+      </span>
       <div className="controls">
-        <button className="page-btn" disabled={page <= 1} onClick={() => onPageChange(page - 1)}>‹</button>
-        {getPageWindow(page, totalPages).map((item, index) => item === "..."
-          ? <span className="ellipsis" key={`ellipsis-${index}`}>…</span>
-          : <button className={`page-btn ${item === page ? "active" : ""}`} key={item} onClick={() => onPageChange(item)}>{item}</button>)}
-        <button className="page-btn" disabled={page >= totalPages} onClick={() => onPageChange(page + 1)}>›</button>
+        <button className="page-btn" disabled={page <= 1} onClick={() => onPageChange(page - 1)}>
+          ‹
+        </button>
+        {getPageWindow(page, totalPages).map((item, index) =>
+          item === "..." ? (
+            <span className="ellipsis" key={`ellipsis-${index}`}>
+              …
+            </span>
+          ) : (
+            <button
+              className={`page-btn ${item === page ? "active" : ""}`}
+              key={item}
+              onClick={() => onPageChange(item)}
+            >
+              {item}
+            </button>
+          ),
+        )}
+        <button
+          className="page-btn"
+          disabled={page >= totalPages}
+          onClick={() => onPageChange(page + 1)}
+        >
+          ›
+        </button>
       </div>
       {showPageSize ? (
         <label className="pagesize">
           {t("common.pageSize")}
-          <select value={pageSize} onChange={(event) => onPageSizeChange(Number(event.target.value))}>
-            {PAGE_SIZES.map((size) => <option key={size} value={size}>{size}</option>)}
+          <select
+            value={pageSize}
+            onChange={(event) => onPageSizeChange(Number(event.target.value))}
+          >
+            {PAGE_SIZES.map((size) => (
+              <option key={size} value={size}>
+                {size}
+              </option>
+            ))}
           </select>
         </label>
       ) : null}

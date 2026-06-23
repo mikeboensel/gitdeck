@@ -187,16 +187,19 @@ export const zh: Record<keyof typeof en, string> = {
   "preset.stale": "停滞",
   "confirm.markAllRead": "将 {count} 条通知在 GitHub 上标为已读？",
   "auth.signIn": "连接账户",
-  "auth.description": "添加 GitHub 或 Forgejo 兼容实例（如 Codeberg、自托管），即可读取仓库、issues 和通知。",
+  "auth.description":
+    "添加 GitHub 或 Forgejo 兼容实例（如 Codeberg、自托管），即可读取仓库、issues 和通知。",
   "auth.brandTag": "多账户面板",
   "auth.changeProvider": "更换提供方",
   "auth.ghCliNotReady": "gh CLI 认证尚未就绪。",
   "auth.tokenMissing": "GITHUB_TOKEN 不可用。",
   "auth.ghCliHelp": "服务器配置为 GH_AUTH_MODE=gh-cli。请确认已安装 gh CLI 并已登录：",
   "auth.ghCliReload": "然后刷新此页面。",
-  "auth.tokenHelp": "服务器配置为 GH_AUTH_MODE=token。请将 personal access token 导出为 GITHUB_TOKEN，然后重启服务器。",
+  "auth.tokenHelp":
+    "服务器配置为 GH_AUTH_MODE=token。请将 personal access token 导出为 GITHUB_TOKEN，然后重启服务器。",
   "auth.clientMissing": "未设置 GITHUB_CLIENT_ID。",
-  "auth.clientHelp": "在 github.com/settings/developers 注册 OAuth App，启用 Device Flow，然后导出 GITHUB_CLIENT_ID 并重启服务器。也可以设置 GH_AUTH_MODE=gh-cli 复用本地 gh CLI 会话，或使用 GH_AUTH_MODE=token 加 GITHUB_TOKEN。",
+  "auth.clientHelp":
+    "在 github.com/settings/developers 注册 OAuth App，启用 Device Flow，然后导出 GITHUB_CLIENT_ID 并重启服务器。也可以设置 GH_AUTH_MODE=gh-cli 复用本地 gh CLI 会话，或使用 GH_AUTH_MODE=token 加 GITHUB_TOKEN。",
   "auth.continue": "继续",
   "auth.requestingCode": "正在请求设备代码...",
   "auth.openVerification": "打开提供方验证页面并输入下面的代码。",
