@@ -421,6 +421,8 @@ body.tab-repos .section[data-for="issues-only"] {
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 3px;
+  margin: 0;
+  min-inline-size: 0;
 }
 .opt-group button {
   flex: 1;

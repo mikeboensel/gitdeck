@@ -11,6 +11,8 @@ export function WelcomeModal({ onClose, onViewChangelog }: WelcomeModalProps) {
   const { t } = useI18n();
   return (
     <div className="modal-root">
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: backdrop click-to-close; keyboard users close via the visible Close button */}
+      {/* biome-ignore lint/a11y/useKeyWithClickEvents: backdrop click-to-close; keyboard users close via the visible Close button */}
       <div className="modal-backdrop" onClick={onClose} />
       <div className="modal welcome-modal" role="dialog" aria-modal="true">
         <header className="modal-head">
@@ -21,7 +23,12 @@ export function WelcomeModal({ onClose, onViewChangelog }: WelcomeModalProps) {
               <h3>gh-dashboard</h3>
             </div>
           </div>
-          <button className="modal-close" aria-label={t("common.close")} onClick={onClose}>
+          <button
+            type="button"
+            className="modal-close"
+            aria-label={t("common.close")}
+            onClick={onClose}
+          >
             <CloseIcon />
           </button>
         </header>

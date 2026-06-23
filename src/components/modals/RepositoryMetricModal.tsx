@@ -64,6 +64,8 @@ export function RepositoryMetricModal({
 
   return (
     <div className="modal-root">
+      {/* biome-ignore lint/a11y/noStaticElementInteractions: backdrop click-to-close; keyboard users close via the visible Close button */}
+      {/* biome-ignore lint/a11y/useKeyWithClickEvents: backdrop click-to-close; keyboard users close via the visible Close button */}
       <div className="modal-backdrop" onClick={onClose} />
       <div className="modal" role="dialog" aria-modal="true">
         <header className="modal-head">
@@ -76,7 +78,7 @@ export function RepositoryMetricModal({
               <h3>{repo}</h3>
             </div>
           </div>
-          <button className="modal-close" aria-label="Close" onClick={onClose}>
+          <button type="button" className="modal-close" aria-label="Close" onClick={onClose}>
             <CloseIcon />
           </button>
         </header>

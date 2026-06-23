@@ -114,6 +114,7 @@ export function TopBar({
       <div className="topbar-search">
         <button
           className="btn search-btn"
+          type="button"
           aria-label={t("common.searchShortcut")}
           title={t("common.searchShortcut")}
           onClick={onOpenPalette}
@@ -127,6 +128,7 @@ export function TopBar({
             strokeWidth="2.2"
             strokeLinecap="round"
             strokeLinejoin="round"
+            aria-hidden="true"
           >
             <circle cx="11" cy="11" r="7" />
             <line x1="21" y1="21" x2="16.65" y2="16.65" />
@@ -139,6 +141,7 @@ export function TopBar({
         <span className="meta">{lastUpdated}</span>
         <button
           className="btn filters-toggle"
+          type="button"
           aria-label={t("common.openFilters")}
           title={t("common.openFilters")}
           onClick={onOpenFilters}
@@ -152,6 +155,7 @@ export function TopBar({
             strokeWidth="2.2"
             strokeLinecap="round"
             strokeLinejoin="round"
+            aria-hidden="true"
           >
             <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
           </svg>
@@ -159,6 +163,7 @@ export function TopBar({
         </button>
         <button
           className="btn"
+          type="button"
           aria-label={t("common.refresh")}
           title={t("common.refresh")}
           disabled={loading}
@@ -174,6 +179,7 @@ export function TopBar({
             strokeWidth="2.5"
             strokeLinecap="round"
             strokeLinejoin="round"
+            aria-hidden="true"
           >
             <polyline points="23 4 23 10 17 10" />
             <polyline points="1 20 1 14 7 14" />
@@ -213,6 +219,7 @@ export function TopBar({
           {profileOpen ? (
             <div className="profile-popover" role="menu" aria-label={t("common.account")}>
               {accounts.length > 0 ? (
+                // biome-ignore lint/a11y/useSemanticElements: role="group" is the correct ARIA grouping inside role="menu"; a fieldset is semantically wrong here and would break the flex layout.
                 <div className="profile-accounts" role="group" aria-label={t("accounts.switch")}>
                   {accounts.map((account) => {
                     const isActive = account.id === active?.id;
@@ -222,8 +229,15 @@ export function TopBar({
                         key={account.id}
                         role="menuitemradio"
                         aria-checked={isActive}
+                        tabIndex={0}
                         className={`profile-account-item ${isActive ? "active" : ""}`}
                         onClick={() => void handleSwitchAccount(account.id)}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter" || event.key === " ") {
+                            event.preventDefault();
+                            void handleSwitchAccount(account.id);
+                          }
+                        }}
                       >
                         <Avatar
                           login={account.login ?? undefined}
@@ -292,7 +306,7 @@ export function TopBar({
                   </button>
                 </div>
               ) : null}
-              {accounts.length > 0 ? <div className="profile-divider" role="separator" /> : null}
+              {accounts.length > 0 ? <div className="profile-divider" aria-hidden="true" /> : null}
               <button
                 type="button"
                 className="profile-menu-item profile-prefs-toggle"
@@ -392,7 +406,7 @@ export function TopBar({
                   </div>
                 </div>
               ) : null}
-              <div className="profile-divider" role="separator" />
+              <div className="profile-divider" aria-hidden="true" />
               {canLogout ? (
                 <button
                   className="profile-menu-item profile-logout"

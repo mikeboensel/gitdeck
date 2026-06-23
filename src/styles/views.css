@@ -156,7 +156,9 @@ select.sort:focus-visible {
   display: inline-flex;
   align-items: center;
   gap: 2px;
+  margin: 0;
   padding: 2px;
+  min-width: 0;
   min-height: 32px;
   border: 1px solid var(--border-soft);
   border-radius: 8px;
@@ -1652,6 +1654,9 @@ body.tab-digests .view-digests {
   border-radius: 10px;
   overflow: hidden;
 }
+.ci-table > tbody {
+  display: contents;
+}
 .ci-row {
   display: grid;
   grid-template-columns: minmax(220px, 2fr) minmax(160px, 1.4fr) 70px 110px minmax(160px, 1.2fr) minmax(
@@ -1679,6 +1684,10 @@ body.tab-digests .view-digests {
   letter-spacing: 0.06em;
   color: var(--muted);
   font-weight: 700;
+}
+.ci-row-head th {
+  text-align: left;
+  font-weight: inherit;
 }
 .ci-repo {
   display: flex;
@@ -1865,25 +1874,25 @@ body.tab-digests .view-digests {
   .ci-rate {
     grid-area: rate;
   }
-  .ci-row > [role="cell"]:nth-child(3) {
+  .ci-row > td:nth-child(3) {
     grid-area: runs;
   }
-  .ci-row > [role="cell"]:nth-child(4) {
+  .ci-row > td:nth-child(4) {
     grid-area: duration;
   }
-  .ci-row > [role="cell"]:nth-child(5) {
+  .ci-row > td:nth-child(5) {
     grid-area: last;
   }
-  .ci-row > [role="cell"]:nth-child(6) {
+  .ci-row > td:nth-child(6) {
     grid-area: fail;
   }
-  .ci-row > [role="cell"] {
+  .ci-row > td {
     display: flex;
     flex-direction: column;
     gap: 4px;
     min-width: 0;
   }
-  .ci-row > [role="cell"]::before {
+  .ci-row > td::before {
     content: attr(data-label);
     font-size: 10px;
     text-transform: uppercase;

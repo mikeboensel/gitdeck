@@ -124,14 +124,14 @@ export function OverviewPanel({ repo, details, loading }: OverviewPanelProps) {
         ) : null}
         {contributors.length ? (
           <div className="repo-detail-contributors">
-            {pagedContributors.map((person, index) => {
+            {pagedContributors.map((person) => {
               const name = person.login || person.name || person.email || "Anonymous";
               return (
                 <a
                   href={person.html_url || person.url}
                   target="_blank"
                   rel="noreferrer"
-                  key={`${name}-${index}`}
+                  key={person.login || person.html_url || person.url || person.email || name}
                 >
                   {person.avatar_url || person.avatarUrl ? (
                     <img src={person.avatar_url || person.avatarUrl} alt="" />

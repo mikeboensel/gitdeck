@@ -166,7 +166,6 @@
 .kcard a,
 .kcard img {
   -webkit-user-drag: none;
-  user-drag: none;
 }
 .kcard.pending {
   opacity: 0.6;

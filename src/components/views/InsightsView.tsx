@@ -33,12 +33,19 @@ export function InsightsView({
         const repo = reposByName.get(insight.repo);
         if (!repo) return null;
         return (
-          <article
+          // biome-ignore lint/a11y/useSemanticElements: the card holds heading/paragraph flow content, which a native <button> may not contain
+          <div
             className="insight-card"
             key={insight.repo}
-            onClick={() => onRepoClick(repo)}
-            onKeyDown={(event) => event.key === "Enter" && onRepoClick(repo)}
+            role="button"
             tabIndex={0}
+            onClick={() => onRepoClick(repo)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                onRepoClick(repo);
+              }
+            }}
           >
             <div className="insight-head">
               <div>
@@ -101,7 +108,7 @@ export function InsightsView({
                 ))}
               </div>
             ) : null}
-          </article>
+          </div>
         );
       })}
     </div>

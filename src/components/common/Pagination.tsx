@@ -23,6 +23,7 @@ export function Pagination({
   if (totalItems <= pageSize && pageSize === PAGE_SIZES[2]) return null;
   const from = totalItems ? (page - 1) * pageSize + 1 : 0;
   const to = Math.min(page * pageSize, totalItems);
+  const pageWindow = getPageWindow(page, totalPages);
 
   return (
     <div className="pagination">
@@ -30,16 +31,22 @@ export function Pagination({
         {from}-{to} {t("common.of")} {totalItems}
       </span>
       <div className="controls">
-        <button className="page-btn" disabled={page <= 1} onClick={() => onPageChange(page - 1)}>
+        <button
+          type="button"
+          className="page-btn"
+          disabled={page <= 1}
+          onClick={() => onPageChange(page - 1)}
+        >
           ‹
         </button>
-        {getPageWindow(page, totalPages).map((item, index) =>
+        {pageWindow.map((item, index) =>
           item === "..." ? (
-            <span className="ellipsis" key={`ellipsis-${index}`}>
+            <span className="ellipsis" key={`ellipsis-after-${pageWindow[index - 1] ?? "start"}`}>
               …
             </span>
           ) : (
             <button
+              type="button"
               className={`page-btn ${item === page ? "active" : ""}`}
               key={item}
               onClick={() => onPageChange(item)}
@@ -49,6 +56,7 @@ export function Pagination({
           ),
         )}
         <button
+          type="button"
           className="page-btn"
           disabled={page >= totalPages}
           onClick={() => onPageChange(page + 1)}

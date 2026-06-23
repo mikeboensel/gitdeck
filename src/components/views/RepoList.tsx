@@ -38,6 +38,7 @@ export function RepoList({
       {repos.map((repo) => {
         const issueCount = issueCountForRepo(issues, repo.nameWithOwner);
         return (
+          // biome-ignore lint/a11y/useSemanticElements: row contains nested interactive elements (repo anchor + stat buttons); a native <button> cannot wrap them, so role="button" with tabIndex/onKeyDown is used instead.
           <div
             className="data-row repo-row"
             key={repo.nameWithOwner}
@@ -79,6 +80,7 @@ export function RepoList({
                   <span
                     className="rb rb-icon fork tip"
                     data-tip={t("repo.fork")}
+                    role="img"
                     aria-label={t("repo.fork")}
                   >
                     <LuGitFork size={11} />
@@ -88,6 +90,7 @@ export function RepoList({
                   <span
                     className="rb rb-icon archived tip"
                     data-tip={t("repo.archived")}
+                    role="img"
                     aria-label={t("repo.archived")}
                   >
                     <LuArchive size={11} />
@@ -97,6 +100,7 @@ export function RepoList({
                   <span
                     className="rb rb-icon private tip"
                     data-tip={t("repo.private")}
+                    role="img"
                     aria-label={t("repo.private")}
                   >
                     <LuLock size={11} />
@@ -105,6 +109,7 @@ export function RepoList({
                   <span
                     className="rb rb-icon tip"
                     data-tip={t("repo.public")}
+                    role="img"
                     aria-label={t("repo.public")}
                   >
                     <LuGlobe size={11} />
@@ -112,6 +117,7 @@ export function RepoList({
                 )}
               </span>
               <button
+                type="button"
                 className={`rc-stat strong star ${repo.stargazerCount ? "clickable" : ""}`}
                 onClick={(event) => {
                   event.stopPropagation();
@@ -121,6 +127,7 @@ export function RepoList({
                 <StarIcon /> {formatNumber(repo.stargazerCount)}
               </button>
               <button
+                type="button"
                 className={`rc-stat strong fork ${repo.forkCount ? "clickable" : ""}`}
                 onClick={(event) => {
                   event.stopPropagation();
@@ -130,6 +137,7 @@ export function RepoList({
                 <ForkIcon /> {formatNumber(repo.forkCount)}
               </button>
               <button
+                type="button"
                 className={`rc-stat iss ${issueCount ? "clickable" : ""}`}
                 onClick={(event) => {
                   event.stopPropagation();

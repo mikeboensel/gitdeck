@@ -1,4 +1,12 @@
-import { createContext, type ReactNode, useContext, useEffect, useMemo, useState } from "react";
+import {
+  createContext,
+  type ReactNode,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 import {
   DEFAULT_LANGUAGE,
   detectLanguage,
@@ -34,10 +42,10 @@ function initialLanguage(): Language {
 export function I18nProvider({ children }: { children: ReactNode }) {
   const [language, setLanguageState] = useState<Language>(initialLanguage);
 
-  const setLanguage = (nextLanguage: Language) => {
+  const setLanguage = useCallback((nextLanguage: Language) => {
     setLanguageState(nextLanguage);
     if (typeof window !== "undefined") persistLanguage(window.localStorage, nextLanguage);
-  };
+  }, []);
 
   useEffect(() => {
     document.documentElement.lang = language;
@@ -50,7 +58,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
       setLanguage,
       t: (key, replacements) => translate(language, key, replacements),
     }),
-    [language],
+    [language, setLanguage],
   );
 
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;

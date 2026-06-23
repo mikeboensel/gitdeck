@@ -4,6 +4,8 @@ export function SearchIcon() {
       width={14}
       height={14}
       viewBox="0 0 24 24"
+      aria-hidden="true"
+      focusable="false"
       fill="none"
       stroke="currentColor"
       strokeWidth={2}
@@ -22,6 +24,8 @@ export function CloseIcon({ size = 18 }: { size?: number }) {
       width={size}
       height={size}
       viewBox="0 0 24 24"
+      aria-hidden="true"
+      focusable="false"
       fill="none"
       stroke="currentColor"
       strokeWidth="2.2"
@@ -41,6 +45,8 @@ export function ChevronIcon() {
       width={12}
       height={12}
       viewBox="0 0 24 24"
+      aria-hidden="true"
+      focusable="false"
       fill="none"
       stroke="currentColor"
       strokeWidth="2.5"
@@ -56,6 +62,8 @@ export function BookIcon() {
       width={14}
       height={14}
       viewBox="0 0 24 24"
+      aria-hidden="true"
+      focusable="false"
       fill="none"
       stroke="currentColor"
       strokeWidth={2}
@@ -74,6 +82,8 @@ export function IssueIcon() {
       width={14}
       height={14}
       viewBox="0 0 24 24"
+      aria-hidden="true"
+      focusable="false"
       fill="none"
       stroke="currentColor"
       strokeWidth={2}
@@ -93,6 +103,8 @@ export function BoardIcon() {
       width={14}
       height={14}
       viewBox="0 0 24 24"
+      aria-hidden="true"
+      focusable="false"
       fill="none"
       stroke="currentColor"
       strokeWidth={2}
@@ -111,6 +123,8 @@ export function ExpandIcon() {
       width={14}
       height={14}
       viewBox="0 0 24 24"
+      aria-hidden="true"
+      focusable="false"
       fill="none"
       stroke="currentColor"
       strokeWidth={2}
@@ -131,6 +145,8 @@ export function CompressIcon() {
       width={14}
       height={14}
       viewBox="0 0 24 24"
+      aria-hidden="true"
+      focusable="false"
       fill="none"
       stroke="currentColor"
       strokeWidth={2}
@@ -151,6 +167,8 @@ export function StarIcon() {
       width={14}
       height={14}
       viewBox="0 0 24 24"
+      aria-hidden="true"
+      focusable="false"
       fill="none"
       stroke="currentColor"
       strokeWidth={2}
@@ -168,6 +186,8 @@ export function ForkIcon() {
       width={14}
       height={14}
       viewBox="0 0 24 24"
+      aria-hidden="true"
+      focusable="false"
       fill="none"
       stroke="currentColor"
       strokeWidth={2}
@@ -187,6 +207,8 @@ export function ExportIcon() {
       width={14}
       height={14}
       viewBox="0 0 24 24"
+      aria-hidden="true"
+      focusable="false"
       fill="none"
       stroke="currentColor"
       strokeWidth={2}
@@ -206,6 +228,8 @@ export function PulseIcon() {
       width={14}
       height={14}
       viewBox="0 0 24 24"
+      aria-hidden="true"
+      focusable="false"
       fill="none"
       stroke="currentColor"
       strokeWidth={2}
@@ -223,6 +247,8 @@ export function InboxIcon() {
       width={14}
       height={14}
       viewBox="0 0 24 24"
+      aria-hidden="true"
+      focusable="false"
       fill="none"
       stroke="currentColor"
       strokeWidth={2}
@@ -241,6 +267,8 @@ export function CheckIcon() {
       width={14}
       height={14}
       viewBox="0 0 24 24"
+      aria-hidden="true"
+      focusable="false"
       fill="none"
       stroke="currentColor"
       strokeWidth={2.4}
@@ -258,6 +286,8 @@ export function MailOpenIcon() {
       width={14}
       height={14}
       viewBox="0 0 24 24"
+      aria-hidden="true"
+      focusable="false"
       fill="none"
       stroke="currentColor"
       strokeWidth={2}
@@ -277,6 +307,8 @@ export function RefreshIcon() {
       width={14}
       height={14}
       viewBox="0 0 24 24"
+      aria-hidden="true"
+      focusable="false"
       fill="none"
       stroke="currentColor"
       strokeWidth={2}
@@ -296,6 +328,8 @@ export function GridIcon() {
       width={14}
       height={14}
       viewBox="0 0 24 24"
+      aria-hidden="true"
+      focusable="false"
       fill="none"
       stroke="currentColor"
       strokeWidth={2}
@@ -316,6 +350,8 @@ export function ListIcon() {
       width={14}
       height={14}
       viewBox="0 0 24 24"
+      aria-hidden="true"
+      focusable="false"
       fill="none"
       stroke="currentColor"
       strokeWidth={2}
@@ -338,6 +374,8 @@ export function DensityIcon() {
       width={14}
       height={14}
       viewBox="0 0 24 24"
+      aria-hidden="true"
+      focusable="false"
       fill="none"
       stroke="currentColor"
       strokeWidth={2}
@@ -363,6 +401,8 @@ export function PaddingIcon({
       width={14}
       height={14}
       viewBox="0 0 24 24"
+      aria-hidden="true"
+      focusable="false"
       fill="none"
       stroke="currentColor"
       strokeWidth={2}
@@ -388,6 +428,8 @@ export function KeyboardIcon() {
       width={14}
       height={14}
       viewBox="0 0 24 24"
+      aria-hidden="true"
+      focusable="false"
       fill="none"
       stroke="currentColor"
       strokeWidth={2}

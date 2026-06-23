@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   addTokenAccount,
   type DeviceFlowStart,
@@ -33,12 +33,12 @@ export function AddAccountModal({ open, onClose }: AddAccountModalProps) {
   const [copied, setCopied] = useState(false);
   const intervalRef = useRef<number | null>(null);
 
-  function stopPolling() {
+  const stopPolling = useCallback(() => {
     if (intervalRef.current !== null) {
       window.clearInterval(intervalRef.current);
       intervalRef.current = null;
     }
-  }
+  }, []);
 
   useEffect(() => {
     if (!open) {
@@ -55,9 +55,9 @@ export function AddAccountModal({ open, onClose }: AddAccountModalProps) {
     void fetchProviderConfigs()
       .then((res) => setConfigs(res.configs))
       .catch((err) => setError(errorMessage(err)));
-  }, [open]);
+  }, [open, stopPolling]);
 
-  useEffect(() => () => stopPolling(), []);
+  useEffect(() => () => stopPolling(), [stopPolling]);
 
   useEffect(() => {
     if (!open) return;
@@ -244,6 +244,7 @@ export function AddAccountModal({ open, onClose }: AddAccountModalProps) {
                 autoComplete="off"
                 onChange={(event) => setToken(event.target.value)}
                 placeholder="●●●●●●●●"
+                // biome-ignore lint/a11y/noAutofocus: intentional focus-on-open for keyboard users
                 autoFocus
               />
             </label>

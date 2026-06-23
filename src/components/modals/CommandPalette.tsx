@@ -219,6 +219,7 @@ export function CommandPalette({
     return { flat, grouped };
   }, [allEntries, query]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: query is the intentional re-run trigger — reset selection to the first result whenever the search query changes.
   useEffect(() => {
     setActiveIndex(0);
   }, [query]);
@@ -258,7 +259,12 @@ export function CommandPalette({
 
   return (
     <div className="modal-root command-palette-root">
-      <div className="modal-backdrop" onClick={onClose} />
+      <button
+        type="button"
+        className="modal-backdrop"
+        aria-label="Close command palette"
+        onClick={onClose}
+      />
       <div className="command-palette" role="dialog" aria-modal="true" aria-label="Command palette">
         <div className="command-palette-input-row">
           <span className="command-palette-icon" aria-hidden="true">

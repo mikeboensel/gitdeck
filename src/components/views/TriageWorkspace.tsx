@@ -547,6 +547,7 @@ export function TriageWorkspace({
               const isSelected = selectedItem?.id === item.id;
               const isChecked = checked.has(item.id);
               return (
+                // biome-ignore lint/a11y/useSemanticElements: row wraps nested interactive controls (checkbox label, links) and cannot be a native <button>; role/tabIndex/onKeyDown provide keyboard access
                 <div
                   className={`inbox-row ${isSelected ? "selected" : ""} ${item.unread ? "unread" : ""} ${isChecked ? "checked" : ""}`}
                   key={item.id}
@@ -564,7 +565,11 @@ export function TriageWorkspace({
                     }
                   }}
                 >
-                  <label className="inbox-row-check" onClick={(event) => event.stopPropagation()}>
+                  <label
+                    className="inbox-row-check"
+                    onClick={(event) => event.stopPropagation()}
+                    onKeyDown={(event) => event.stopPropagation()}
+                  >
                     <input
                       type="checkbox"
                       checked={isChecked}
@@ -635,7 +640,10 @@ export function TriageWorkspace({
       <TriageProperties item={selectedItem} />
 
       {shortcutsOpen ? (
+        /* biome-ignore lint/a11y/useKeyWithClickEvents: backdrop click-to-close; keyboard users close via Escape (global handler) or the visible Close button */
         <div className="inbox-shortcuts" role="dialog" onClick={() => setShortcutsOpen(false)}>
+          {/* biome-ignore lint/a11y/noStaticElementInteractions: stops click propagation so interactions inside the dialog card don't trigger backdrop close; card is not itself interactive */}
+          {/* biome-ignore lint/a11y/useKeyWithClickEvents: stops click propagation so interactions inside the dialog card don't trigger backdrop close; card is not itself interactive */}
           <div className="inbox-shortcuts-card" onClick={(event) => event.stopPropagation()}>
             <strong>Keyboard shortcuts</strong>
             <dl>

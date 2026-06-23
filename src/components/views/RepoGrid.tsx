@@ -49,6 +49,7 @@ export function RepoGrid({
           <article
             className="repo-card"
             key={repo.nameWithOwner}
+            // biome-ignore lint/a11y/noNoninteractiveTabindex: intentionally keyboard-focusable card (see .repo-card:focus-visible); cannot be a <button> because it contains nested interactive elements (repo link + stat buttons)
             tabIndex={0}
             onClick={() => onRepoClick(repo)}
             onKeyDown={(event) => {
@@ -84,6 +85,7 @@ export function RepoGrid({
                   <span
                     className="rb rb-icon private tip"
                     data-tip={t("repo.private")}
+                    role="img"
                     aria-label={t("repo.private")}
                   >
                     <LuLock size={11} />
@@ -92,6 +94,7 @@ export function RepoGrid({
                   <span
                     className="rb rb-icon tip"
                     data-tip={t("repo.public")}
+                    role="img"
                     aria-label={t("repo.public")}
                   >
                     <LuGlobe size={11} />
@@ -102,6 +105,7 @@ export function RepoGrid({
                   <span
                     className="rb rb-icon fork tip"
                     data-tip={t("repo.fork")}
+                    role="img"
                     aria-label={t("repo.fork")}
                   >
                     <LuGitFork size={11} />
@@ -133,6 +137,7 @@ export function RepoGrid({
             ) : null}
             <div className="rc-stats">
               <button
+                type="button"
                 className={`rc-stat strong star ${repo.stargazerCount ? "clickable" : ""}`}
                 onClick={(event) => {
                   event.stopPropagation();
@@ -142,6 +147,7 @@ export function RepoGrid({
                 <StarIcon /> {formatNumber(repo.stargazerCount)}
               </button>
               <button
+                type="button"
                 className={`rc-stat strong fork ${repo.forkCount ? "clickable" : ""}`}
                 onClick={(event) => {
                   event.stopPropagation();
@@ -151,6 +157,7 @@ export function RepoGrid({
                 <ForkIcon /> {formatNumber(repo.forkCount)}
               </button>
               <button
+                type="button"
                 className={`rc-stat iss ${issueCount ? "clickable" : ""}`}
                 onClick={(event) => {
                   event.stopPropagation();

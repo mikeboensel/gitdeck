@@ -22,7 +22,7 @@ export function RepoViewControls({
   const { t } = useI18n();
   return (
     <div className="repo-view-controls">
-      <div className="repo-layout-seg" role="group" aria-label={t("repo.layout")}>
+      <fieldset className="repo-layout-seg" aria-label={t("repo.layout")}>
         {REPO_LAYOUT_OPTIONS.map((option) => {
           const Icon = option === "list" ? ListIcon : GridIcon;
           const label = option === "list" ? t("repo.viewList") : t("repo.viewCards");
@@ -39,7 +39,7 @@ export function RepoViewControls({
             </button>
           );
         })}
-      </div>
+      </fieldset>
       <button
         className="hover-label-btn repo-density-btn"
         type="button"
