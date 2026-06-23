@@ -74,14 +74,10 @@
   background: var(--panel-3);
   text-decoration: none;
 }
-/* Icon-only footer links: square buttons, hover label appears ABOVE
-     (the footer sits at the bottom of the page). */
+/* Icon-only footer links: square buttons. Hover labels are handled by the
+   portal `TooltipLayer`, which auto-flips above when there's no room below. */
 .app-footer-link {
   padding: 7px;
-}
-.app-footer .tip::after {
-  top: auto;
-  bottom: calc(100% + 4px);
 }
 @media (max-width: 720px) {
   .app-footer-inner {

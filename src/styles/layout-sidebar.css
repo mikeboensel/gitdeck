@@ -106,11 +106,6 @@
   color: var(--text);
   background: var(--panel-2);
 }
-.side-head .reset.tip::after {
-  left: auto;
-  right: 0;
-  transform: none;
-}
 .side-close {
   display: none;
   background: none;
@@ -462,37 +457,9 @@ body.tab-repos .section[data-for="issues-only"] {
   align-items: center;
   justify-content: center;
 }
-.tip {
-  position: relative;
-}
-.tip::after {
-  content: attr(data-tip);
-  text-transform: none;
-  position: absolute;
-  top: calc(100% + 4px);
-  left: 50%;
-  transform: translateX(-50%);
-  padding: 4px 8px;
-  border-radius: 6px;
-  background: color-mix(in srgb, var(--panel) 96%, black);
-  border: 1px solid var(--border-soft);
-  box-shadow: var(--shadow);
-  color: var(--text);
-  font-size: 11.5px;
-  font-weight: 600;
-  white-space: nowrap;
-  opacity: 0;
-  pointer-events: none;
-  /* No delay on the base rule, so the label hides immediately on mouse-out. */
-  transition: opacity 0.08s ease;
-  z-index: 60;
-}
-.tip:hover::after,
-.tip:focus-visible::after {
-  opacity: 1;
-  /* Reveal is gated by the global constant (see --tip-delay in tokens.css). */
-  transition-delay: var(--tip-delay);
-}
+/* Tooltips are rendered by the portal `TooltipLayer` (see styles/tooltip.css);
+   the legacy `.tip::after` pseudo-element was removed. The `tip` class is now
+   inert (kept on call sites until a mechanical cleanup pass). */
 
 /* Dense, clickable facet chips: icon/avatar + count, name on hover */
 .facet-chips {

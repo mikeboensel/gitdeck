@@ -79,31 +79,9 @@ a.topbar-org:hover .topbar-org-icon {
   font-weight: 700;
   color: var(--muted);
 }
-/* Instant custom tooltip (native title has a ~1s delay). */
-.topbar-org::after {
-  content: attr(data-tip);
-  position: absolute;
-  top: calc(100% + 6px);
-  left: 50%;
-  transform: translateX(-50%);
-  padding: 4px 8px;
-  border-radius: 6px;
-  background: color-mix(in srgb, var(--panel) 96%, black);
-  border: 1px solid var(--border-soft);
-  box-shadow: var(--shadow);
-  color: var(--text);
-  font-size: 11.5px;
-  font-weight: 600;
-  white-space: nowrap;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.08s ease;
-  z-index: 50;
-}
-.topbar-org:hover::after,
-.topbar-org:focus-visible::after {
-  opacity: 1;
-}
+/* Org-icon tooltips (these carry `data-tip`) are now handled by the portal
+   `TooltipLayer` along with every other tooltip — the local `::after` was
+   removed so org icons don't render two overlapping bubbles. */
 .logo {
   width: 40px;
   height: 40px;

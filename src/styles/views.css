@@ -921,20 +921,18 @@ select.sort:focus-visible {
   border: 1px solid rgba(239, 68, 68, 0.35);
   background: rgba(239, 68, 68, 0.1);
 }
-/* Unknown (-1) metrics: muted "—" so they read as "no data", not zero. */
-.repo-security-note.unknown,
-.insight-meta span.unknown {
-  opacity: 0.55;
-  font-style: italic;
+/* Errored metrics: a warning icon + bare label, tinted with --warn. Reads as
+   "couldn't load" (hover shows the real reason), never as a real 0. */
+.repo-security-note.metric-error,
+.insight-meta span.metric-error {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--warn);
 }
-/* Metric tooltips carry full explanations; let them wrap instead of the default
-   single-line label behavior, which would overflow the viewport. */
-.insight-meta .tip::after,
-.repo-security-row .tip::after {
-  white-space: normal;
-  width: max-content;
-  max-width: 260px;
-  text-align: left;
+.repo-security-note.metric-error svg,
+.insight-meta span.metric-error svg {
+  flex: 0 0 auto;
 }
 .rc-stats {
   display: flex;
@@ -988,40 +986,10 @@ select.sort:focus-visible {
 .rc-stat.local-clones:not(.clickable) svg {
   opacity: 0.5;
 }
-/* Stat-row tooltips sit at the card's bottom edge; flip them above the icon so
-   the card's `overflow: hidden` doesn't clip them (badges at the top render below). */
-.rc-stats .tip::after {
-  top: auto;
-  bottom: calc(100% + 4px);
-}
-/* Local-clones tooltip lists the count plus one clone path per line, so it must
-   preserve the newlines in data-tip (the base .tip is single-line nowrap). */
-.rc-stat.local-clones.tip::after {
-  white-space: pre-line;
-  text-align: left;
-  /* Size to the widest line instead of collapsing to the narrow button box
-     (pre-line allows wrapping, so without this each char wraps to its own line). */
-  width: max-content;
-  max-width: 360px;
-  overflow-wrap: anywhere;
-}
-/* Worktree count badge: a folder-tree icon + count, with a tooltip listing each
-   linked worktree (one branch per line) — same multi-line treatment as
-   local-clones. The badge sits at the card's bottom-left and the card is
-   `overflow: hidden`, so anchor the tooltip's left edge to the badge and let it
-   grow rightward (a centered tooltip would clip past the card's left edge). */
+/* Multi-line clone-path / worktree tooltips (and the bottom-edge flip) are now
+   handled uniformly by the portal `TooltipLayer` (styles/tooltip.css). */
 .rc-stat.worktrees svg {
   color: var(--accent);
-}
-.rc-stat.worktrees.tip::after {
-  left: 0;
-  right: auto;
-  transform: none;
-  white-space: pre-line;
-  text-align: left;
-  width: max-content;
-  max-width: 240px;
-  overflow-wrap: anywhere;
 }
 
 /* ──────────────────────────────────────────────────────────────────────

@@ -203,19 +203,6 @@
   letter-spacing: 0.03em;
 }
 
-/* The pickaxe sits at the card's top-right; the card is `overflow: hidden`, so
-   anchor the tooltip's right edge to the badge and let it wrap leftward instead
-   of centering (which would clip past the card edge). */
-.local-status.tip::after {
-  left: auto;
-  right: 0;
-  transform: none;
-  white-space: normal;
-  width: max-content;
-  max-width: 220px;
-  text-align: left;
-}
-
 .local-status-enriched {
   color: var(--success);
 }
@@ -323,17 +310,27 @@ body.tab-local .facet-chips {
   color: var(--muted);
 }
 
+/* Keep the identity column to a single clipped line (name + branch); all the
+   variable-width status/metadata lives in the right stats cluster instead. */
+.local-row .repo-row-main {
+  flex-wrap: nowrap;
+  overflow: hidden;
+}
+
 .local-row .local-row-branch {
   font-size: 11px;
-  flex: 0 0 auto;
-  max-width: 180px;
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 220px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-/* In a single-line row the status pills follow the branch inline (no right-push,
-   no wrapping) instead of being right-aligned as they are inside the card. */
+/* Status pills sit inline among the other stats (no right-push, no wrapping). */
+.local-row .repo-row-stats {
+  flex-wrap: nowrap;
+}
 .local-row .local-git-status {
   margin-left: 0;
   flex-wrap: nowrap;

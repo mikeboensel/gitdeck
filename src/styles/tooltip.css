@@ -1,0 +1,32 @@
+/*
+ * Portal tooltip bubble (rendered by `TooltipLayer` into document.body).
+ * Replaces the old `.tip::after` pseudo-element and its per-element positioning
+ * hacks. Visuals mirror the former bubble; positioning is set inline via JS.
+ *
+ * One rule covers every former variant: `white-space: pre-line` honors the
+ * embedded "\n" in clone-path / worktree lists AND wraps long single-line
+ * tooltips at max-width, so the old `.local-clones` / `.worktrees` /
+ * `.insight-meta` width overrides collapse into this. z-index sits above modals
+ * (100), menus (60), and the kanban drag layer (1000).
+ */
+.tooltip-bubble {
+  position: fixed;
+  z-index: 2000;
+  max-width: 360px;
+  max-height: calc(100vh - 16px);
+  overflow-y: auto;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--panel) 96%, black);
+  border: 1px solid var(--border-soft);
+  box-shadow: var(--shadow);
+  color: var(--text);
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.4;
+  text-align: left;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+  pointer-events: none;
+  transition: opacity 0.08s ease;
+}
