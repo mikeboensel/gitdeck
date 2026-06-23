@@ -32,7 +32,8 @@ import { PullRequestList } from "./components/views/PullRequestList";
 import { DailyDigestView } from "./components/views/DailyDigestView";
 import { InboxView } from "./components/views/InboxView";
 import { InsightsView } from "./components/views/InsightsView";
-import { RepoGrid } from "./components/views/RepoGrid";
+import { ReposView, REPO_DENSITY_OPTIONS, type RepoDensity, type RepoLayout } from "./components/views/ReposView";
+import { RepoViewControls } from "./components/views/RepoViewControls";
 import { KanbanView } from "./components/views/KanbanView";
 import { CIHealthView } from "./components/views/CIHealthView";
 import type {
@@ -221,6 +222,8 @@ export function App() {
   const [issuePageSize, setIssuePageSize] = useState(Number(localStorage.getItem("gh-dash.issuesPageSize")) || 20);
   const [prPageSize, setPrPageSize] = useState(Number(localStorage.getItem("gh-dash.prsPageSize")) || 20);
   const [repoPageSize, setRepoPageSize] = useState(Number(localStorage.getItem("gh-dash.reposPageSize")) || 20);
+  const [repoLayout, setRepoLayout] = useState<RepoLayout>(() => (localStorage.getItem("gh-dash.repoLayout") as RepoLayout) || "grid");
+  const [repoDensity, setRepoDensity] = useState<RepoDensity>(() => (localStorage.getItem("gh-dash.repoDensity") as RepoDensity) || "cozy");
   const abortRef = useRef<AbortController | null>(null);
   const initialLoadRef = useRef(false);
 
@@ -485,6 +488,11 @@ export function App() {
   useEffect(() => localStorage.setItem("gh-dash.issuesPageSize", String(issuePageSize)), [issuePageSize]);
   useEffect(() => localStorage.setItem("gh-dash.prsPageSize", String(prPageSize)), [prPageSize]);
   useEffect(() => localStorage.setItem("gh-dash.reposPageSize", String(repoPageSize)), [repoPageSize]);
+  useEffect(() => localStorage.setItem("gh-dash.repoLayout", repoLayout), [repoLayout]);
+  useEffect(() => localStorage.setItem("gh-dash.repoDensity", repoDensity), [repoDensity]);
+  const cycleRepoDensity = useCallback(() => {
+    setRepoDensity((current) => REPO_DENSITY_OPTIONS[(REPO_DENSITY_OPTIONS.indexOf(current) + 1) % REPO_DENSITY_OPTIONS.length]);
+  }, []);
   useEffect(() => localStorage.setItem("gh-dash.inboxPageSize", String(inboxPageSize)), [inboxPageSize]);
 
   const refreshNotifications = useCallback(async (fresh = false) => {
@@ -856,6 +864,7 @@ export function App() {
               <div className="toolbar">
                 <span className="count-chip"><strong>{visibleRepos.length}</strong> {t("common.of")} <span>{filteredRepos.length}</span> {t("common.shown")}</span>
                 <div className="spacer" />
+                <RepoViewControls layout={repoLayout} density={repoDensity} onLayoutChange={setRepoLayout} onCycleDensity={cycleRepoDensity} />
                 <label>{t("common.sort")}</label>
                 <select className="sort" value={repoSort} onChange={(event) => setRepoSort(event.target.value)}>
                   <option value="stars_desc">{t("sort.mostStars")}</option>
@@ -872,7 +881,9 @@ export function App() {
                 </select>
                 <button className="btn ghost" onClick={() => downloadJson("repositories.json", filteredRepos)}><ExportIcon /> {t("common.export")}</button>
               </div>
-              <RepoGrid
+              <ReposView
+                layout={repoLayout}
+                density={repoDensity}
                 repos={visibleRepos}
                 issues={issues}
                 insightsByRepo={insightsByRepo}

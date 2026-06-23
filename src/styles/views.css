@@ -69,6 +69,48 @@
     color: var(--text);
   }
 
+  /* Repos view controls: Cards/List segmented toggle + Padding (density) cycle.
+     Text labels stay hidden until hover/focus (icon-only at rest). */
+  .repo-view-controls { display: inline-flex; align-items: center; gap: 8px; }
+  .repo-layout-seg {
+    display: inline-flex; align-items: center; gap: 2px;
+    padding: 2px; min-height: 32px;
+    border: 1px solid var(--border-soft); border-radius: 8px;
+    background: var(--panel);
+  }
+  .hover-label-btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    height: 28px; padding: 0 8px;
+    border: 1px solid transparent; border-radius: 6px;
+    background: transparent; color: var(--muted);
+    font-size: 12px; font-weight: 600; cursor: pointer;
+    transition: background-color .12s ease, color .12s ease, border-color .12s ease;
+  }
+  .hover-label-btn svg { flex: 0 0 auto; }
+  .hover-label-btn:hover { color: var(--text); background: var(--hover-surface); }
+  .repo-layout-seg .hover-label-btn.active {
+    color: var(--active-text);
+    background: linear-gradient(180deg, var(--active-start), var(--active-end));
+  }
+  .hover-label-btn .label {
+    display: inline-block; max-width: 0; overflow: hidden;
+    white-space: nowrap; opacity: 0; margin-left: 0;
+    transition: max-width .16s ease, opacity .16s ease, margin-left .16s ease;
+  }
+  .hover-label-btn:hover .label,
+  .hover-label-btn:focus-visible .label,
+  .repo-layout-seg .hover-label-btn.active .label {
+    max-width: 90px; opacity: 1; margin-left: 5px;
+  }
+  /* Standalone padding button gets its own resting border to read as a control */
+  .repo-density-btn {
+    height: 32px; padding: 0 9px;
+    border-color: var(--border-soft); border-radius: 8px;
+    background: var(--panel);
+  }
+  .repo-density-btn:hover { border-color: var(--button-hover-border); }
+  .repo-density-btn .label { text-transform: capitalize; }
+
   .btn.ghost {
     border: 1px solid var(--border-soft);
     background: transparent;
@@ -473,6 +515,74 @@
   .rc-stat.iss svg { color: var(--success); }
   .rc-lang { display: inline-flex; align-items: center; gap: 5px; }
   .rc-lang .lang-dot { width: 10px; height: 10px; border-radius: 50%; flex: 0 0 auto; }
+
+  /* ──────────────────────────────────────────────────────────────────────
+     Repos view: layout (grid ↔ list) + density (compact/cozy/comfortable).
+     Density is set once via .repos-view[data-density] and consumed through CSS
+     variables, so both RepoGrid and RepoList scale without any JS branching.
+     ────────────────────────────────────────────────────────────────────── */
+  .repos-view {
+    --repo-card-pad-y: 14px;
+    --repo-card-pad-x: 16px;
+    --repo-avatar-size: 28px;
+    --repo-title-size: 13px;
+    --repo-row-min: 44px;
+    --repo-row-pad-y: 10px;
+  }
+  .repos-view[data-density="compact"] {
+    --repo-card-pad-y: 10px;
+    --repo-card-pad-x: 12px;
+    --repo-avatar-size: 22px;
+    --repo-title-size: 12px;
+    --repo-row-min: 34px;
+    --repo-row-pad-y: 6px;
+  }
+  .repos-view[data-density="comfortable"] {
+    --repo-card-pad-y: 18px;
+    --repo-card-pad-x: 18px;
+    --repo-avatar-size: 34px;
+    --repo-title-size: 14px;
+    --repo-row-min: 56px;
+    --repo-row-pad-y: 14px;
+  }
+
+  /* Density applied to the existing card layout */
+  .repos-view .repo-card { padding: var(--repo-card-pad-y) var(--repo-card-pad-x); }
+  .repos-view .repo-card .rc-title { font-size: var(--repo-title-size); }
+  .repos-view .repo-card .rc-head .avatar { width: var(--repo-avatar-size) !important; height: var(--repo-avatar-size) !important; }
+
+  /* Dense list layout */
+  .repo-list .repo-row {
+    grid-template-columns: var(--repo-avatar-size) minmax(0, 1fr) auto;
+    align-items: center;
+    min-height: var(--repo-row-min);
+    padding: var(--repo-row-pad-y) 16px;
+    gap: 12px;
+    cursor: pointer;
+  }
+  .repo-list .repo-row .avatar { width: var(--repo-avatar-size) !important; height: var(--repo-avatar-size) !important; }
+  .repo-list .repo-row:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+  .repo-row-main { display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .repo-row-title {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: var(--repo-title-size); font-weight: 600;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0;
+  }
+  .repo-row-title a { color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .repo-row-title a:hover { color: var(--accent-2); text-decoration: none; }
+  .repo-row-title .owner { color: var(--muted); }
+  .repo-row-title .slash { color: var(--muted-2); margin: 0 2px; }
+  .repo-row-stats { display: flex; align-items: center; gap: 12px; font-size: 12px; color: var(--muted); flex: 0 0 auto; }
+  .repo-row-pushed { white-space: nowrap; color: var(--muted-2); font-size: 11.5px; }
+
+  @media (max-width: 600px) {
+    .repo-list .repo-row { grid-template-columns: var(--repo-avatar-size) minmax(0, 1fr); }
+    .repo-row-stats { grid-column: 1 / -1; flex-wrap: wrap; padding-left: calc(var(--repo-avatar-size) + 12px); }
+  }
+
+  /* Pagination joins the active layout (replaces the old .repos-grid/.data-list adjacency) */
+  .repos-view[data-layout="grid"] + .pagination { border: 1px solid var(--border-soft); border-radius: 9px; margin-top: 12px; }
+  .repos-view[data-layout="list"] + .pagination { border-radius: 0 0 9px 9px; margin-top: -1px; border-top: 1px solid var(--border-soft); }
 
   .empty { text-align: center; padding: 60px 20px; color: var(--muted); background: var(--panel); border: 1px solid var(--border-soft); border-radius: 9px; }
   .empty .big { font-size: 15px; color: var(--text); font-weight: 600; margin-bottom: 4px; }
@@ -925,4 +1035,46 @@
         "last"
         "fail";
     }
+  }
+
+  /* Generic right-click context menu */
+  .context-menu {
+    position: fixed;
+    z-index: 60;
+    min-width: 168px;
+    padding: 6px;
+    border: 1px solid var(--border-soft);
+    border-radius: 8px;
+    background: color-mix(in srgb, var(--panel) 96%, black);
+    box-shadow: var(--shadow);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .context-menu-item {
+    border: 0;
+    background: transparent;
+    color: var(--text);
+    cursor: pointer;
+    text-align: left;
+    padding: 7px 9px;
+    border-radius: 6px;
+    font-size: 12.5px;
+  }
+  .context-menu-item:hover,
+  .context-menu-item:focus-visible {
+    background: var(--panel-2);
+    outline: none;
+  }
+  .context-menu-item:disabled {
+    color: var(--muted-2);
+    cursor: default;
+    background: transparent;
+  }
+  .context-menu-item.danger {
+    color: var(--danger, #f87171);
+  }
+  .context-menu-item.danger:hover,
+  .context-menu-item.danger:focus-visible {
+    background: color-mix(in srgb, var(--danger, #f87171) 20%, transparent);
   }
