@@ -58,6 +58,8 @@ export function CIHealthView({ data, reposByName, onRepoClick }: CIHealthViewPro
         }
         case "name_asc":
           return a.repo.localeCompare(b.repo);
+        default:
+          return 0;
       }
     });
     return list;

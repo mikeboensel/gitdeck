@@ -99,7 +99,7 @@
   border: 1px solid var(--border-soft);
   border-radius: 7px;
 }
-.toolbar .count-chip strong {
+:where(.toolbar) .count-chip strong {
   color: var(--text);
   font-weight: 700;
 }
@@ -309,8 +309,11 @@ select.sort:focus-visible {
     gap: 10px;
   }
   .issue .aside-col {
+    /* biome-ignore lint/complexity/noImportantStyles: overrides base .issue .aside-col (equal specificity, defined later in source order) */
     flex-direction: row !important;
+    /* biome-ignore lint/complexity/noImportantStyles: overrides base .issue .aside-col (equal specificity, defined later in source order) */
     gap: 10px !important;
+    /* biome-ignore lint/complexity/noImportantStyles: overrides base .issue .aside-col (equal specificity, defined later in source order) */
     align-items: center !important;
     flex-wrap: wrap;
   }
@@ -385,6 +388,7 @@ select.sort:focus-visible {
   gap: 4px;
   margin-top: 8px;
 }
+/* biome-ignore lint/style/noDescendingSpecificity: base .label intentionally follows the higher-specificity .hover-label-btn .label rules (they share only `display`, decided by specificity); reordering/:where would flip the button label's display value */
 .label {
   display: inline-flex;
   align-items: center;
@@ -806,14 +810,14 @@ select.sort:focus-visible {
   min-width: 0;
   flex: 1;
 }
-.repo-card .rc-title .owner {
+:where(.repo-card) .rc-title .owner {
   color: var(--muted);
 }
-.repo-card .rc-title .slash {
+:where(.repo-card) .rc-title .slash {
   color: var(--muted-2);
   margin: 0 2px;
 }
-.repo-card .rc-title a {
+:where(.repo-card) .rc-title a {
   color: var(--text);
   display: inline-block;
   max-width: 100%;
@@ -821,7 +825,7 @@ select.sort:focus-visible {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.repo-card .rc-title a:hover {
+:where(.repo-card) .rc-title a:hover {
   color: var(--accent-2);
   text-decoration: none;
 }
@@ -1016,7 +1020,9 @@ select.sort:focus-visible {
   font-size: var(--repo-title-size);
 }
 .repos-view .repo-card .rc-head .avatar {
+  /* biome-ignore lint/complexity/noImportantStyles: overrides Avatar component's inline width/height style */
   width: var(--repo-avatar-size) !important;
+  /* biome-ignore lint/complexity/noImportantStyles: overrides Avatar component's inline width/height style */
   height: var(--repo-avatar-size) !important;
 }
 
@@ -1030,7 +1036,9 @@ select.sort:focus-visible {
   cursor: pointer;
 }
 .repo-list .repo-row .avatar {
+  /* biome-ignore lint/complexity/noImportantStyles: overrides Avatar component's inline width/height style */
   width: var(--repo-avatar-size) !important;
+  /* biome-ignore lint/complexity/noImportantStyles: overrides Avatar component's inline width/height style */
   height: var(--repo-avatar-size) !important;
 }
 .repo-list .repo-row:focus-visible {
@@ -1119,12 +1127,12 @@ select.sort:focus-visible {
 }
 
 /* Pagination joins the active layout (replaces the old .repos-grid/.data-list adjacency) */
-.repos-view[data-layout="grid"] + .pagination {
+:where(.repos-view[data-layout="grid"]) + .pagination {
   border: 1px solid var(--border-soft);
   border-radius: 9px;
   margin-top: 12px;
 }
-.repos-view[data-layout="list"] + .pagination {
+:where(.repos-view[data-layout="list"]) + .pagination {
   border-radius: 0 0 9px 9px;
   margin-top: -1px;
   border-top: 1px solid var(--border-soft);
@@ -1167,12 +1175,12 @@ select.sort:focus-visible {
   border-top: 1px solid var(--border-soft);
   background: var(--panel);
 }
-.data-list + .pagination {
+:where(.data-list) + .pagination {
   border-radius: 0 0 9px 9px;
   margin-top: -1px;
   border-top: 1px solid var(--border-soft);
 }
-.repos-grid + .pagination {
+:where(.repos-grid) + .pagination {
   border: 1px solid var(--border-soft);
   border-radius: 9px;
   margin-top: 12px;

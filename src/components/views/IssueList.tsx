@@ -56,7 +56,7 @@ export function IssueList({ issues }: { issues: GhIssue[] }) {
                 <span className="data-row-count">
                   {t("list.comments", { count: issue.commentsCount })}
                 </span>
-                {issue.assignees && issue.assignees.length ? (
+                {issue.assignees?.length ? (
                   <span className="data-row-assignees">
                     {issue.assignees.slice(0, 3).map((assignee) => (
                       <Avatar key={assignee.login} login={assignee.login} size={18} />

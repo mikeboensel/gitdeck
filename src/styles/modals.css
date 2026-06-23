@@ -8,6 +8,7 @@
   justify-content: center;
 }
 .modal-root[hidden] {
+  /* biome-ignore lint/complexity/noImportantStyles: needed to guarantee hidden modal stays display:none against any inline/JS display override */
   display: none !important;
 }
 .modal-backdrop {
@@ -427,6 +428,7 @@
 .mr-title a {
   color: var(--text);
 }
+/* biome-ignore lint/style/noDescendingSpecificity: targets a distinct element (.mr-title anchors) from higher-specificity earlier "a:hover" rules; no real cascade overlap */
 .mr-title a:hover {
   color: var(--accent-2);
   text-decoration: none;
@@ -605,6 +607,7 @@
   padding: 10px 12px;
   text-align: left;
 }
+/* biome-ignore lint/style/noDescendingSpecificity: targets a distinct element (svg in .repo-detail-stat) from higher-specificity earlier "svg" rules; no real cascade overlap */
 .repo-detail-stat svg {
   grid-row: 1 / 3;
   color: var(--muted);
@@ -715,6 +718,7 @@
   border-radius: 7px;
   color: var(--text);
 }
+/* biome-ignore lint/style/noDescendingSpecificity: targets a distinct element (.repo-detail-contributors anchors) from higher-specificity earlier "a:hover" rules; no real cascade overlap */
 .repo-detail-contributors a:hover {
   background: var(--hover-surface);
   text-decoration: none;
@@ -864,6 +868,7 @@
   font-size: 18px;
   font-variant-numeric: tabular-nums;
 }
+/* biome-ignore lint/style/noDescendingSpecificity: targets a distinct element (svg in .repo-chart) from higher-specificity earlier "svg" rules; no real cascade overlap */
 .repo-chart svg {
   display: block;
   width: 100%;
@@ -1038,6 +1043,7 @@
   padding: 10px 14px;
   background: var(--panel);
 }
+/* biome-ignore lint/style/noDescendingSpecificity: targets a distinct element (.repo-detail-release-assets anchors) from higher-specificity earlier "a:hover" rules; no real cascade overlap */
 .repo-detail-release-assets a:hover {
   background: var(--hover-surface);
   text-decoration: none;
@@ -1316,10 +1322,12 @@
 .dropdown-menu button:hover {
   background: var(--panel-2);
 }
+/* biome-ignore lint/style/noDescendingSpecificity: targets a distinct element (svg in .dropdown-menu button) from higher-specificity earlier "svg" rules; no real cascade overlap */
 .dropdown-menu button svg {
   color: var(--muted);
   flex: 0 0 auto;
 }
+/* biome-ignore lint/style/noDescendingSpecificity: distinct element from higher-specificity earlier "svg" rules; still higher specificity than the preceding non-hover rule so the hover color wins as intended */
 .dropdown-menu button:hover svg {
   color: var(--accent-2);
 }
@@ -1350,6 +1358,7 @@
   font-variant-numeric: tabular-nums;
   padding: 0 4px;
 }
+/* biome-ignore lint/style/noDescendingSpecificity: targets a distinct element (svg in .sparkline) from higher-specificity earlier "svg" rules; no real cascade overlap */
 .sparkline svg {
   display: block;
 }
@@ -1669,6 +1678,7 @@
 .wf-title a {
   color: var(--text);
 }
+/* biome-ignore lint/style/noDescendingSpecificity: targets a distinct element (.wf-title anchors) from higher-specificity earlier "a:hover" rules; no real cascade overlap */
 .wf-title a:hover {
   color: var(--accent-2);
   text-decoration: none;
@@ -1732,6 +1742,7 @@
   padding: 8px 10px;
   min-width: 36px;
 }
+/* biome-ignore lint/style/noDescendingSpecificity: targets a distinct element (svg in .btn.theme-btn) from higher-specificity earlier "svg" rules; no real cascade overlap */
 .btn.theme-btn svg {
   flex: 0 0 auto;
 }

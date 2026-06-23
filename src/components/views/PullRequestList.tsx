@@ -68,7 +68,7 @@ export function PullRequestList({ pullRequests }: { pullRequests: GhPullRequest[
                 <span className="data-row-count">
                   {t("list.comments", { count: pr.commentsCount })}
                 </span>
-                {pr.assignees && pr.assignees.length ? (
+                {pr.assignees?.length ? (
                   <span className="data-row-assignees">
                     {pr.assignees.slice(0, 3).map((assignee) => (
                       <Avatar key={assignee.login} login={assignee.login} size={18} />

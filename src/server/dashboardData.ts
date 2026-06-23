@@ -157,7 +157,7 @@ const pullRequestsStore = memoize<PullRequestsResult>(
 let digestRecordedFor: { reposAt: string; issuesAt: string } | null = null;
 
 function maybeRecordDigest(repos: ReposResult | null, issues: IssuesResult | null): void {
-  if (!repos || !repos.ok || !issues || !issues.ok) return;
+  if (!repos?.ok || !issues?.ok) return;
   if (
     digestRecordedFor &&
     digestRecordedFor.reposAt === repos.fetchedAt &&

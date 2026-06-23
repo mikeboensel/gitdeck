@@ -24,12 +24,14 @@
     padding: 14px;
   }
   .sidebar {
+    /* biome-ignore lint/complexity/noImportantStyles: needed to override the later-defined base .sidebar { position: sticky } (equal specificity, wins by source order) */
     position: fixed !important;
     top: 0;
     right: 0;
     bottom: 0;
     left: auto;
     width: min(340px, 88vw);
+    /* biome-ignore lint/complexity/noImportantStyles: needed to override the later-defined base .sidebar { max-height: calc(...) } (equal specificity, wins by source order) */
     max-height: none !important;
     z-index: 50;
     border-radius: 12px 0 0 12px;

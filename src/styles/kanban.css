@@ -295,6 +295,7 @@ body.board-focus .topbar,
 body.board-focus .sidebar,
 body.board-focus .sidebar-backdrop,
 body.board-focus .view-head {
+  /* biome-ignore lint/complexity/noImportantStyles: needed to force-hide chrome in distraction-free board mode, overriding responsive display rules */
   display: none !important;
 }
 body.board-focus .layout {

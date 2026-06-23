@@ -165,10 +165,10 @@ a.topbar-org:hover .topbar-org-icon {
   background: color-mix(in srgb, var(--panel) 78%, transparent);
   border-color: var(--border-soft);
 }
-.topbar-search .search-btn .label {
+:where(.topbar-search) .search-btn .label {
   color: var(--muted);
 }
-.topbar-search .search-btn .kbd {
+:where(.topbar-search) .search-btn .kbd {
   margin-left: auto;
 }
 .topbar-actions {
@@ -408,12 +408,15 @@ a.topbar-org:hover .topbar-org-icon {
   color: #35c4f0;
 }
 .text-size-option-small {
+  /* biome-ignore lint/complexity/noImportantStyles: needed to keep preview swatch at a fixed size, overriding the global text-size scaling */
   font-size: 11px !important;
 }
 .text-size-option-normal {
+  /* biome-ignore lint/complexity/noImportantStyles: needed to keep preview swatch at a fixed size, overriding the global text-size scaling */
   font-size: 12px !important;
 }
 .text-size-option-large {
+  /* biome-ignore lint/complexity/noImportantStyles: needed to keep preview swatch at a fixed size, overriding the global text-size scaling */
   font-size: 14px !important;
 }
 .preferences-segmented button:hover {

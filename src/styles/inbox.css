@@ -159,6 +159,7 @@
 
 .inbox-mailboxes,
 .inbox-list-pane,
+/* biome-ignore lint/style/noDescendingSpecificity: base layout sizing (min-width/min-height); the higher-specificity `.triage-workspace.embedded .inbox-reader` overrides only padding and precedes the base `.inbox-reader` block, so reordering or :where() would alter that padding cascade */
 .inbox-reader,
 .inbox-properties {
   min-width: 0;
@@ -469,6 +470,7 @@
   font-size: var(--row-meta-size);
 }
 
+/* biome-ignore lint/style/noDescendingSpecificity: base styles for the element; the earlier higher-specificity `.inbox-row.unread/.not(.unread) .inbox-row-author` rules are intentional state overrides that win regardless of order; reorder/:where would risk the unread color/weight cascade */
 .inbox-row-author {
   color: var(--text);
   font-size: var(--row-author-size);
@@ -499,6 +501,7 @@
   white-space: nowrap;
 }
 
+/* biome-ignore lint/style/noDescendingSpecificity: base styles for the element; the earlier higher-specificity `.inbox-row.unread/.not(.unread) .inbox-row-title` rules are intentional state overrides that win regardless of order; reorder/:where would risk the unread color/weight cascade */
 .inbox-row-title {
   overflow: hidden;
   color: var(--text);
@@ -556,6 +559,7 @@
 
 /* ===================== READER ===================== */
 
+/* biome-ignore lint/style/noDescendingSpecificity: base reader grid; the earlier higher-specificity `.triage-workspace.embedded .inbox-reader` precedes this and intentionally overrides padding — lowering its specificity via :where() or reordering would flip that padding cascade */
 .inbox-reader {
   display: grid;
   grid-template-rows: auto auto auto auto 1fr;
@@ -630,6 +634,7 @@
   text-transform: uppercase;
 }
 
+/* biome-ignore lint/style/noDescendingSpecificity: base heading size; earlier `.triage-workspace.embedded .inbox-reader-head h2` (and later `.repo-reader ...`) intentionally override font-size at higher specificity — reorder/:where would alter the responsive clamp cascade */
 .inbox-reader-head h2 {
   max-width: 960px;
   margin: 0;
@@ -720,6 +725,7 @@
   background: var(--border-soft);
 }
 
+/* biome-ignore lint/style/noDescendingSpecificity: shares the `div` key with the unrelated higher-specificity `.inbox-reader.empty-reader div` (different component); they never match the same element, so this is a false conflict — suppress to avoid moving unrelated blocks */
 .inbox-context-grid div,
 .inbox-context-grid button {
   display: grid;
@@ -927,6 +933,7 @@
   margin: 0 0 14px;
 }
 
+/* biome-ignore lint/style/noDescendingSpecificity: shares the `div` key with the unrelated higher-specificity `.inbox-reader.empty-reader div` (different component); they never match the same element — suppress to avoid moving unrelated blocks */
 .inbox-shortcuts-card dl > div {
   display: grid;
   grid-template-columns: 110px 1fr;
@@ -947,6 +954,7 @@
   font-size: 12.5px;
 }
 
+/* biome-ignore lint/style/noDescendingSpecificity: base element style; the earlier higher-specificity `.inbox-toolbar-count kbd` overrides only margin (disjoint properties) and wins regardless of order — reorder/:where unneeded and would only add risk */
 kbd {
   display: inline-flex;
   align-items: center;
@@ -1080,6 +1088,7 @@ kbd {
   flex: 0 0 auto;
 }
 
+/* biome-ignore lint/style/noDescendingSpecificity: intentional repo-context font-size override; lower specificity than the earlier `.triage-workspace.embedded .inbox-reader-head h2` but targets a different ancestor (.repo-reader) so they never compete — suppress to keep the deliberate override in place */
 .repo-reader .inbox-reader-head h2 {
   font-size: clamp(26px, 3vw, 40px);
 }
@@ -1135,6 +1144,7 @@ kbd {
   }
   .inbox-mailboxes,
   .inbox-list-pane,
+  /* biome-ignore lint/style/noDescendingSpecificity: responsive override sharing the `.inbox-reader` key with earlier higher-specificity rules; sets only border props here and lives in a max-width media query — reorder/:where would risk the deliberate cascade */
   .inbox-reader {
     border-right: 0;
     border-bottom: 1px solid var(--border-soft);
@@ -1165,6 +1175,7 @@ kbd {
   .inbox-list {
     max-height: 420px;
   }
+  /* biome-ignore lint/style/noDescendingSpecificity: responsive padding override sharing the `.inbox-reader` key with earlier higher-specificity rules; inside a max-width media query so order/specificity are intentional — suppress to preserve cascade */
   .inbox-reader {
     padding: 22px 16px 34px;
   }
@@ -1186,6 +1197,7 @@ kbd {
   .inbox-row-top em {
     margin-left: 0;
   }
+  /* biome-ignore lint/style/noDescendingSpecificity: responsive font-size override sharing the `h2` key with earlier higher-specificity heading rules; inside a max-width media query so order/specificity are intentional — suppress to preserve cascade */
   .inbox-reader-head h2 {
     font-size: 24px;
   }
