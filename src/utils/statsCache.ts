@@ -26,12 +26,20 @@ export function readStatsCache(): CachedStats | null {
   try {
     const raw = localStorage.getItem(STATS_KEY);
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as CachedStats;
-    // Basic shape validation
-    if (!Array.isArray(parsed.repos) || !Array.isArray(parsed.issues) || !Array.isArray(parsed.pullRequests)) {
+    const parsed = JSON.parse(raw) as unknown;
+    if (typeof parsed !== "object" || parsed === null) return null;
+    const candidate = parsed as Record<string, unknown>;
+    if (
+      !Array.isArray(candidate.repos) ||
+      !Array.isArray(candidate.issues) ||
+      !Array.isArray(candidate.pullRequests) ||
+      !Array.isArray(candidate.owners) ||
+      typeof candidate.fetchedAt !== "string" ||
+      typeof candidate.savedAt !== "number"
+    ) {
       return null;
     }
-    return parsed;
+    return parsed as CachedStats;
   } catch {
     return null;
   }
