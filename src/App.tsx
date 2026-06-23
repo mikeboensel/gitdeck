@@ -663,6 +663,16 @@ export function App() {
         onLogout={() => void handleLogout()}
         canLogout={authMode === "device"}
       />
+      <div className="tabs-bar">
+        <div className="tabs" role="tablist">
+          {tabs.map((item) => (
+            <button className={`tab ${tab === item.key ? "active" : ""}`} key={item.key} role="tab" onClick={() => navigateTab(item.key)}>
+              {item.icon}
+              {item.label} <span className="tab-badge">{item.count}</span>
+            </button>
+          ))}
+        </div>
+      </div>
       <div className="sidebar-backdrop" onClick={() => setFiltersOpen(false)} />
       <div className="layout">
         <SidebarControls
@@ -685,16 +695,6 @@ export function App() {
         />
         <main className={`main${dataStale ? " data-stale" : ""}`}>
           {error ? <div className="error">{error}</div> : null}
-          <div className="view-head">
-            <div className="tabs" role="tablist">
-              {tabs.map((item) => (
-                <button className={`tab ${tab === item.key ? "active" : ""}`} key={item.key} role="tab" onClick={() => navigateTab(item.key)}>
-                  {item.icon}
-                  {item.label} <span className="tab-badge">{item.count}</span>
-                </button>
-              ))}
-            </div>
-          </div>
 
           {tab === "inbox" ? (
             <InboxView
