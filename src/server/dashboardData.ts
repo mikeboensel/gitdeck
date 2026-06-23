@@ -1,6 +1,7 @@
 import type { GhIssue, GhPullRequest, GhRepo } from "../types/github";
 import { errorMessage } from "../utils/errors";
 import { getActive as getActiveAccount } from "./accountStore";
+import { memoize } from "./cache";
 import { recordDailyDigest } from "./digests";
 import { AuthRequiredError } from "./githubClient";
 import { logger } from "./logger";
@@ -22,39 +23,6 @@ export type PullRequestsResult =
 
 const TTL_MS = 5 * 60 * 1000;
 
-interface Memoized<T extends { ok: boolean }> {
-  get(forceFresh: boolean): Promise<T>;
-  peek(): T | null;
-  invalidate(): void;
-}
-
-function memoize<T extends { ok: boolean }>(ttlMs: number, fetcher: () => Promise<T>): Memoized<T> {
-  let cache: { value: T; expiresAt: number } | null = null;
-  let inflight: Promise<T> | null = null;
-  return {
-    async get(forceFresh: boolean): Promise<T> {
-      if (!forceFresh && cache && cache.expiresAt > Date.now()) return cache.value;
-      if (inflight) return inflight;
-      inflight = (async () => {
-        try {
-          const value = await fetcher();
-          if (value.ok) cache = { value, expiresAt: Date.now() + ttlMs };
-          return value;
-        } finally {
-          inflight = null;
-        }
-      })();
-      return inflight;
-    },
-    peek() {
-      return cache && cache.expiresAt > Date.now() ? cache.value : null;
-    },
-    invalidate() {
-      cache = null;
-    },
-  };
-}
-
 function authFail(): { ok: false; error: string; needsAuth: true } {
   return { ok: false, error: "authentication required", needsAuth: true };
 }
@@ -71,62 +39,74 @@ async function resolveActive(): Promise<{ account: Account; provider: Provider }
   return { account, provider };
 }
 
-const ownersStore = memoize<OwnersOutcome>(TTL_MS, async (): Promise<OwnersOutcome> => {
-  const active = await resolveActive();
-  if (!active) return authFail();
-  return active.provider.listOwners(active.account);
-});
-
-const reposStore = memoize<ReposResult>(TTL_MS, async (): Promise<ReposResult> => {
-  const ownersResult = await ownersStore.get(false);
-  if (!ownersResult.ok)
-    return ownersResult.needsAuth ? authFail() : { ok: false, error: ownersResult.error };
-  try {
+const ownersStore = memoize<OwnersOutcome>(
+  TTL_MS,
+  async (): Promise<OwnersOutcome> => {
     const active = await resolveActive();
     if (!active) return authFail();
-    const repos = await active.provider.listRepos(active.account, ownersResult.owners);
+    return active.provider.listOwners(active.account);
+  },
+  { shouldCache: (v) => v.ok },
+);
+
+const reposStore = memoize<ReposResult>(
+  TTL_MS,
+  async (): Promise<ReposResult> => {
+    const ownersResult = await ownersStore.get(false);
+    if (!ownersResult.ok)
+      return ownersResult.needsAuth ? authFail() : { ok: false, error: ownersResult.error };
     try {
-      await recordSnapshots(repos);
-      await attachHistory(repos);
-    } catch (err) {
-      // Snapshot/history is best-effort, but a persistent failure must be visible.
-      logger.warn({ err }, "snapshot/history record failed (best-effort)");
+      const active = await resolveActive();
+      if (!active) return authFail();
+      const repos = await active.provider.listRepos(active.account, ownersResult.owners);
+      try {
+        await recordSnapshots(repos);
+        await attachHistory(repos);
+      } catch (err) {
+        // Snapshot/history is best-effort, but a persistent failure must be visible.
+        logger.warn({ err }, "snapshot/history record failed (best-effort)");
+      }
+      const result: ReposResult = {
+        ok: true,
+        repos,
+        owners: ownersResult.owners,
+        fetchedAt: new Date().toISOString(),
+      };
+      maybeRecordDigest(result, issuesStore.peek());
+      return result;
+    } catch (error: unknown) {
+      if (error instanceof AuthRequiredError) return authFail();
+      return genericFail(error);
     }
-    const result: ReposResult = {
-      ok: true,
-      repos,
-      owners: ownersResult.owners,
-      fetchedAt: new Date().toISOString(),
-    };
-    maybeRecordDigest(result, issuesStore.peek());
-    return result;
-  } catch (error: unknown) {
-    if (error instanceof AuthRequiredError) return authFail();
-    return genericFail(error);
-  }
-});
+  },
+  { shouldCache: (v) => v.ok },
+);
 
-const issuesStore = memoize<IssuesResult>(TTL_MS, async (): Promise<IssuesResult> => {
-  const ownersResult = await ownersStore.get(false);
-  if (!ownersResult.ok)
-    return ownersResult.needsAuth ? authFail() : { ok: false, error: ownersResult.error };
-  try {
-    const active = await resolveActive();
-    if (!active) return authFail();
-    const issues = await active.provider.listIssues(active.account, ownersResult.owners);
-    const result: IssuesResult = {
-      ok: true,
-      issues,
-      owners: ownersResult.owners,
-      fetchedAt: new Date().toISOString(),
-    };
-    maybeRecordDigest(reposStore.peek(), result);
-    return result;
-  } catch (error: unknown) {
-    if (error instanceof AuthRequiredError) return authFail();
-    return genericFail(error);
-  }
-});
+const issuesStore = memoize<IssuesResult>(
+  TTL_MS,
+  async (): Promise<IssuesResult> => {
+    const ownersResult = await ownersStore.get(false);
+    if (!ownersResult.ok)
+      return ownersResult.needsAuth ? authFail() : { ok: false, error: ownersResult.error };
+    try {
+      const active = await resolveActive();
+      if (!active) return authFail();
+      const issues = await active.provider.listIssues(active.account, ownersResult.owners);
+      const result: IssuesResult = {
+        ok: true,
+        issues,
+        owners: ownersResult.owners,
+        fetchedAt: new Date().toISOString(),
+      };
+      maybeRecordDigest(reposStore.peek(), result);
+      return result;
+    } catch (error: unknown) {
+      if (error instanceof AuthRequiredError) return authFail();
+      return genericFail(error);
+    }
+  },
+  { shouldCache: (v) => v.ok },
+);
 
 const pullRequestsStore = memoize<PullRequestsResult>(
   TTL_MS,
@@ -152,6 +132,7 @@ const pullRequestsStore = memoize<PullRequestsResult>(
       return genericFail(error);
     }
   },
+  { shouldCache: (v) => v.ok },
 );
 
 let digestRecordedFor: { reposAt: string; issuesAt: string } | null = null;
