@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useI18n } from "../../i18n/I18nProvider";
 import type { GhRepo, RepoCIHealth } from "../../types/github";
 import { formatNumber, formatRelativeTime } from "../../utils/format";
+import { type SortOption, SortSelect } from "../common/SortSelect";
 
 type SortKey =
   | "health_asc"
@@ -10,6 +11,15 @@ type SortKey =
   | "runs_desc"
   | "recent_failure"
   | "name_asc";
+
+const CI_SORT_OPTIONS: SortOption[] = [
+  { value: "health_asc", label: "sort.mostAtRisk" },
+  { value: "health_desc", label: "sort.bestHealth" },
+  { value: "failures_desc", label: "sort.mostFailures" },
+  { value: "recent_failure", label: "sort.recentFailureFirst" },
+  { value: "runs_desc", label: "sort.mostRuns" },
+  { value: "name_asc", label: "sort.nameAZ" },
+];
 
 interface CIHealthViewProps {
   data: RepoCIHealth[];
@@ -79,20 +89,12 @@ export function CIHealthView({ data, reposByName, onRepoClick }: CIHealthViewPro
       <div className="toolbar">
         <span className="count-chip">{t("ci.repositoriesCount", { count: sorted.length })}</span>
         <div className="spacer" />
-        <label htmlFor="ci-sort">{t("common.sort")}</label>
-        <select
+        <SortSelect
           id="ci-sort"
-          className="sort"
           value={sort}
-          onChange={(event) => setSort(event.target.value as SortKey)}
-        >
-          <option value="health_asc">{t("sort.mostAtRisk")}</option>
-          <option value="health_desc">{t("sort.bestHealth")}</option>
-          <option value="failures_desc">{t("sort.mostFailures")}</option>
-          <option value="recent_failure">{t("sort.recentFailureFirst")}</option>
-          <option value="runs_desc">{t("sort.mostRuns")}</option>
-          <option value="name_asc">{t("sort.nameAZ")}</option>
-        </select>
+          options={CI_SORT_OPTIONS}
+          onChange={(value) => setSort(value as SortKey)}
+        />
       </div>
       <table className="ci-table">
         <tbody>

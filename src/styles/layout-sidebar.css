@@ -101,6 +101,8 @@
   cursor: pointer;
   padding: 6px 8px;
   border-radius: 6px;
+  /* Center the eraser in the header; pushes the mobile-only close button to the edge. */
+  margin-inline: auto;
 }
 .side-head .reset:hover {
   color: var(--text);

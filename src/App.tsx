@@ -47,6 +47,7 @@ import {
   ShieldIcon,
 } from "./components/common/Icons";
 import { Pagination } from "./components/common/Pagination";
+import { type SortOption, SortSelect } from "./components/common/SortSelect";
 import { Footer } from "./components/Footer";
 import { ChangelogModal } from "./components/modals/ChangelogModal";
 import { CommandPalette } from "./components/modals/CommandPalette";
@@ -140,6 +141,41 @@ import {
 } from "./utils/localRepos";
 import { clampPage } from "./utils/pagination";
 import { clearStatsCache, readStatsCache, writeStatsCache } from "./utils/statsCache";
+
+const ISSUE_SORT_OPTIONS: SortOption[] = [
+  { value: "updated_desc", label: "sort.recentlyUpdated" },
+  { value: "updated_asc", label: "sort.leastRecentlyUpdated" },
+  { value: "created_desc", label: "sort.newest" },
+  { value: "created_asc", label: "sort.oldest" },
+  { value: "comments_desc", label: "sort.mostCommented" },
+  { value: "comments_asc", label: "sort.leastCommented" },
+  { value: "repo_asc", label: "sort.repositoryAZ" },
+];
+
+const PR_SORT_OPTIONS: SortOption[] = [
+  { value: "updated_desc", label: "sort.recentlyUpdated" },
+  { value: "updated_asc", label: "sort.leastRecentlyUpdated" },
+  { value: "created_desc", label: "sort.newest" },
+  { value: "created_asc", label: "sort.oldest" },
+  { value: "review_pending", label: "sort.awaitingReviewFirst" },
+  { value: "size_desc", label: "sort.largestDiff" },
+  { value: "size_asc", label: "sort.smallestDiff" },
+  { value: "files_desc", label: "sort.mostFilesChanged" },
+  { value: "comments_desc", label: "sort.mostCommented" },
+  { value: "repo_asc", label: "sort.repositoryAZ" },
+];
+
+const REPO_SORT_OPTIONS: SortOption[] = [
+  { value: "stars_desc", label: "sort.mostStars" },
+  { value: "stars_asc", label: "sort.fewestStars" },
+  { value: "forks_desc", label: "sort.mostForks" },
+  { value: "forks_asc", label: "sort.fewestForks" },
+  { value: "issues_desc", label: "sort.mostOpenIssues" },
+  { value: "issues_asc", label: "sort.fewestOpenIssues" },
+  { value: "pushed_desc", label: "sort.recentlyPushed" },
+  { value: "updated_desc", label: "sort.recentlyUpdated" },
+  { value: "name_asc", label: "sort.nameAZ" },
+];
 
 type Theme = "dark" | "light" | "auto";
 type TextSize = "small" | "normal" | "large";
@@ -1289,26 +1325,13 @@ export function App() {
                 </div>
               </section>
               <div className="toolbar">
-                <span className="count-chip">
-                  <strong>{visibleIssues.length}</strong> {t("common.of")}{" "}
-                  <span>{filteredIssues.length}</span> {t("common.shown")}
-                </span>
                 <div className="spacer" />
-                <label htmlFor="issues-sort">{t("common.sort")}</label>
-                <select
+                <SortSelect
                   id="issues-sort"
-                  className="sort"
                   value={issueSort}
-                  onChange={(event) => setIssueSort(event.target.value)}
-                >
-                  <option value="updated_desc">{t("sort.recentlyUpdated")}</option>
-                  <option value="updated_asc">{t("sort.leastRecentlyUpdated")}</option>
-                  <option value="created_desc">{t("sort.newest")}</option>
-                  <option value="created_asc">{t("sort.oldest")}</option>
-                  <option value="comments_desc">{t("sort.mostCommented")}</option>
-                  <option value="comments_asc">{t("sort.leastCommented")}</option>
-                  <option value="repo_asc">{t("sort.repositoryAZ")}</option>
-                </select>
+                  options={ISSUE_SORT_OPTIONS}
+                  onChange={setIssueSort}
+                />
               </div>
               <IssueList issues={visibleIssues} />
               <Pagination
@@ -1354,10 +1377,6 @@ export function App() {
                 </div>
               </section>
               <div className="toolbar">
-                <span className="count-chip">
-                  <strong>{visiblePullRequests.length}</strong> {t("common.of")}{" "}
-                  <span>{filteredPullRequests.length}</span> {t("common.shown")}
-                </span>
                 <div className="spacer" />
                 <label htmlFor="prs-preset">{t("common.preset")}</label>
                 <select
@@ -1379,24 +1398,7 @@ export function App() {
                   <option value="authored-me">{t("preset.authoredMe")}</option>
                   <option value="stale">{t("preset.stale")}</option>
                 </select>
-                <label htmlFor="prs-sort">{t("common.sort")}</label>
-                <select
-                  id="prs-sort"
-                  className="sort"
-                  value={prSort}
-                  onChange={(event) => setPrSort(event.target.value)}
-                >
-                  <option value="updated_desc">{t("sort.recentlyUpdated")}</option>
-                  <option value="updated_asc">{t("sort.leastRecentlyUpdated")}</option>
-                  <option value="created_desc">{t("sort.newest")}</option>
-                  <option value="created_asc">{t("sort.oldest")}</option>
-                  <option value="review_pending">{t("sort.awaitingReviewFirst")}</option>
-                  <option value="size_desc">{t("sort.largestDiff")}</option>
-                  <option value="size_asc">{t("sort.smallestDiff")}</option>
-                  <option value="files_desc">{t("sort.mostFilesChanged")}</option>
-                  <option value="comments_desc">{t("sort.mostCommented")}</option>
-                  <option value="repo_asc">{t("sort.repositoryAZ")}</option>
-                </select>
+                <SortSelect id="prs-sort" value={prSort} options={PR_SORT_OPTIONS} onChange={setPrSort} />
               </div>
               <PullRequestList pullRequests={visiblePullRequests} />
               <Pagination
@@ -1443,10 +1445,6 @@ export function App() {
                 </div>
               </section>
               <div className="toolbar">
-                <span className="count-chip">
-                  <strong>{visibleRepos.length}</strong> {t("common.of")}{" "}
-                  <span>{filteredRepos.length}</span> {t("common.shown")}
-                </span>
                 <div className="spacer" />
                 <RepoViewControls
                   layout={repoLayout}
@@ -1454,23 +1452,12 @@ export function App() {
                   onLayoutChange={setRepoLayout}
                   onCycleDensity={cycleRepoDensity}
                 />
-                <label htmlFor="repos-sort">{t("common.sort")}</label>
-                <select
+                <SortSelect
                   id="repos-sort"
-                  className="sort"
                   value={repoSort}
-                  onChange={(event) => setRepoSort(event.target.value)}
-                >
-                  <option value="stars_desc">{t("sort.mostStars")}</option>
-                  <option value="stars_asc">{t("sort.fewestStars")}</option>
-                  <option value="forks_desc">{t("sort.mostForks")}</option>
-                  <option value="forks_asc">{t("sort.fewestForks")}</option>
-                  <option value="issues_desc">{t("sort.mostOpenIssues")}</option>
-                  <option value="issues_asc">{t("sort.fewestOpenIssues")}</option>
-                  <option value="pushed_desc">{t("sort.recentlyPushed")}</option>
-                  <option value="updated_desc">{t("sort.recentlyUpdated")}</option>
-                  <option value="name_asc">{t("sort.nameAZ")}</option>
-                </select>
+                  options={REPO_SORT_OPTIONS}
+                  onChange={setRepoSort}
+                />
               </div>
               <ReposView
                 layout={repoLayout}

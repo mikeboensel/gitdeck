@@ -1,7 +1,6 @@
 import { type MouseEvent as ReactMouseEvent, useEffect, useRef, useState } from "react";
 import type { IconType } from "react-icons";
 import {
-  LuArrowDownUp,
   LuCircleCheck,
   LuClock,
   LuEye,
@@ -31,6 +30,7 @@ import { formatNumber, formatRelativeTime } from "../../utils/format";
 import { arrangeLocalRepos, type LocalSort } from "../../utils/localRepos";
 import { ForkIcon, StarIcon } from "../common/Icons";
 import { LanguageIcon } from "../common/LanguageIcon";
+import { SortSelect } from "../common/SortSelect";
 import type { RepoDensity, RepoLayout } from "./ReposView";
 import { RepoViewControls } from "./RepoViewControls";
 
@@ -129,21 +129,12 @@ export function LocalReposView({
             onLayoutChange={onLayoutChange}
             onCycleDensity={onCycleDensity}
           />
-          <label htmlFor="local-sort" className="sort-label" title={t("common.sort")}>
-            <LuArrowDownUp size={14} aria-label={t("common.sort")} />
-          </label>
-          <select
+          <SortSelect
             id="local-sort"
-            className="sort"
             value={sort}
-            onChange={(event) => onSortChange(event.target.value as LocalSort)}
-          >
-            {SORT_OPTIONS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {t(option.label)}
-              </option>
-            ))}
-          </select>
+            options={SORT_OPTIONS}
+            onChange={(value) => onSortChange(value as LocalSort)}
+          />
           <button
             type="button"
             className="btn icon-btn tip"
@@ -501,12 +492,7 @@ function LocalRepoCard({
           </span>
         ) : null}
         {repo.lastCommit ? (
-          <span
-            className="local-committed tip"
-            data-tip={t("local.committed", {
-              time: formatRelativeTime(repo.lastCommit.date, Date.now(), language),
-            })}
-          >
+          <span className="local-committed tip" data-tip={t("tip.committed")}>
             <LuClock size={12} aria-hidden />{" "}
             {formatRelativeTime(repo.lastCommit.date, Date.now(), language)}
           </span>
@@ -663,13 +649,7 @@ function LocalRepoRow({
         ) : null}
         <span
           className="repo-row-pushed local-committed tip"
-          data-tip={
-            repo.lastCommit
-              ? t("local.committed", {
-                  time: formatRelativeTime(repo.lastCommit.date, Date.now(), language),
-                })
-              : undefined
-          }
+          data-tip={repo.lastCommit ? t("tip.committed") : undefined}
         >
           {repo.lastCommit ? (
             <>

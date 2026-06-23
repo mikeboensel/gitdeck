@@ -107,6 +107,13 @@
   color: var(--muted);
   font-size: 12px;
 }
+/* Icon-only label for the shared SortSelect (replaces the "Sort" text). */
+.sort-label {
+  display: inline-flex;
+  align-items: center;
+  color: var(--muted);
+  cursor: pointer;
+}
 select.sort {
   background: var(--panel);
   border: 1px solid var(--border-soft);
@@ -1123,6 +1130,26 @@ select.sort:focus-visible {
   width: 116px;
   text-align: right;
   flex: 0 0 auto;
+}
+
+/* Clock-prefixed "pushed {time}" lane, mirroring .local-committed. */
+.repo-pushed {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+/* In the card stats row, push the last-pushed time to the right edge. */
+.rc-stats .repo-pushed {
+  margin-left: auto;
+}
+.repo-pushed svg {
+  flex-shrink: 0;
+  opacity: 0.8;
+}
+/* In the list row the lane is right-aligned (see .repo-row-pushed). */
+.repo-row-pushed.repo-pushed {
+  justify-content: flex-end;
 }
 
 @media (max-width: 600px) {

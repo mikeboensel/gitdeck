@@ -8,7 +8,6 @@ import {
   LuGitFork,
   LuGlobe,
   LuLayers,
-  LuListFilter,
   LuLock,
   LuPenLine,
   LuSlidersHorizontal,
@@ -173,9 +172,6 @@ export function SidebarControls({
   return (
     <aside className="sidebar" id="sidebar">
       <div className="side-head">
-        <h2 className="tip" data-tip={t("common.filters")} aria-label={t("common.filters")}>
-          <LuListFilter size={16} />
-        </h2>
         <button
           type="button"
           className="reset tip"

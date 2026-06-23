@@ -30,14 +30,6 @@
   gap: 8px;
 }
 
-/* Icon-only label for the sort <select> (replaces the "Sort" text). */
-.sort-label {
-  display: inline-flex;
-  align-items: center;
-  color: var(--muted);
-  cursor: pointer;
-}
-
 .local-settings {
   display: flex;
   flex-direction: column;
