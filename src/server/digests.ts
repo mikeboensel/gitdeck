@@ -4,6 +4,7 @@ import type { DailyRepoDigest, GhIssue, GhRepo } from "../types/github";
 import { buildDailyDigestEntries, buildDailyDigestRecord, buildPeriodDigestEntries, type DailyDigestRecord, type DigestPeriod } from "../utils/digests";
 import { DATA_DIR, DIGESTS_PATH } from "./config";
 import { sendJsonCacheable } from "./http";
+import { logger } from "./logger";
 import { fetchRepoSecuritySummary } from "./securityAlerts";
 import { maybeGenerateOpenAIDigest } from "./openaiDigest";
 
@@ -19,7 +20,10 @@ async function loadDigests(): Promise<DailyDigestRecord[]> {
     try {
       const raw = await readFile(DIGESTS_PATH, "utf-8");
       digestsCache = JSON.parse(raw) as DailyDigestRecord[];
-    } catch {
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code !== "ENOENT") {
+        logger.warn({ err }, "digests file unreadable/corrupt — starting empty");
+      }
       digestsCache = [];
     }
     return digestsCache;
@@ -40,12 +44,27 @@ export async function recordDailyDigest(repos: GhRepo[], issues: GhIssue[]): Pro
       try {
         const summary = await fetchRepoSecuritySummary(repo.nameWithOwner);
         return [repo.nameWithOwner, summary] as const;
-      } catch {
+      } catch (err) {
+        // Common for repos without security access — debug, not warn, to avoid per-repo spam.
+        logger.debug({ err, repo: repo.nameWithOwner }, "repo security summary unavailable");
         return [repo.nameWithOwner, { dependabotOpen: 0, codeScanningOpen: 0, totalOpen: 0, latestUpdatedAt: null, unavailable: true }] as const;
       }
     }),
   );
-  const today = buildDailyDigestRecord(repos, issues, Date.now(), new Map(securityEntries.map(([repo, summary]) => [repo, summary])));
+  const today = buildDailyDigestRecord(
+    repos,
+    issues,
+    Date.now(),
+    new Map(
+      securityEntries.map(([repo, summary]) => [
+        repo,
+        {
+          securityAlertsCount: summary.totalOpen,
+          securityAlertsUnavailable: summary.unavailable,
+        },
+      ]),
+    ),
+  );
   const existing = digests.find((entry) => entry.date === today.date);
   if (existing) {
     Object.assign(existing, today);
@@ -69,8 +88,9 @@ export async function handleDailyDigests(req: IncomingMessage, res: ServerRespon
     try {
       latest.ai = await maybeGenerateOpenAIDigest(latest);
       await saveDigests();
-    } catch {
+    } catch (err) {
       // AI enrichment is optional and should never break digest delivery.
+      logger.warn({ err }, "daily digest AI enrichment failed");
     }
   }
   const url = new URL(req.url ?? "/", "http://localhost");
@@ -94,7 +114,8 @@ export async function getLatestRepoDigest(repo: string): Promise<DailyRepoDigest
   if (!repoDigest.ai) {
     try {
       repoDigest.ai = await maybeGenerateOpenAIDigest(repoDigest);
-    } catch {
+    } catch (err) {
+      logger.warn({ err, repo }, "repo digest AI enrichment failed");
       repoDigest.ai = null;
     }
   }
