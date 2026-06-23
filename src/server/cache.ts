@@ -34,11 +34,12 @@ export interface MemoizeOptions<T> {
 
 /**
  * Memoize a single async value for `ttlMs`, deduping concurrent `get` calls
- * onto one in-flight promise.
+ * onto one in-flight promise. The `forceFresh` flag passed to `get` is
+ * forwarded to `fetcher` so callers can propagate a refresh to upstream caches.
  */
 export function memoize<T>(
   ttlMs: number,
-  fetcher: () => Promise<T>,
+  fetcher: (forceFresh: boolean) => Promise<T>,
   opts: MemoizeOptions<T> = {},
 ): Memoized<T> {
   const shouldCache = opts.shouldCache ?? (() => true);
@@ -50,7 +51,7 @@ export function memoize<T>(
       if (inflight) return inflight;
       inflight = (async () => {
         try {
-          const value = await fetcher();
+          const value = await fetcher(forceFresh);
           if (shouldCache(value)) cache = { value, expiresAt: Date.now() + ttlMs };
           return value;
         } finally {

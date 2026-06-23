@@ -1,6 +1,7 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { GhIssue, GhRepo, RepoInsight, RepoInsightErrors } from "../types/github";
 import { buildRepoInsight } from "../utils/insights";
+import { memoize } from "./cache";
 import { getIssuesCached, getReposCached } from "./dashboardData";
 import { describeRestError, ghApiJson, restApiPaginate } from "./githubClient";
 import { sendJsonCacheable } from "./http";
@@ -97,20 +98,14 @@ async function mapWithConcurrency<T, R>(
 }
 
 const INSIGHTS_TTL_MS = 15 * 60 * 1000;
-let insightsCache: {
-  value: { ok: true; generatedAt: string; insights: RepoInsight[] };
-  expiresAt: number;
-} | null = null;
-let inflight: Promise<
-  { ok: true; generatedAt: string; insights: RepoInsight[] } | { ok: false; error: string }
-> | null = null;
 
-export async function getRepoInsightsCached(forceFresh: boolean) {
-  if (!forceFresh && insightsCache && insightsCache.expiresAt > Date.now())
-    return insightsCache.value;
-  if (inflight) return inflight;
+type RepoInsightsResult =
+  | { ok: true; generatedAt: string; insights: RepoInsight[] }
+  | { ok: false; error: string };
 
-  inflight = (async () => {
+const store = memoize<RepoInsightsResult>(
+  INSIGHTS_TTL_MS,
+  async (forceFresh): Promise<RepoInsightsResult> => {
     const [repos, issues] = await Promise.all([
       getReposCached(forceFresh),
       getIssuesCached(forceFresh),
@@ -121,8 +116,8 @@ export async function getRepoInsightsCached(forceFresh: boolean) {
     const insights = await mapWithConcurrency(repos.repos, 6, async (repo) =>
       fetchInsightForRepo(repo, issues.issues),
     );
-    const result = {
-      ok: true as const,
+    return {
+      ok: true,
       generatedAt: new Date().toISOString(),
       insights: insights.sort(
         (a, b) =>
@@ -131,13 +126,12 @@ export async function getRepoInsightsCached(forceFresh: boolean) {
           a.repo.localeCompare(b.repo),
       ),
     };
-    insightsCache = { value: result, expiresAt: Date.now() + INSIGHTS_TTL_MS };
-    return result;
-  })().finally(() => {
-    inflight = null;
-  });
+  },
+  { shouldCache: (v) => v.ok },
+);
 
-  return inflight;
+export function getRepoInsightsCached(forceFresh: boolean): Promise<RepoInsightsResult> {
+  return store.get(forceFresh);
 }
 
 export async function handleRepoInsights(

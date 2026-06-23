@@ -1,5 +1,6 @@
 import type { GhRepo } from "../types/github";
 import { errorMessage } from "../utils/errors";
+import { memoize } from "./cache";
 import { getReposCached } from "./dashboardData";
 import { AuthRequiredError, restApi } from "./githubClient";
 import { logger } from "./logger";
@@ -170,9 +171,6 @@ async function mapWithConcurrency<T, R>(
   return results;
 }
 
-let cache: { value: CIHealthResult; expiresAt: number } | null = null;
-let inflight: Promise<CIHealthResult> | null = null;
-
 async function build(): Promise<CIHealthResult> {
   const reposResult = await getReposCached(false);
   if (!reposResult.ok) {
@@ -204,21 +202,12 @@ async function build(): Promise<CIHealthResult> {
   }
 }
 
+const store = memoize<CIHealthResult>(TTL_MS, build, { shouldCache: (v) => v.ok });
+
 export function getCIHealthCached(forceFresh: boolean): Promise<CIHealthResult> {
-  if (!forceFresh && cache && cache.expiresAt > Date.now()) return Promise.resolve(cache.value);
-  if (inflight) return inflight;
-  inflight = (async () => {
-    try {
-      const value = await build();
-      if (value.ok) cache = { value, expiresAt: Date.now() + TTL_MS };
-      return value;
-    } finally {
-      inflight = null;
-    }
-  })();
-  return inflight;
+  return store.get(forceFresh);
 }
 
 export function invalidateCIHealthCache(): void {
-  cache = null;
+  store.invalidate();
 }

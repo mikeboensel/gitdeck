@@ -61,8 +61,7 @@ describe("memoize", () => {
       { ok: false, n: 1 },
       { ok: true, n: 2 },
     ];
-    let i = 0;
-    const fetcher = vi.fn(async () => results[i++]!);
+    const fetcher = vi.fn(async () => results.shift() ?? { ok: true, n: 0 });
     const m = memoize(1000, fetcher, { shouldCache: (v) => v.ok });
 
     expect((await m.get(false)).n).toBe(1); // failure — not cached
@@ -81,6 +80,17 @@ describe("memoize", () => {
     vi.setSystemTime(1001);
     expect(m.peek()).toBeNull();
     expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+
+  it("forwards forceFresh to the fetcher", async () => {
+    const fetcher = vi.fn(async (_forceFresh: boolean) => ({ ok: true }));
+    const m = memoize(1000, fetcher);
+
+    await m.get(false);
+    await m.get(true);
+
+    expect(fetcher).toHaveBeenNthCalledWith(1, false);
+    expect(fetcher).toHaveBeenNthCalledWith(2, true);
   });
 
   it("invalidate drops the cache", async () => {

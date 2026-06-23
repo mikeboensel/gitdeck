@@ -1,5 +1,6 @@
 import { errorMessage } from "../utils/errors";
 import { getActive as getActiveAccount } from "./accountStore";
+import { memoize } from "./cache";
 import { getReposCached } from "./dashboardData";
 import { AuthRequiredError, restApiPaginate } from "./githubClient";
 import { logger } from "./logger";
@@ -58,9 +59,6 @@ async function fetchRepoCollaborators(
     .filter((login): login is string => Boolean(login) && login.toLowerCase() !== selfLower);
 }
 
-let cache: { value: CollaboratorsResult; expiresAt: number } | null = null;
-let inflight: Promise<CollaboratorsResult> | null = null;
-
 async function build(): Promise<CollaboratorsResult> {
   const reposResult = await getReposCached(false);
   if (!reposResult.ok) {
@@ -92,21 +90,12 @@ async function build(): Promise<CollaboratorsResult> {
   }
 }
 
+const store = memoize<CollaboratorsResult>(TTL_MS, build, { shouldCache: (v) => v.ok });
+
 export function getCollaboratorsCached(forceFresh: boolean): Promise<CollaboratorsResult> {
-  if (!forceFresh && cache && cache.expiresAt > Date.now()) return Promise.resolve(cache.value);
-  if (inflight) return inflight;
-  inflight = (async () => {
-    try {
-      const value = await build();
-      if (value.ok) cache = { value, expiresAt: Date.now() + TTL_MS };
-      return value;
-    } finally {
-      inflight = null;
-    }
-  })();
-  return inflight;
+  return store.get(forceFresh);
 }
 
 export function invalidateCollaboratorsCache(): void {
-  cache = null;
+  store.invalidate();
 }
