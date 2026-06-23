@@ -207,6 +207,16 @@ export function updateLocalReposConfig(
   });
 }
 
+/** Open a scanned local repo's folder natively: Finder or Cursor. The server
+ * validates `path` against the scanned-repo list before running `open`. */
+export function openLocalRepo(path: string, target: "finder" | "cursor"): Promise<{ ok: true }> {
+  return readJson("/api/local-repos/open", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ path, target }),
+  });
+}
+
 export function fetchIssues(fresh = false, signal?: AbortSignal): Promise<IssuesData> {
   return readJson<IssuesData>(
     `/api/issues${fresh ? "?fresh=1" : ""}`,

@@ -45,6 +45,24 @@ function bump(map: Map<string, number>, key: string): void {
   map.set(key, (map.get(key) ?? 0) + 1);
 }
 
+/**
+ * Humanize a git remote URL for display in the facet list. Strips the scheme,
+ * host, credentials, and trailing `.git`, leaving the `owner/repo` path that
+ * actually distinguishes one remote from another. Falls back to the raw URL if
+ * nothing recognizable can be extracted. The full URL stays the toggle value.
+ */
+export function shortRemote(url: string): string {
+  // scp-style (git@github.com:owner/repo.git) → owner/repo
+  const scp = url.match(/^[^@]+@[^:]+:(.+)$/);
+  let path = scp?.[1] ?? url;
+  if (!scp) {
+    // Strip scheme + optional userinfo + host for URL-style remotes.
+    path = path.replace(/^[a-z]+:\/\/(?:[^@/]+@)?[^/]+\//i, "");
+  }
+  path = path.replace(/\.git$/i, "").replace(/\/+$/, "");
+  return path || url;
+}
+
 /** Build the Local-tab facet counts from the (unfiltered) repo set. */
 export function buildLocalFacets(repos: LocalRepo[]): LocalFacets {
   const owners = new Map<string, number>();
@@ -103,4 +121,105 @@ export function filterLocalRepos(repos: LocalRepo[], f: LocalRepoFilters): Local
       (!f.remotes.size || repo.remotes.some((r) => f.remotes.has(r.url))) &&
       matchesQuery(repo, query),
   );
+}
+
+/** Sort keys offered in the Local-tab sort dropdown, in menu order. */
+export type LocalSort =
+  | "committed_desc"
+  | "committed_asc"
+  | "name_asc"
+  | "owner_asc"
+  | "stars_desc"
+  | "dirty_first"
+  | "status_asc";
+
+export const DEFAULT_LOCAL_SORT: LocalSort = "committed_desc";
+
+/**
+ * One row in the flat Local list: a single checkout, or a primary checkout plus
+ * its linked worktrees (`worktrees` non-empty). Worktrees ride along with their
+ * primary instead of sorting independently, so the cluster stays intact.
+ */
+export interface LocalUnit {
+  /** `gitCommonDir ?? primary.path` — stable identity shared across the cluster. */
+  key: string;
+  /** Representative checkout (a real primary if scanned, else the first member). */
+  primary: LocalRepo;
+  /** Additional checkouts (linked worktrees) rendered after the primary; [] when standalone. */
+  worktrees: LocalRepo[];
+}
+
+const STATUS_ORDER: Record<LocalRepo["enrichmentStatus"], number> = {
+  enriched: 0,
+  unreachable: 1,
+  "local-only": 2,
+  "no-remote": 3,
+};
+
+function ownerOf(repo: LocalRepo): string {
+  return repo.nameWithOwner ? getOwner(repo.nameWithOwner) : "";
+}
+
+/** Stable, deterministic tiebreak so equal sort keys never reorder between renders. */
+function tiebreak(a: LocalRepo, b: LocalRepo): number {
+  return a.path.localeCompare(b.path);
+}
+
+function compareUnits(a: LocalUnit, b: LocalUnit, sort: LocalSort): number {
+  const x = a.primary;
+  const y = b.primary;
+  // ISO-8601 commit dates compare correctly lexically; "" (no commit) sorts last in desc / first in asc.
+  const xDate = x.lastCommit?.date ?? "";
+  const yDate = y.lastCommit?.date ?? "";
+  switch (sort) {
+    case "committed_asc":
+      return xDate.localeCompare(yDate) || tiebreak(x, y);
+    case "name_asc":
+      return x.name.localeCompare(y.name) || tiebreak(x, y);
+    case "owner_asc":
+      return ownerOf(x).localeCompare(ownerOf(y)) || x.name.localeCompare(y.name) || tiebreak(x, y);
+    case "stars_desc":
+      return (
+        (y.enrichment?.stargazerCount ?? -1) - (x.enrichment?.stargazerCount ?? -1) ||
+        tiebreak(x, y)
+      );
+    case "dirty_first":
+      return Number(y.dirty) - Number(x.dirty) || yDate.localeCompare(xDate) || tiebreak(x, y);
+    case "status_asc":
+      return (
+        STATUS_ORDER[x.enrichmentStatus] - STATUS_ORDER[y.enrichmentStatus] ||
+        x.name.localeCompare(y.name) ||
+        tiebreak(x, y)
+      );
+    default: // committed_desc
+      return yDate.localeCompare(xDate) || tiebreak(x, y);
+  }
+}
+
+/**
+ * Group checkouts into worktree clusters, then sort the resulting units. Sorting
+ * operates on whole units (keyed by the primary) so a cluster's worktrees always
+ * render adjacent to it regardless of their own commit dates / names.
+ */
+export function arrangeLocalRepos(repos: LocalRepo[], sort: LocalSort): LocalUnit[] {
+  const byKey = new Map<string, LocalRepo[]>();
+  const order: string[] = [];
+  for (const repo of repos) {
+    const key = repo.gitCommonDir ?? repo.path;
+    if (!byKey.has(key)) {
+      byKey.set(key, []);
+      order.push(key);
+    }
+    byKey.get(key)?.push(repo);
+  }
+  const units: LocalUnit[] = [];
+  for (const key of order) {
+    const members = byKey.get(key) ?? [];
+    // Prefer a real primary; fall back to the first member for an orphaned worktree
+    // whose primary lives outside the scan roots.
+    const primary = members.find((m) => !m.isWorktree) ?? members[0];
+    if (!primary) continue;
+    units.push({ key, primary, worktrees: members.filter((m) => m !== primary) });
+  }
+  return units.sort((a, b) => compareUnits(a, b, sort));
 }

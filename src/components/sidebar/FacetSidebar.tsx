@@ -21,6 +21,8 @@ export interface FacetGroup {
   render?: "chips" | "check";
   /** Chip glyph renderer (required when render === "chips"). */
   renderIcon?: (name: string) => ReactNode;
+  /** Humanize the displayed label while keeping the raw value (e.g. long remote URLs). */
+  labelFor?: (name: string) => string;
   /** Pin the section open regardless of selection. */
   open?: boolean;
 }
@@ -111,6 +113,7 @@ export function FacetSidebar({
               entries={group.entries}
               selected={group.selected}
               onToggle={group.onToggle}
+              labelFor={group.labelFor}
             />
           )}
         </FilterSection>

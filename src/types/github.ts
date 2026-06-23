@@ -125,6 +125,22 @@ export interface LocalRemote {
   owner: string | null;
 }
 
+/**
+ * Breakdown of a working tree's pending changes, parsed from
+ * `git status --porcelain`. A file can be counted in both `staged` and
+ * `modified` (e.g. an `MM` entry — staged then edited again).
+ */
+export interface GitChangeCounts {
+  /** Files with index (staged) changes — the porcelain X column. */
+  staged: number;
+  /** Tracked files with unstaged working-tree changes — the Y column. */
+  modified: number;
+  /** Untracked files (`??`). */
+  untracked: number;
+  /** Unmerged paths (merge/rebase conflicts). */
+  conflicted: number;
+}
+
 /** A git repository discovered on the local filesystem. */
 export interface LocalRepo {
   /** Absolute path to the repo's working directory. */
@@ -145,8 +161,10 @@ export interface LocalRepo {
   ahead: number;
   /** Commits behind upstream (0 when no upstream). */
   behind: number;
-  /** Whether the working tree has uncommitted changes. */
+  /** Whether the working tree has uncommitted changes (any `changes` count > 0). */
   dirty: boolean;
+  /** Granular breakdown of the working tree's pending changes. */
+  changes: GitChangeCounts;
   /** Most recent commit, or null for an empty repo. */
   lastCommit: { sha: string; date: string; message: string } | null;
   /** True when this checkout is a linked worktree rather than the primary clone. */

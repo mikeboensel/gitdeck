@@ -29,6 +29,14 @@
   gap: 8px;
 }
 
+/* Icon-only label for the sort <select> (replaces the "Sort" text). */
+.sort-label {
+  display: inline-flex;
+  align-items: center;
+  color: var(--muted);
+  cursor: pointer;
+}
+
 .local-settings {
   display: flex;
   flex-direction: column;
@@ -68,46 +76,17 @@
   margin-bottom: 12px;
 }
 
-.local-group {
-  margin-bottom: 20px;
-}
-
-.local-group-head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 0 0 10px;
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.local-group-owner {
-  color: var(--text);
+/* Transient per-card feedback when a native open (Finder/Cursor) fails. */
+.local-action-error {
+  color: var(--danger);
+  font-size: 11px;
+  margin: 0 0 8px;
 }
 
 .local-cards {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 12px;
-}
-
-/* A repo and its linked worktrees, boxed together so the duplication reads as
-   intentional rather than as accidental dupes. */
-.local-cluster {
-  margin-top: 12px;
-  padding: 10px;
-  border: 1px solid var(--border-soft);
-  border-left: 3px solid var(--accent);
-  border-radius: 8px;
-  background: color-mix(in srgb, var(--accent) 4%, transparent);
-}
-
-.local-cluster-head {
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--muted);
-  margin-bottom: 8px;
 }
 
 .local-card-worktree {
@@ -160,6 +139,17 @@
   margin-bottom: 8px;
 }
 
+/* Push the status pills (changes / ahead / behind) to the row's right edge,
+   keeping them grouped and right-aligned regardless of branch presence. */
+.local-git-status {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+  margin-left: auto;
+}
+
 .local-branch {
   font-size: 12px;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -170,6 +160,9 @@
 }
 
 .local-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
   font-size: 11px;
   border-radius: 4px;
   padding: 1px 6px;
@@ -177,9 +170,26 @@
   color: var(--muted);
 }
 
+.local-pill svg {
+  flex-shrink: 0;
+}
+
+/* Dirty pills read as colored icon + count; the border just adds noise. */
 .local-pill.dirty {
   color: var(--warn);
-  border-color: var(--warn);
+  border-color: transparent;
+  padding-inline: 2px;
+}
+
+/* Per-category overrides for the granular working-tree pills. */
+.local-pill.dirty.conflicted {
+  color: var(--danger);
+}
+.local-pill.dirty.staged {
+  color: var(--success);
+}
+.local-pill.dirty.untracked {
+  color: var(--muted);
 }
 
 .local-pill.clean {
@@ -191,6 +201,19 @@
   font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.03em;
+}
+
+/* The pickaxe sits at the card's top-right; the card is `overflow: hidden`, so
+   anchor the tooltip's right edge to the badge and let it wrap leftward instead
+   of centering (which would clip past the card edge). */
+.local-status.tip::after {
+  left: auto;
+  right: 0;
+  transform: none;
+  white-space: normal;
+  width: max-content;
+  max-width: 220px;
+  text-align: left;
 }
 
 .local-status-enriched {
@@ -226,4 +249,92 @@
 }
 .local-status-filter .check {
   cursor: pointer;
+}
+
+/* Hidden-repos (denylist) management list inside the Manage panel. */
+.local-hidden {
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+  margin-top: 2px;
+}
+
+.local-hidden-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+.local-hidden-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.local-hidden-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.local-hidden-path {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.local-unhide-btn {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* The fixed-width facet chips left-align and wrap, so a partial last column
+   leaves a dead gutter on the sidebar's right edge. Center the rows on the
+   Local tab so the leftover space splits evenly instead. */
+body.tab-local .facet-chips {
+  justify-content: center;
+}
+
+/* List layout: dense one-row-per-repo, reusing the Repos `.repo-row` grid +
+   density vars (see views.css). Only the local-specific slots are styled here.
+   Placed after the base .local-* rules so the overrides win without raising
+   specificity warnings. */
+.local-row {
+  cursor: default;
+}
+
+.local-row-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--repo-avatar-size);
+  color: var(--muted);
+}
+
+.local-row .local-row-branch {
+  font-size: 11px;
+  flex: 0 0 auto;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* In a single-line row the status pills follow the branch inline (no right-push,
+   no wrapping) instead of being right-aligned as they are inside the card. */
+.local-row .local-git-status {
+  margin-left: 0;
+  flex-wrap: nowrap;
 }

@@ -131,9 +131,12 @@ import {
 } from "./utils/inbox";
 import {
   buildLocalFacets,
+  DEFAULT_LOCAL_SORT,
   defaultLocalFilters,
   filterLocalRepos,
   type LocalRepoFilters,
+  type LocalSort,
+  shortRemote,
 } from "./utils/localRepos";
 import { clampPage } from "./utils/pagination";
 import { clearStatsCache, readStatsCache, writeStatsCache } from "./utils/statsCache";
@@ -192,7 +195,12 @@ export function App() {
   const [localLoading, setLocalLoading] = useState(false);
   const [localError, setLocalError] = useState("");
   const [localConfig, setLocalConfig] = useState<LocalReposConfig | null>(null);
-  const [localFilters, setLocalFilters] = useState<LocalRepoFilters>(() => defaultLocalFilters());
+  const [localFilters, setLocalFilters] = useState<LocalRepoFilters>(
+    () => cachedFiltersOnMount?.hydrated.localFilters ?? defaultLocalFilters(),
+  );
+  const [localSort, setLocalSort] = useState<LocalSort>(
+    () => (cachedFiltersOnMount?.sorts?.localSort as LocalSort | undefined) ?? DEFAULT_LOCAL_SORT,
+  );
   const [dailyDigests, setDailyDigests] = useState<DailyDigestEntry[]>([]);
   const [digestPeriod, setDigestPeriod] = useState<DigestPeriod>(
     () => (localStorage.getItem("gh-dash.digestPeriod") as DigestPeriod) || "day",
@@ -529,6 +537,20 @@ export function App() {
     [localConfig],
   );
 
+  // Un-triage: drop a path from the denylist, then rescan so it reappears.
+  const unhideLocalRepo = useCallback(
+    (path: string) => {
+      const denylist = (localConfig?.denylist ?? []).filter((p) => p !== path);
+      updateLocalReposConfig({ denylist })
+        .then(({ config }) => {
+          setLocalConfig(config);
+          reloadLocalRepos(true);
+        })
+        .catch((err: unknown) => setLocalError(err instanceof Error ? err.message : String(err)));
+    },
+    [localConfig, reloadLocalRepos],
+  );
+
   const refreshCollaborators = useCallback(() => {
     setCollaboratorsLoading(true);
     fetchCollaborators(true)
@@ -780,8 +802,14 @@ export function App() {
 
   // Persist sidebar filters and sort order to localStorage
   useEffect(() => {
-    writeFiltersCache(repoFilters, issueFilters, prFilters, { issueSort, prSort, repoSort });
-  }, [repoFilters, issueFilters, prFilters, issueSort, prSort, repoSort]);
+    writeFiltersCache(
+      repoFilters,
+      issueFilters,
+      prFilters,
+      { issueSort, prSort, repoSort, localSort },
+      localFilters,
+    );
+  }, [repoFilters, issueFilters, prFilters, issueSort, prSort, repoSort, localSort, localFilters]);
 
   const userLogin = userLoginValue;
   const issueFacets = useMemo(() => buildIssueFacets(issues), [issues]);
@@ -824,6 +852,7 @@ export function App() {
         icon: <LuGitBranch size={16} />,
         entries: [...localFacets.remotes.entries()],
         selected: localFilters.remotes,
+        labelFor: shortRemote,
         onToggle: (v) => setLocalFilters((f) => ({ ...f, remotes: toggleSetValue(f.remotes, v) })),
         onClear: () => setLocalFilters((f) => ({ ...f, remotes: new Set() })),
       },
@@ -1670,9 +1699,16 @@ export function App() {
               loading={localLoading}
               error={localError}
               config={localConfig}
+              layout={repoLayout}
+              density={repoDensity}
+              sort={localSort}
+              onLayoutChange={setRepoLayout}
+              onCycleDensity={cycleRepoDensity}
+              onSortChange={setLocalSort}
               onRescan={() => reloadLocalRepos(true)}
               onSaveConfig={saveLocalConfig}
               onHide={hideLocalRepo}
+              onUnhide={unhideLocalRepo}
             />
           ) : null}
 

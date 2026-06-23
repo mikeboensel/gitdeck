@@ -97,7 +97,12 @@ async function loadFromDisk(): Promise<LocalReposOk | null> {
   try {
     const raw = await readFile(LOCAL_REPOS_CACHE_PATH, "utf-8");
     const data = JSON.parse(raw) as LocalReposOk;
-    if (data?.ok && Array.isArray(data.repos)) return data;
+    if (data?.ok && Array.isArray(data.repos)) {
+      // Discard caches written before the granular `changes` field existed;
+      // serving them would crash the frontend's per-category pill render.
+      if (data.repos.length > 0 && !data.repos[0]?.changes) return null;
+      return data;
+    }
     return null;
   } catch {
     return null;

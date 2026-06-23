@@ -1,76 +1,45 @@
-import { useEffect, useRef, useState } from "react";
-import { LuFolderGit2, LuGlobe, LuLock, LuPickaxe, LuRefreshCw } from "react-icons/lu";
+import { type MouseEvent as ReactMouseEvent, useEffect, useRef, useState } from "react";
+import type { IconType } from "react-icons";
+import {
+  LuArrowDownUp,
+  LuCircleCheck,
+  LuFilePen,
+  LuFilePlus,
+  LuFileQuestion,
+  LuFolderGit2,
+  LuGlobe,
+  LuLock,
+  LuPickaxe,
+  LuRefreshCw,
+  LuRotateCcw,
+  LuTreePine,
+  LuTriangleAlert,
+} from "react-icons/lu";
 import { useSearchParams } from "react-router-dom";
+import { openLocalRepo } from "../../api/github";
+import { useRightClickMenu } from "../../contexts/RightClickMenuProvider";
 import { useI18n } from "../../i18n/I18nProvider";
-import type { LocalRepo, LocalReposConfig } from "../../types/github";
+import type { TranslationKey } from "../../i18n/translations";
+import { buildLocalRepoMenu } from "../../menus/localRepoMenu";
+import type { GitChangeCounts, LocalRepo, LocalReposConfig } from "../../types/github";
+import { errorMessage } from "../../utils/errors";
 import { formatNumber, formatRelativeTime } from "../../utils/format";
-import { getOwner } from "../../utils/repository";
-import { Avatar } from "../common/Avatar";
+import { arrangeLocalRepos, type LocalSort } from "../../utils/localRepos";
 import { ForkIcon, StarIcon } from "../common/Icons";
 import { LanguageIcon } from "../common/LanguageIcon";
+import type { RepoDensity, RepoLayout } from "./ReposView";
+import { RepoViewControls } from "./RepoViewControls";
 
-const NO_REMOTE_GROUP = " no-remote"; // sorts/keys distinctly from real owners
-
-interface Group {
-  owner: string;
-  repos: LocalRepo[];
-}
-
-/** A primary checkout plus its linked worktrees, sharing one git common dir. */
-interface Cluster {
-  key: string;
-  cards: LocalRepo[];
-}
-
-/**
- * Split an owner's repos into standalone checkouts and worktree clusters.
- * Checkouts sharing a `gitCommonDir` are one repo with linked worktrees; they
- * render together (primary first) so the duplication reads as intentional.
- */
-function clusterWorktrees(repos: LocalRepo[]): { standalone: LocalRepo[]; clusters: Cluster[] } {
-  const byKey = new Map<string, LocalRepo[]>();
-  const order: string[] = [];
-  for (const repo of repos) {
-    const key = repo.gitCommonDir ?? repo.path;
-    if (!byKey.has(key)) {
-      byKey.set(key, []);
-      order.push(key);
-    }
-    byKey.get(key)?.push(repo);
-  }
-  const standalone: LocalRepo[] = [];
-  const clusters: Cluster[] = [];
-  for (const key of order) {
-    const members = byKey.get(key) ?? [];
-    const hasWorktree = members.some((m) => m.isWorktree);
-    if (members.length === 1 && !hasWorktree) {
-      if (members[0]) standalone.push(members[0]);
-      continue;
-    }
-    const primary = members.filter((m) => !m.isWorktree);
-    const worktrees = members.filter((m) => m.isWorktree);
-    clusters.push({ key, cards: [...primary, ...worktrees] });
-  }
-  return { standalone, clusters };
-}
-
-function groupByOwner(repos: LocalRepo[]): Group[] {
-  const groups = new Map<string, LocalRepo[]>();
-  for (const repo of repos) {
-    const owner = repo.nameWithOwner ? getOwner(repo.nameWithOwner) : NO_REMOTE_GROUP;
-    const list = groups.get(owner) ?? [];
-    list.push(repo);
-    groups.set(owner, list);
-  }
-  // Real owners alphabetically, "no remote" bucket last.
-  return [...groups.entries()]
-    .sort(([a], [b]) => {
-      if (a === NO_REMOTE_GROUP) return 1;
-      if (b === NO_REMOTE_GROUP) return -1;
-      return a.localeCompare(b);
-    })
-    .map(([owner, list]) => ({ owner, repos: list }));
-}
+/** Sort options offered in the Local-tab dropdown, in menu order. */
+const SORT_OPTIONS: ReadonlyArray<{ value: LocalSort; label: TranslationKey }> = [
+  { value: "committed_desc", label: "local.sortRecentlyCommitted" },
+  { value: "committed_asc", label: "local.sortLeastRecentlyCommitted" },
+  { value: "name_asc", label: "local.sortName" },
+  { value: "owner_asc", label: "local.sortOwner" },
+  { value: "stars_desc", label: "local.sortMostStars" },
+  { value: "dirty_first", label: "local.sortDirtyFirst" },
+  { value: "status_asc", label: "local.sortStatus" },
+];
 
 interface LocalReposViewProps {
   /** Repos already filtered by the FacetSidebar selection. */
@@ -81,9 +50,17 @@ interface LocalReposViewProps {
   loading: boolean;
   error?: string;
   config: LocalReposConfig | null;
+  /** Card grid/list + density, shared with the Repositories tab. */
+  layout: RepoLayout;
+  density: RepoDensity;
+  sort: LocalSort;
+  onLayoutChange: (layout: RepoLayout) => void;
+  onCycleDensity: () => void;
+  onSortChange: (sort: LocalSort) => void;
   onRescan: () => void;
   onSaveConfig: (updates: Partial<LocalReposConfig>) => void;
   onHide: (path: string) => void;
+  onUnhide: (path: string) => void;
 }
 
 export function LocalReposView({
@@ -93,9 +70,16 @@ export function LocalReposView({
   loading,
   error,
   config,
+  layout,
+  density,
+  sort,
+  onLayoutChange,
+  onCycleDensity,
+  onSortChange,
   onRescan,
   onSaveConfig,
   onHide,
+  onUnhide,
 }: LocalReposViewProps) {
   const { language, t } = useI18n();
   const [searchParams] = useSearchParams();
@@ -118,7 +102,8 @@ export function LocalReposView({
   };
 
   const filtered = repos.length !== totalCount;
-  const groups = groupByOwner(repos);
+  const units = arrangeLocalRepos(repos, sort);
+  const hidden = config?.denylist ?? [];
 
   return (
     <div className="view-local" style={{ display: "block" }}>
@@ -141,6 +126,27 @@ export function LocalReposView({
           ) : null}
         </div>
         <div className="local-toolbar-actions">
+          <RepoViewControls
+            layout={layout}
+            density={density}
+            onLayoutChange={onLayoutChange}
+            onCycleDensity={onCycleDensity}
+          />
+          <label htmlFor="local-sort" className="sort-label" title={t("common.sort")}>
+            <LuArrowDownUp size={14} aria-label={t("common.sort")} />
+          </label>
+          <select
+            id="local-sort"
+            className="sort"
+            value={sort}
+            onChange={(event) => onSortChange(event.target.value as LocalSort)}
+          >
+            {SORT_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {t(option.label)}
+              </option>
+            ))}
+          </select>
           <button type="button" className="btn" onClick={() => setSettingsOpen((v) => !v)}>
             {t("local.manage")}
           </button>
@@ -166,6 +172,31 @@ export function LocalReposView({
               {t("local.saveAndRescan")}
             </button>
           </div>
+
+          {hidden.length ? (
+            <div className="local-hidden">
+              <div className="local-hidden-head">
+                {t("local.hiddenRepos")}
+                <span className="tab-badge">{hidden.length}</span>
+              </div>
+              <ul className="local-hidden-list">
+                {hidden.map((path) => (
+                  <li key={path} className="local-hidden-row">
+                    <span className="local-hidden-path" title={path}>
+                      {path}
+                    </span>
+                    <button
+                      type="button"
+                      className="btn local-unhide-btn"
+                      onClick={() => onUnhide(path)}
+                    >
+                      <LuRotateCcw size={13} /> {t("local.unhide")}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
         </div>
       ) : null}
 
@@ -178,41 +209,41 @@ export function LocalReposView({
         </div>
       ) : null}
 
-      {groups.map((group) => {
-        const { standalone, clusters } = clusterWorktrees(group.repos);
-        const renderCard = (repo: LocalRepo) => (
-          <LocalRepoCard
-            key={repo.path}
-            repo={repo}
-            onHide={onHide}
-            highlighted={focusName != null && repo.nameWithOwner?.toLowerCase() === focusName}
-          />
-        );
-        return (
-          <section className="local-group" key={group.owner}>
-            <h3 className="local-group-head">
-              {group.owner === NO_REMOTE_GROUP ? (
-                <span className="local-group-owner">{t("local.noRemoteGroup")}</span>
-              ) : (
-                <>
-                  <Avatar login={group.owner} size={20} />
-                  <span className="local-group-owner">{group.owner}</span>
-                </>
-              )}
-              <span className="tab-badge">{group.repos.length}</span>
-            </h3>
-            {standalone.length ? (
-              <div className="local-cards">{standalone.map(renderCard)}</div>
-            ) : null}
-            {clusters.map((cluster) => (
-              <div className="local-cluster" key={cluster.key}>
-                <div className="local-cluster-head">{t("local.worktreeCluster")}</div>
-                <div className="local-cards">{cluster.cards.map(renderCard)}</div>
-              </div>
+      <div className="repos-view local-collection" data-layout={layout} data-density={density}>
+        {layout === "list" ? (
+          <div className="data-list repo-list local-list">
+            {units.map((unit) => (
+              // Linked worktrees no longer get their own rows — the primary row
+              // carries a worktree count + tooltip instead.
+              <LocalRepoRow
+                key={unit.key}
+                repo={unit.primary}
+                worktrees={unit.worktrees}
+                onHide={onHide}
+                highlighted={
+                  focusName != null && unit.primary.nameWithOwner?.toLowerCase() === focusName
+                }
+              />
             ))}
-          </section>
-        );
-      })}
+          </div>
+        ) : (
+          <div className="local-cards">
+            {units.map((unit) => (
+              // Linked worktrees no longer get their own cards — the primary card
+              // carries a worktree count + tooltip instead (see LocalRepoCard).
+              <LocalRepoCard
+                key={unit.key}
+                repo={unit.primary}
+                worktrees={unit.worktrees}
+                onHide={onHide}
+                highlighted={
+                  focusName != null && unit.primary.nameWithOwner?.toLowerCase() === focusName
+                }
+              />
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -230,6 +261,48 @@ function statusLabelKey(status: LocalRepo["enrichmentStatus"]) {
   }
 }
 
+/**
+ * Working-tree change categories, in display order (most urgent first). Each
+ * renders as its own pill when its count is non-zero; the label is count-prefixed
+ * and the title carries the full explanation.
+ */
+const CHANGE_PILLS: ReadonlyArray<{
+  field: keyof GitChangeCounts;
+  cls: string;
+  icon: IconType;
+  label: TranslationKey;
+  title: TranslationKey;
+}> = [
+  {
+    field: "conflicted",
+    cls: "conflicted",
+    icon: LuTriangleAlert,
+    label: "local.changeConflicted",
+    title: "local.changeConflictedTitle",
+  },
+  {
+    field: "staged",
+    cls: "staged",
+    icon: LuFilePlus,
+    label: "local.changeStaged",
+    title: "local.changeStagedTitle",
+  },
+  {
+    field: "modified",
+    cls: "modified",
+    icon: LuFilePen,
+    label: "local.changeModified",
+    title: "local.changeModifiedTitle",
+  },
+  {
+    field: "untracked",
+    cls: "untracked",
+    icon: LuFileQuestion,
+    label: "local.changeUntracked",
+    title: "local.changeUntrackedTitle",
+  },
+];
+
 /** Longer hover explainer for the enrichment-status pickaxe badge. */
 function statusTitleKey(status: LocalRepo["enrichmentStatus"]) {
   switch (status) {
@@ -244,29 +317,85 @@ function statusTitleKey(status: LocalRepo["enrichmentStatus"]) {
   }
 }
 
+/** Worktree tooltip: a count header, then one line per worktree (branch + dirty marker). */
+function worktreeTooltip(worktrees: LocalRepo[], t: ReturnType<typeof useI18n>["t"]): string {
+  if (worktrees.length === 0) return "";
+  return [
+    t("local.worktreeCount", { count: String(worktrees.length) }),
+    ...worktrees.map((w) => `• ${w.branch ?? "(detached)"}${w.dirty ? " *" : ""}`),
+  ].join("\n");
+}
+
+/**
+ * Shared "open natively / right-click menu" wiring for the card and row variants:
+ * a transient open-error message plus the context-menu handler. Keeps both
+ * variants in sync without duplicating the Finder/Cursor plumbing.
+ */
+function useLocalRepoActions(repo: LocalRepo): {
+  actionError: string;
+  onContextMenu: (event: ReactMouseEvent) => void;
+} {
+  const { t } = useI18n();
+  const { open } = useRightClickMenu();
+  // Transient feedback when a native "open" (Finder/Cursor) fails, e.g. Cursor
+  // isn't installed. Clears itself a few seconds after it's shown.
+  const [actionError, setActionError] = useState("");
+  useEffect(() => {
+    if (!actionError) return;
+    const id = setTimeout(() => setActionError(""), 4000);
+    return () => clearTimeout(id);
+  }, [actionError]);
+
+  const runOpen = (target: "finder" | "cursor") => {
+    setActionError("");
+    openLocalRepo(repo.path, target).catch((err: unknown) => {
+      setActionError(`${t("local.openFailed")}: ${errorMessage(err)}`);
+    });
+  };
+
+  const onContextMenu = (event: ReactMouseEvent) =>
+    open(event, {
+      ariaLabel: repo.name,
+      items: buildLocalRepoMenu(
+        repo,
+        { onReveal: () => runOpen("finder"), onOpenInCursor: () => runOpen("cursor") },
+        t,
+      ),
+    });
+
+  return { actionError, onContextMenu };
+}
+
 function LocalRepoCard({
   repo,
+  worktrees,
   onHide,
   highlighted,
 }: {
   repo: LocalRepo;
+  /** Linked worktrees sharing this repo's git dir; surfaced as a count + tooltip. */
+  worktrees: LocalRepo[];
   onHide: (path: string) => void;
   highlighted: boolean;
 }) {
   const { language, t } = useI18n();
+  const { actionError, onContextMenu } = useLocalRepoActions(repo);
   const enrich = repo.enrichment;
   const primaryLanguage = enrich?.primaryLanguage?.name;
+  const worktreeTip = worktreeTooltip(worktrees, t);
   const cardRef = useRef<HTMLElement>(null);
   // Scroll the targeted clone into view when navigated to from a repo card.
   useEffect(() => {
     if (highlighted) cardRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
   }, [highlighted]);
+
   return (
     <article
       ref={cardRef}
       className={`repo-card local-card${highlighted ? " local-card-focused" : ""}${
         repo.isWorktree ? " local-card-worktree" : ""
       }`}
+      onContextMenu={onContextMenu}
     >
       <div className="rc-head">
         <LuFolderGit2 size={20} className="local-card-icon" />
@@ -295,10 +424,10 @@ function LocalRepoCard({
             )
           ) : null}
           <span
-            className={`rb rb-icon local-status local-status-${repo.enrichmentStatus}`}
+            className={`rb rb-icon tip local-status local-status-${repo.enrichmentStatus}`}
             role="img"
             aria-label={t(statusLabelKey(repo.enrichmentStatus))}
-            title={t(statusTitleKey(repo.enrichmentStatus))}
+            data-tip={t(statusTitleKey(repo.enrichmentStatus))}
           >
             <LuPickaxe size={11} />
           </span>
@@ -311,14 +440,39 @@ function LocalRepoCard({
 
       <div className="local-git-row">
         {repo.branch ? <span className="local-branch">{repo.branch}</span> : null}
-        {repo.dirty ? (
-          <span className="local-pill dirty">{t("local.dirty")}</span>
-        ) : (
-          <span className="local-pill clean">{t("local.clean")}</span>
-        )}
-        {repo.ahead > 0 ? <span className="local-pill">↑{repo.ahead}</span> : null}
-        {repo.behind > 0 ? <span className="local-pill">↓{repo.behind}</span> : null}
+        <div className="local-git-status">
+          {repo.dirty ? (
+            CHANGE_PILLS.filter((p) => repo.changes[p.field] > 0).map((p) => (
+              <span
+                key={p.field}
+                className={`local-pill dirty ${p.cls} tip`}
+                role="img"
+                data-tip={`${repo.changes[p.field]} ${t(p.label)} — ${t(p.title)}`}
+                aria-label={`${repo.changes[p.field]} ${t(p.label)}`}
+              >
+                <p.icon size={11} aria-hidden /> {repo.changes[p.field]}
+              </span>
+            ))
+          ) : (
+            <span
+              className="local-pill clean tip"
+              role="img"
+              data-tip={`${t("local.clean")} — ${t("local.cleanTitle")}`}
+              aria-label={t("local.clean")}
+            >
+              <LuCircleCheck size={11} aria-hidden /> {t("local.clean")}
+            </span>
+          )}
+          {repo.ahead > 0 ? <span className="local-pill">↑{repo.ahead}</span> : null}
+          {repo.behind > 0 ? <span className="local-pill">↓{repo.behind}</span> : null}
+        </div>
       </div>
+
+      {actionError ? (
+        <div className="local-action-error" role="alert">
+          {actionError}
+        </div>
+      ) : null}
 
       {enrich?.description ? <div className="repo-desc">{enrich.description}</div> : null}
 
@@ -332,6 +486,16 @@ function LocalRepoCard({
               <ForkIcon /> {formatNumber(enrich.forkCount)}
             </span>
           </>
+        ) : null}
+        {worktrees.length > 0 ? (
+          <span
+            className="rc-stat strong worktrees tip"
+            role="img"
+            aria-label={t("local.worktreeCount", { count: String(worktrees.length) })}
+            data-tip={worktreeTip}
+          >
+            <LuTreePine size={13} /> {worktrees.length}
+          </span>
         ) : null}
         {primaryLanguage ? (
           <span className="rc-lang" role="img" aria-label={primaryLanguage} title={primaryLanguage}>
@@ -355,5 +519,150 @@ function LocalRepoCard({
         </button>
       </div>
     </article>
+  );
+}
+
+/** The dirty/clean + ahead/behind pills, shared by the card and the compact row. */
+function GitStatusPills({ repo }: { repo: LocalRepo }) {
+  const { t } = useI18n();
+  return (
+    <div className="local-git-status">
+      {repo.dirty ? (
+        CHANGE_PILLS.filter((p) => repo.changes[p.field] > 0).map((p) => (
+          <span
+            key={p.field}
+            className={`local-pill dirty ${p.cls} tip`}
+            role="img"
+            data-tip={`${repo.changes[p.field]} ${t(p.label)} — ${t(p.title)}`}
+            aria-label={`${repo.changes[p.field]} ${t(p.label)}`}
+          >
+            <p.icon size={11} aria-hidden /> {repo.changes[p.field]}
+          </span>
+        ))
+      ) : (
+        <span className="local-pill clean">{t("local.clean")}</span>
+      )}
+      {repo.ahead > 0 ? <span className="local-pill">↑{repo.ahead}</span> : null}
+      {repo.behind > 0 ? <span className="local-pill">↓{repo.behind}</span> : null}
+    </div>
+  );
+}
+
+/**
+ * Dense one-row-per-repo layout for the Local tab's List mode — mirrors the
+ * Repositories `RepoList` row (shared `.data-row`/`.repo-row` grid + density
+ * vars) but carries local git facts: branch, working-tree status, worktree
+ * count and last commit. The full path lives in the row's hover title.
+ */
+function LocalRepoRow({
+  repo,
+  worktrees,
+  onHide,
+  highlighted,
+}: {
+  repo: LocalRepo;
+  worktrees: LocalRepo[];
+  onHide: (path: string) => void;
+  highlighted: boolean;
+}) {
+  const { language, t } = useI18n();
+  const { actionError, onContextMenu } = useLocalRepoActions(repo);
+  const enrich = repo.enrichment;
+  const rowRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (highlighted) rowRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [highlighted]);
+
+  return (
+    // biome-ignore lint/a11y/noStaticElementInteractions: the row only adds a contextmenu (right-click) enhancement; every primary action is a nested focusable control (repo link, hide button).
+    <div
+      ref={rowRef}
+      className={`data-row repo-row local-row${highlighted ? " local-card-focused" : ""}`}
+      title={repo.path}
+      onContextMenu={onContextMenu}
+    >
+      <span className="local-row-icon" aria-hidden>
+        <LuFolderGit2 size={16} />
+      </span>
+      <div className="repo-row-main">
+        <div className="repo-row-title">
+          {enrich ? (
+            <a href={enrich.url} target="_blank" rel="noreferrer">
+              {repo.name}
+            </a>
+          ) : (
+            <span>{repo.name}</span>
+          )}
+        </div>
+        {repo.branch ? <span className="local-branch local-row-branch">{repo.branch}</span> : null}
+        {repo.isWorktree ? (
+          <span className="rb local-worktree-badge">{t("local.worktree")}</span>
+        ) : null}
+        <GitStatusPills repo={repo} />
+        {actionError ? (
+          <span className="local-action-error" role="alert">
+            {actionError}
+          </span>
+        ) : null}
+      </div>
+      <div className="repo-row-stats">
+        <span className="repo-row-flags">
+          {enrich ? (
+            enrich.isPrivate ? (
+              <span className="rb rb-icon private" role="img" aria-label={t("repo.private")}>
+                <LuLock size={11} />
+              </span>
+            ) : (
+              <span className="rb rb-icon" role="img" aria-label={t("repo.public")}>
+                <LuGlobe size={11} />
+              </span>
+            )
+          ) : null}
+          <span
+            className={`rb rb-icon tip local-status local-status-${repo.enrichmentStatus}`}
+            role="img"
+            aria-label={t(statusLabelKey(repo.enrichmentStatus))}
+            data-tip={t(statusTitleKey(repo.enrichmentStatus))}
+          >
+            <LuPickaxe size={11} />
+          </span>
+        </span>
+        {enrich ? (
+          <>
+            <span className="rc-stat strong star">
+              <StarIcon /> {formatNumber(enrich.stargazerCount)}
+            </span>
+            <span className="rc-stat strong fork">
+              <ForkIcon /> {formatNumber(enrich.forkCount)}
+            </span>
+          </>
+        ) : null}
+        {worktrees.length > 0 ? (
+          <span
+            className="rc-stat strong worktrees tip"
+            role="img"
+            aria-label={t("local.worktreeCount", { count: String(worktrees.length) })}
+            data-tip={worktreeTooltip(worktrees, t)}
+          >
+            <LuTreePine size={13} /> {worktrees.length}
+          </span>
+        ) : null}
+        <span className="repo-row-pushed">
+          {repo.lastCommit
+            ? t("local.committed", {
+                time: formatRelativeTime(repo.lastCommit.date, Date.now(), language),
+              })
+            : "-"}
+        </span>
+        <button
+          type="button"
+          className="local-hide-btn"
+          onClick={() => onHide(repo.path)}
+          title={t("local.hide")}
+        >
+          {t("local.hide")}
+        </button>
+      </div>
+    </div>
   );
 }

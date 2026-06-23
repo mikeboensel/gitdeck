@@ -3,7 +3,7 @@ import type { Dirent } from "node:fs";
 import { readdir } from "node:fs/promises";
 import { basename, join, resolve } from "node:path";
 import { promisify } from "node:util";
-import type { LocalRemote } from "../types/github";
+import type { GitChangeCounts, LocalRemote } from "../types/github";
 import { logger } from "./logger";
 
 const execFileAsync = promisify(execFile);
@@ -21,6 +21,7 @@ export interface ScannedRepo {
   ahead: number;
   behind: number;
   dirty: boolean;
+  changes: GitChangeCounts;
   lastCommit: { sha: string; date: string; message: string } | null;
   /** True when this checkout is a linked worktree (`git worktree add`), not the primary. */
   isWorktree: boolean;
@@ -125,6 +126,32 @@ export function parseRemotes(raw: string): LocalRemote[] {
   return [...byName.values()];
 }
 
+/**
+ * Tally `git status --porcelain` (v1) output into change categories. Each line
+ * is `XY <path>`, where X is the index/staged state and Y the working-tree
+ * state. Untracked entries are `??`; unmerged (conflict) entries carry a `U` in
+ * either column or are one of the `DD`/`AA` both-sided cases.
+ */
+export function parseStatusCounts(raw: string): GitChangeCounts {
+  const counts: GitChangeCounts = { staged: 0, modified: 0, untracked: 0, conflicted: 0 };
+  for (const line of raw.split("\n")) {
+    if (line.length < 2) continue;
+    const x = line[0];
+    const y = line[1];
+    if (x === "?" && y === "?") {
+      counts.untracked += 1;
+      continue;
+    }
+    if (x === "U" || y === "U" || (x === "D" && y === "D") || (x === "A" && y === "A")) {
+      counts.conflicted += 1;
+      continue;
+    }
+    if (x !== " ") counts.staged += 1;
+    if (y !== " ") counts.modified += 1;
+  }
+  return counts;
+}
+
 async function git(cwd: string, args: string[]): Promise<string | null> {
   try {
     const { stdout } = await execFileAsync("git", ["-C", cwd, ...args], {
@@ -177,6 +204,8 @@ async function readGitMeta(repoPath: string): Promise<ScannedRepo> {
     if (sha && date) lastCommit = { sha, date, message: lines[2] ?? "" };
   }
 
+  const changes = parseStatusCounts(statusRaw ?? "");
+
   // `--git-dir --git-common-dir` prints the per-checkout gitdir then the shared
   // common dir. They're equal for the primary repo and differ for a linked
   // worktree (whose gitdir is `<common>/.git/worktrees/<name>`). Resolve both
@@ -204,7 +233,8 @@ async function readGitMeta(repoPath: string): Promise<ScannedRepo> {
     branch,
     ahead,
     behind,
-    dirty: Boolean(statusRaw && statusRaw.trim().length > 0),
+    dirty: changes.staged + changes.modified + changes.untracked + changes.conflicted > 0,
+    changes,
     lastCommit,
     isWorktree,
     gitCommonDir,

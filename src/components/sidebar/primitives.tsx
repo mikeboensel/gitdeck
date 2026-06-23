@@ -33,6 +33,7 @@ export function CheckList({
   languageDot,
   showGhAvatar,
   userLogin,
+  labelFor,
 }: {
   entries: Array<[string, FacetValue]>;
   selected: Set<string>;
@@ -41,6 +42,8 @@ export function CheckList({
   languageDot?: boolean;
   showGhAvatar?: boolean;
   userLogin?: string;
+  /** Humanize the displayed text while keeping `name` as the toggle value. */
+  labelFor?: (name: string) => string;
 }) {
   const { t } = useI18n();
   // Original sort (checked first, then by count, then alphabetical) with one addition:
@@ -67,8 +70,9 @@ export function CheckList({
     <div className="check-list">
       {sorted.map(([name, value]) => {
         const color = typeof value === "number" ? undefined : value.color;
+        const text = labelFor ? labelFor(name) : name;
         return (
-          <label className="check" key={name}>
+          <label className="check" key={name} title={text === name ? undefined : name}>
             <input type="checkbox" checked={selected.has(name)} onChange={() => onToggle(name)} />
             {showSwatch && color ? (
               <span className="label-swatch" style={{ background: `#${color}` }} />
@@ -81,7 +85,7 @@ export function CheckList({
                 style={{ width: 16, height: 16, borderRadius: "50%", flexShrink: 0 }}
               />
             ) : null}
-            <span className="label-text">{name}</span>
+            <span className="label-text">{text}</span>
             <span className="label-count">{countOf(value)}</span>
           </label>
         );

@@ -999,7 +999,28 @@ select.sort:focus-visible {
 .rc-stat.local-clones.tip::after {
   white-space: pre-line;
   text-align: left;
+  /* Size to the widest line instead of collapsing to the narrow button box
+     (pre-line allows wrapping, so without this each char wraps to its own line). */
+  width: max-content;
   max-width: 360px;
+  overflow-wrap: anywhere;
+}
+/* Worktree count badge: a folder-tree icon + count, with a tooltip listing each
+   linked worktree (one branch per line) — same multi-line treatment as
+   local-clones. The badge sits at the card's bottom-left and the card is
+   `overflow: hidden`, so anchor the tooltip's left edge to the badge and let it
+   grow rightward (a centered tooltip would clip past the card's left edge). */
+.rc-stat.worktrees svg {
+  color: var(--accent);
+}
+.rc-stat.worktrees.tip::after {
+  left: 0;
+  right: auto;
+  transform: none;
+  white-space: pre-line;
+  text-align: left;
+  width: max-content;
+  max-width: 240px;
   overflow-wrap: anywhere;
 }
 

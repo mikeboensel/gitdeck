@@ -4,6 +4,7 @@
  */
 
 import type { IssueFilters, PullRequestFilters, RepoFilters } from "./dashboard";
+import { defaultLocalFilters, type LocalRepoFilters } from "./localRepos";
 
 const STORAGE_KEY = "gh-dash.cache.filters";
 
@@ -40,15 +41,25 @@ export interface CachedFilters {
     preset: string;
   };
   // Optional so cached data from before this field existed still validates.
+  localFilters?: {
+    search: string;
+    owners: string[];
+    hosts: string[];
+    remotes: string[];
+    status: string;
+  };
+  // Optional so cached data from before this field existed still validates.
   sorts?: {
     issueSort: string;
     prSort: string;
     repoSort: string;
+    localSort?: string;
   };
   savedAt: number;
 }
 
 const VALID_VISIBILITY = new Set(["all", "public", "private"]);
+const VALID_LOCAL_STATUS = new Set(["all", "dirty", "clean"]);
 
 function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((item) => typeof item === "string");
@@ -64,6 +75,20 @@ function isDateFilters(
     typeof obj.ct === "string" &&
     typeof obj.uf === "string" &&
     typeof obj.ut === "string"
+  );
+}
+
+/** Validate the optional localFilters block (absent in caches from before it existed). */
+function isLocalFiltersShape(value: unknown): boolean {
+  if (value === undefined) return true;
+  if (!value || typeof value !== "object") return false;
+  const lf = value as Record<string, unknown>;
+  return (
+    typeof lf.search === "string" &&
+    isStringArray(lf.owners) &&
+    isStringArray(lf.hosts) &&
+    isStringArray(lf.remotes) &&
+    typeof lf.status === "string"
   );
 }
 
@@ -109,6 +134,8 @@ function validateShape(parsed: unknown): parsed is CachedFilters {
   if (!isDateFilters(prF.dates)) return false;
   if (typeof prF.preset !== "string") return false;
 
+  if (!isLocalFiltersShape(obj.localFilters)) return false;
+
   return true;
 }
 
@@ -140,12 +167,27 @@ export function hydrateFilters(cached: CachedFilters): {
   repoFilters: RepoFilters;
   issueFilters: IssueFilters;
   prFilters: PullRequestFilters;
+  localFilters: LocalRepoFilters;
 } {
   const visibility = VALID_VISIBILITY.has(cached.repoFilters.visibility)
     ? (cached.repoFilters.visibility as "all" | "public" | "private")
     : "all";
 
+  const lf = cached.localFilters;
+  const localFilters: LocalRepoFilters = lf
+    ? {
+        search: lf.search,
+        owners: new Set(lf.owners),
+        hosts: new Set(lf.hosts),
+        remotes: new Set(lf.remotes),
+        status: VALID_LOCAL_STATUS.has(lf.status)
+          ? (lf.status as LocalRepoFilters["status"])
+          : "all",
+      }
+    : defaultLocalFilters();
+
   return {
+    localFilters,
     repoFilters: {
       search: cached.repoFilters.search,
       orgs: new Set(cached.repoFilters.orgs),
@@ -186,7 +228,8 @@ export function writeFiltersCache(
   repoFilters: RepoFilters,
   issueFilters: IssueFilters,
   prFilters: PullRequestFilters,
-  sorts?: { issueSort: string; prSort: string; repoSort: string },
+  sorts?: { issueSort: string; prSort: string; repoSort: string; localSort?: string },
+  localFilters?: LocalRepoFilters,
 ): void {
   try {
     const entry: CachedFilters = {
@@ -219,6 +262,15 @@ export function writeFiltersCache(
         dates: { ...prFilters.dates },
         preset: prFilters.preset,
       },
+      localFilters: localFilters
+        ? {
+            search: localFilters.search,
+            owners: [...localFilters.owners],
+            hosts: [...localFilters.hosts],
+            remotes: [...localFilters.remotes],
+            status: localFilters.status,
+          }
+        : undefined,
       sorts: sorts ? { ...sorts } : undefined,
       savedAt: Date.now(),
     };
