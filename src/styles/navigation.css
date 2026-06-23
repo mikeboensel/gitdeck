@@ -813,6 +813,24 @@ a.topbar-org:hover .topbar-org-icon {
   border: 1px solid var(--border-soft);
 }
 
+/* Compact: when the full-label tabs would overflow their bar, JS adds `.compact`
+   (see the ResizeObserver in App.tsx) and we drop the word labels, keeping just
+   the icon + count badge. `font-size: 0` collapses the bare label text node; the
+   icon and badge restore their own sizes. This is overflow-driven rather than a
+   fixed breakpoint, so it adapts to locale label lengths, font, and zoom. */
+/* Scoped above 640px so the dedicated ≤640px mobile block (full-width stretch,
+   hover-to-reveal) keeps full control on phones. */
+@media (min-width: 641px) {
+  .tabs.compact .tab {
+    font-size: 0;
+    gap: 6px;
+    padding: 7px 9px;
+  }
+  .tabs.compact .tab .tab-badge {
+    font-size: 11px;
+  }
+}
+
 /* Mobile: icon-only tabs — stretch full width, reveal label on hover */
 @media (max-width: 640px) {
   .tabs {
