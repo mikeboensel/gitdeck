@@ -217,6 +217,40 @@ export function openLocalRepo(path: string, target: "finder" | "cursor"): Promis
   });
 }
 
+export interface BrowseDirEntry {
+  name: string;
+  path: string;
+}
+
+export interface BrowseDirsResult {
+  ok: true;
+  /** The directory that was listed (absolute). */
+  path: string;
+  /** Parent directory, or null at the home root (browsing is confined to ~). */
+  parent: string | null;
+  entries: BrowseDirEntry[];
+}
+
+/** List child directories of `path` (defaults to home) for the clone destination picker. */
+export function browseDirectories(path?: string): Promise<BrowseDirsResult> {
+  const query = path ? `?path=${encodeURIComponent(path)}` : "";
+  return readJson(`/api/local-repos/browse${query}`);
+}
+
+/** Clone a repo into `destDir/<name>` on the server; registers the destination so it
+ * shows up under Local Repos. Returns the absolute path of the new working copy. */
+export function cloneRepository(params: {
+  nameWithOwner: string;
+  url: string;
+  destDir: string;
+}): Promise<{ ok: true; path: string }> {
+  return readJson("/api/local-repos/clone", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(params),
+  });
+}
+
 export function fetchIssues(fresh = false, signal?: AbortSignal): Promise<IssuesData> {
   return readJson<IssuesData>(
     `/api/issues${fresh ? "?fresh=1" : ""}`,

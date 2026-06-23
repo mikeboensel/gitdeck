@@ -1,4 +1,5 @@
 import { LuClock, LuFolderGit2, LuGitFork, LuGlobe, LuLock, LuTriangleAlert } from "react-icons/lu";
+import { useCloneRepo } from "../../contexts/CloneRepoProvider";
 import { useRightClickMenu } from "../../contexts/RightClickMenuProvider";
 import { useI18n } from "../../i18n/I18nProvider";
 import { buildRepoMenu } from "../../menus/repoMenu";
@@ -22,6 +23,7 @@ export function RepoGrid({
 }: RepoViewDataProps) {
   const { language, t } = useI18n();
   const { open } = useRightClickMenu();
+  const { openClone } = useCloneRepo();
   if (!repos.length) {
     return (
       <div className="empty">
@@ -73,7 +75,11 @@ export function RepoGrid({
                 ariaLabel: repo.nameWithOwner,
                 items: buildRepoMenu(
                   repo,
-                  { onOpen: onRepoClick, onViewIssues: (r) => onIssuesClick(r.nameWithOwner) },
+                  {
+                    onOpen: onRepoClick,
+                    onViewIssues: (r) => onIssuesClick(r.nameWithOwner),
+                    onClone: openClone,
+                  },
                   t,
                 ),
               })

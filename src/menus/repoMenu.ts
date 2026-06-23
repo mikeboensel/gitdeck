@@ -11,6 +11,8 @@ export interface RepoMenuActions {
   onOpen: (repo: GhRepo) => void;
   /** Jump to the repository's issues. */
   onViewIssues: (repo: GhRepo) => void;
+  /** Open the clone-destination picker for the repository. */
+  onClone: (repo: GhRepo) => void;
 }
 
 /**
@@ -25,6 +27,7 @@ export function buildRepoMenu(
   return [
     { key: "open", label: t("menu.openDetails"), onSelect: () => actions.onOpen(repo) },
     { key: "issues", label: t("menu.viewIssues"), onSelect: () => actions.onViewIssues(repo) },
+    { key: "clone", label: t("menu.clone"), onSelect: () => actions.onClone(repo) },
     {
       key: "github",
       label: t("menu.openOnGitHub"),
