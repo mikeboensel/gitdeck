@@ -26,7 +26,7 @@ import { Footer } from "./components/Footer";
 import { TopBar } from "./components/TopBar";
 import { SidebarControls, type InboxSidebarState } from "./components/SidebarControls";
 import { Pagination } from "./components/common/Pagination";
-import { BoardIcon, BookIcon, ExportIcon, InboxIcon, IssueIcon, PulseIcon } from "./components/common/Icons";
+import { BoardIcon, BookIcon, InboxIcon, IssueIcon, PulseIcon } from "./components/common/Icons";
 import { IssueList } from "./components/views/IssueList";
 import { PullRequestList } from "./components/views/PullRequestList";
 import { DailyDigestView } from "./components/views/DailyDigestView";
@@ -802,7 +802,6 @@ export function App() {
                   <option value="comments_asc">{t("sort.leastCommented")}</option>
                   <option value="repo_asc">{t("sort.repositoryAZ")}</option>
                 </select>
-                <button className="btn ghost" onClick={() => downloadJson("issues.json", filteredIssues)}><ExportIcon /> {t("common.export")}</button>
               </div>
               <IssueList issues={visibleIssues} />
               <Pagination totalItems={filteredIssues.length} page={issuePageSafe} pageSize={issuePageSize} onPageChange={setIssuePage} onPageSizeChange={(size) => { setIssuePageSize(size); setIssuePage(1); }} />
@@ -846,7 +845,6 @@ export function App() {
                   <option value="comments_desc">{t("sort.mostCommented")}</option>
                   <option value="repo_asc">{t("sort.repositoryAZ")}</option>
                 </select>
-                <button className="btn ghost" onClick={() => downloadJson("pull-requests.json", filteredPullRequests)}><ExportIcon /> {t("common.export")}</button>
               </div>
               <PullRequestList pullRequests={visiblePullRequests} />
               <Pagination totalItems={filteredPullRequests.length} page={prPageSafe} pageSize={prPageSize} onPageChange={setPrPage} onPageSizeChange={(size) => { setPrPageSize(size); setPrPage(1); }} />
@@ -879,7 +877,6 @@ export function App() {
                   <option value="updated_desc">{t("sort.recentlyUpdated")}</option>
                   <option value="name_asc">{t("sort.nameAZ")}</option>
                 </select>
-                <button className="btn ghost" onClick={() => downloadJson("repositories.json", filteredRepos)}><ExportIcon /> {t("common.export")}</button>
               </div>
               <ReposView
                 layout={repoLayout}
@@ -977,6 +974,9 @@ export function App() {
           onOpenRepo={(repo) => openRepoModal(repo)}
           onRefresh={() => loadData(true)}
           onToggleTheme={cycleTheme}
+          onExportRepos={() => downloadJson("repositories.json", filteredRepos)}
+          onExportIssues={() => downloadJson("issues.json", filteredIssues)}
+          onExportPullRequests={() => downloadJson("pull-requests.json", filteredPullRequests)}
           onClose={() => setPaletteOpen(false)}
         />
       ) : null}

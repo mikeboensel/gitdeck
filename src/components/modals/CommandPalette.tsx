@@ -20,6 +20,9 @@ interface CommandPaletteProps {
   onOpenRepo: (repo: GhRepo) => void;
   onRefresh: () => void;
   onToggleTheme: () => void;
+  onExportRepos: () => void;
+  onExportIssues: () => void;
+  onExportPullRequests: () => void;
   onClose: () => void;
 }
 
@@ -82,6 +85,9 @@ export function CommandPalette({
   onOpenRepo,
   onRefresh,
   onToggleTheme,
+  onExportRepos,
+  onExportIssues,
+  onExportPullRequests,
   onClose,
 }: CommandPaletteProps) {
   const [query, setQuery] = useState("");
@@ -121,6 +127,30 @@ export function CommandPalette({
       haystack: "toggle theme dark light auto appearance",
       run: () => onToggleTheme(),
     });
+    entries.push({
+      id: "action:export-repos",
+      kind: "action",
+      label: "Export repositories",
+      hint: "Download JSON",
+      haystack: "export download save repositories repos json",
+      run: () => onExportRepos(),
+    });
+    entries.push({
+      id: "action:export-issues",
+      kind: "action",
+      label: "Export issues",
+      hint: "Download JSON",
+      haystack: "export download save issues json",
+      run: () => onExportIssues(),
+    });
+    entries.push({
+      id: "action:export-prs",
+      kind: "action",
+      label: "Export pull requests",
+      hint: "Download JSON",
+      haystack: "export download save pull requests prs json",
+      run: () => onExportPullRequests(),
+    });
     for (const repo of repos) {
       entries.push({
         id: `repo:${repo.nameWithOwner}`,
@@ -152,7 +182,7 @@ export function CommandPalette({
       });
     }
     return entries;
-  }, [repos, issues, pullRequests, onNavigateTab, onOpenRepo, onRefresh, onToggleTheme]);
+  }, [repos, issues, pullRequests, onNavigateTab, onOpenRepo, onRefresh, onToggleTheme, onExportRepos, onExportIssues, onExportPullRequests]);
 
   const results = useMemo(() => {
     const needle = query.trim().toLowerCase();
