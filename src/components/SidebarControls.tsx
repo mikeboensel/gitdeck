@@ -23,6 +23,7 @@ import { Avatar } from "./common/Avatar";
 import { CloseIcon, RefreshIcon, SearchIcon } from "./common/Icons";
 import { isUnknownLanguage, LanguageIcon } from "./common/LanguageIcon";
 import { CheckList, FacetChips, FilterSection, toggleSetValue } from "./sidebar/primitives";
+import { SidebarShell } from "./sidebar/SidebarShell";
 
 type Tab =
   | "inbox"
@@ -72,6 +73,7 @@ interface SidebarControlsProps {
   onRepoFiltersChange: (filters: RepoFilters) => void;
   onReset: () => void;
   onClose: () => void;
+  onCollapse: () => void;
   authLogin?: string;
   collaboratorsFetchedAt?: string | null;
   collaboratorsLoading?: boolean;
@@ -94,6 +96,7 @@ export function SidebarControls({
   onRepoFiltersChange,
   onReset,
   onClose,
+  onCollapse,
   authLogin,
   collaboratorsFetchedAt,
   collaboratorsLoading,
@@ -116,7 +119,7 @@ export function SidebarControls({
 
   if (inboxMode && inbox) {
     return (
-      <aside className="sidebar" id="sidebar">
+      <SidebarShell onCollapse={onCollapse}>
         <div className="side-head">
           <h2>{t("sidebar.mailboxes")}</h2>
           <span className="reset" style={{ pointerEvents: "none" }}>
@@ -165,12 +168,12 @@ export function SidebarControls({
             {t("sidebar.markAllRead", { count: formatNumber(inbox.unreadCount) })}
           </button>
         ) : null}
-      </aside>
+      </SidebarShell>
     );
   }
 
   return (
-    <aside className="sidebar" id="sidebar">
+    <SidebarShell onCollapse={onCollapse}>
       <div className="side-head">
         <button
           type="button"
@@ -208,7 +211,6 @@ export function SidebarControls({
         title={t("sidebar.organizations")}
         icon={<LuBuilding2 size={16} />}
         activeCount={orgSelection.size}
-        open
         onClear={() =>
           ticketMode
             ? onActiveFiltersChange({ ...activeFilters, orgs: new Set() })
@@ -395,7 +397,6 @@ export function SidebarControls({
             icon={<LuEye size={16} />}
             activeCount={repoFilters.visibility === "all" ? 0 : 1}
             dataFor="repos-only"
-            open
             onClear={() => onRepoFiltersChange({ ...repoFilters, visibility: "all" })}
           >
             <div className="opt-group" role="tablist">
@@ -424,7 +425,6 @@ export function SidebarControls({
             icon={<LuSlidersHorizontal size={16} />}
             activeCount={Number(!repoFilters.includeForks) + Number(repoFilters.includeArchived)}
             dataFor="repos-only"
-            open
             onClear={() =>
               onRepoFiltersChange({ ...repoFilters, includeForks: true, includeArchived: false })
             }
@@ -461,6 +461,6 @@ export function SidebarControls({
           </FilterSection>
         </>
       )}
-    </aside>
+    </SidebarShell>
   );
 }

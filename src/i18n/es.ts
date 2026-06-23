@@ -27,6 +27,8 @@ export const es: Record<keyof typeof en, string> = {
   "common.searchShortcut": "Buscar (Cmd+K)",
   "common.openFilters": "Abrir filtros",
   "common.closeFilters": "Cerrar filtros",
+  "common.collapseFilters": "Contraer filtros",
+  "common.expandFilters": "Expandir filtros",
   "common.signOut": "Cerrar sesión",
   "common.signedIn": "Sesión iniciada",
   "common.account": "Cuenta",

@@ -27,6 +27,8 @@ export const de: Record<keyof typeof en, string> = {
   "common.searchShortcut": "Suchen (Cmd+K)",
   "common.openFilters": "Filter öffnen",
   "common.closeFilters": "Filter schließen",
+  "common.collapseFilters": "Filter einklappen",
+  "common.expandFilters": "Filter ausklappen",
   "common.signOut": "Abmelden",
   "common.signedIn": "Angemeldet",
   "common.account": "Konto",

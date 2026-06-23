@@ -25,6 +25,8 @@ export const en = {
   "common.searchShortcut": "Search (Cmd+K)",
   "common.openFilters": "Open filters",
   "common.closeFilters": "Close filters",
+  "common.collapseFilters": "Collapse filters",
+  "common.expandFilters": "Expand filters",
   "common.signOut": "Sign out",
   "common.signedIn": "Signed in",
   "common.account": "Account",

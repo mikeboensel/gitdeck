@@ -27,6 +27,8 @@ export const zh: Record<keyof typeof en, string> = {
   "common.searchShortcut": "搜索 (Cmd+K)",
   "common.openFilters": "打开筛选",
   "common.closeFilters": "关闭筛选",
+  "common.collapseFilters": "收起筛选",
+  "common.expandFilters": "展开筛选",
   "common.signOut": "退出登录",
   "common.signedIn": "已登录",
   "common.account": "账户",

@@ -4,6 +4,7 @@ import { useI18n } from "../../i18n/I18nProvider";
 import type { FacetValue } from "../../utils/dashboard";
 import { CloseIcon, SearchIcon } from "../common/Icons";
 import { CheckList, FacetChips, FilterSection } from "./primitives";
+import { SidebarShell } from "./SidebarShell";
 
 /**
  * One collapsible facet section. The caller supplies the data and the toggle
@@ -36,6 +37,7 @@ interface FacetSidebarProps {
   extraSections?: ReactNode;
   onReset: () => void;
   onClose: () => void;
+  onCollapse: () => void;
 }
 
 /**
@@ -52,10 +54,11 @@ export function FacetSidebar({
   extraSections,
   onReset,
   onClose,
+  onCollapse,
 }: FacetSidebarProps) {
   const { t } = useI18n();
   return (
-    <aside className="sidebar" id="sidebar">
+    <SidebarShell onCollapse={onCollapse}>
       <div className="side-head">
         <h2 className="tip" data-tip={t("common.filters")} aria-label={t("common.filters")}>
           <LuListFilter size={16} />
@@ -120,6 +123,6 @@ export function FacetSidebar({
       ))}
 
       {extraSections}
-    </aside>
+    </SidebarShell>
   );
 }

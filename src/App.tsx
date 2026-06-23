@@ -1,5 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { LuBuilding2, LuGitBranch, LuServer } from "react-icons/lu";
+import {
+  LuBuilding2,
+  LuChevronRight,
+  LuGitBranch,
+  LuListFilter,
+  LuSearch,
+  LuServer,
+} from "react-icons/lu";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { invalidate as invalidateCache, peek, swr } from "./api/cache";
 import {
@@ -48,7 +55,7 @@ import {
 } from "./components/common/Icons";
 import { Pagination } from "./components/common/Pagination";
 import { type SortOption, SortSelect } from "./components/common/SortSelect";
-import { Footer } from "./components/Footer";
+import { Footer, type FooterSegment } from "./components/Footer";
 import { ChangelogModal } from "./components/modals/ChangelogModal";
 import { CommandPalette } from "./components/modals/CommandPalette";
 import { ContributorsModal } from "./components/modals/ContributorsModal";
@@ -247,6 +254,11 @@ export function App() {
   const [dataStale, setDataStale] = useState(false);
   const [error, setError] = useState("");
   const [filtersOpen, setFiltersOpen] = useState(false);
+  // Desktop-only: collapse the filter sidebar to reclaim horizontal space.
+  // Mobile uses the slide-in drawer (filtersOpen) instead, so this is ignored there.
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(
+    () => localStorage.getItem("gh-dash.sidebarCollapsed") === "true",
+  );
   const [contributorsOpen, setContributorsOpen] = useState(false);
   const [changelogOpen, setChangelogOpen] = useState(false);
   const [welcomeOpen, setWelcomeOpen] = useState(
@@ -312,6 +324,9 @@ export function App() {
   );
   const abortRef = useRef<AbortController | null>(null);
   const initialLoadRef = useRef(false);
+  const tabsRef = useRef<HTMLDivElement>(null);
+  const tabsCompactRef = useRef(false);
+  const [tabsCompact, setTabsCompact] = useState(false);
 
   const loadData = useCallback((fresh = false) => {
     abortRef.current?.abort();
@@ -674,6 +689,40 @@ export function App() {
     document.body.classList.toggle("filters-open", filtersOpen);
   }, [tab, filtersOpen]);
 
+  // Collapse the tab bar to icon-only when the full labels would overflow.
+  // Overflow-driven (not a fixed breakpoint) so it adapts to label lengths,
+  // locale, font, and zoom. We measure available space from the full-width
+  // parent (.tabs-bar) — the .tabs pill itself shrinks to its content, so it
+  // can't be measured once collapsed — and remember the natural full-label
+  // width so we know when there's room to expand again. The +24px headroom on
+  // re-expand prevents flicker right at the boundary.
+  useEffect(() => {
+    const tabs = tabsRef.current;
+    const bar = tabs?.parentElement;
+    if (!tabs || !bar) return;
+    let naturalWidth = 0;
+    const measure = () => {
+      const style = getComputedStyle(bar);
+      const available =
+        bar.clientWidth -
+        Number.parseFloat(style.paddingLeft) -
+        Number.parseFloat(style.paddingRight);
+      // While expanded, the pill's scrollWidth is the true full-label width.
+      if (!tabsCompactRef.current) naturalWidth = tabs.scrollWidth;
+      const shouldCompact = tabsCompactRef.current
+        ? available < naturalWidth + 24
+        : naturalWidth > available;
+      if (shouldCompact !== tabsCompactRef.current) {
+        tabsCompactRef.current = shouldCompact;
+        setTabsCompact(shouldCompact);
+      }
+    };
+    const observer = new ResizeObserver(measure);
+    observer.observe(bar);
+    measure();
+    return () => observer.disconnect();
+  }, []);
+
   useEffect(() => {
     if (location.pathname === "/" || location.pathname === "/index.html") {
       navigate(`${TAB_ROUTES.repos}${location.search}`, { replace: true });
@@ -741,6 +790,10 @@ export function App() {
   useEffect(() => localStorage.setItem("gh-dash.repoDensity", repoDensity), [repoDensity]);
   useEffect(() => localStorage.setItem("gh-dash.localLayout", localLayout), [localLayout]);
   useEffect(() => localStorage.setItem("gh-dash.localDensity", localDensity), [localDensity]);
+  useEffect(() => {
+    localStorage.setItem("gh-dash.sidebarCollapsed", String(sidebarCollapsed));
+    document.body.classList.toggle("sidebar-collapsed", sidebarCollapsed);
+  }, [sidebarCollapsed]);
   const cycleDensity = useCallback(
     (set: typeof setRepoDensity) =>
       set(
@@ -884,7 +937,6 @@ export function App() {
         onClear: () => setLocalFilters((f) => ({ ...f, owners: new Set() })),
         render: "chips",
         renderIcon: (name) => <Avatar login={name} size={40} className="facet-chip-avatar" />,
-        open: true,
       },
       {
         key: "hosts",
@@ -1159,6 +1211,89 @@ export function App() {
       : []),
   ];
 
+  // Footer status bar: reflect the current tab plus how many items are shown and
+  // how many filter selections are active for that tab.
+  const repoFilterCount =
+    repoFilters.orgs.size +
+    repoFilters.languages.size +
+    repoFilters.collaborators.size +
+    (repoFilters.visibility !== "all" ? 1 : 0) +
+    (repoFilters.includeForks ? 0 : 1) +
+    (repoFilters.includeArchived ? 1 : 0);
+  const issueFilterCount =
+    issueFilters.orgs.size +
+    issueFilters.repos.size +
+    issueFilters.labels.size +
+    issueFilters.authors.size +
+    issueFilters.assignees.size;
+  const prFilterCount =
+    prFilters.orgs.size +
+    prFilters.repos.size +
+    prFilters.labels.size +
+    prFilters.authors.size +
+    prFilters.assignees.size;
+  const localFilterCount =
+    localFilters.owners.size +
+    localFilters.hosts.size +
+    localFilters.remotes.size +
+    (localFilters.status !== "all" ? 1 : 0);
+  const footerStats: Record<Tab, { shown: number; total: number; filters: number }> = {
+    inbox: { shown: mailboxItems.length, total: inboxItems.length, filters: 0 },
+    repos: { shown: filteredRepos.length, total: repos.length, filters: repoFilterCount },
+    local: {
+      shown: filteredLocalRepos.length,
+      total: localRepos.length,
+      filters: localFilterCount,
+    },
+    issues: { shown: filteredIssues.length, total: issues.length, filters: issueFilterCount },
+    prs: { shown: filteredPullRequests.length, total: pullRequests.length, filters: prFilterCount },
+    insights: {
+      shown: filteredInsights.length,
+      total: filteredInsights.length,
+      filters: repoFilterCount,
+    },
+    alerts: {
+      shown: securityInsights.length,
+      total: securityInsights.length,
+      filters: repoFilterCount,
+    },
+    ci: { shown: ciHealth.length, total: ciHealth.length, filters: 0 },
+    digests: { shown: dailyDigests.length, total: dailyDigests.length, filters: 0 },
+    kanban: { shown: filteredIssues.length, total: issues.length, filters: issueFilterCount },
+  };
+  const fc = footerStats[tab];
+  const currentTabMeta = tabs.find((item) => item.key === tab);
+  const footerSegments: FooterSegment[] = [];
+  if (currentTabMeta) {
+    footerSegments.push({
+      key: "tab",
+      icon: currentTabMeta.icon,
+      label: currentTabMeta.label,
+      strong: true,
+    });
+  }
+  footerSegments.push({
+    key: "count",
+    label:
+      fc.shown === fc.total
+        ? formatNumber(fc.total)
+        : `${formatNumber(fc.shown)} ${t("common.of")} ${formatNumber(fc.total)}`,
+  });
+  if (fc.filters > 0) {
+    footerSegments.push({
+      key: "filters",
+      icon: <LuListFilter size={13} />,
+      label: `${fc.filters} ${t("common.filters")}`,
+    });
+  }
+  if (search) {
+    footerSegments.push({
+      key: "search",
+      icon: <LuSearch size={13} />,
+      label: `“${search}”`,
+    });
+  }
+
   return (
     <>
       <TopBar
@@ -1178,7 +1313,7 @@ export function App() {
         canLogout={authMode === "device"}
       />
       <div className="tabs-bar">
-        <div className="tabs" role="tablist">
+        <div className={`tabs${tabsCompact ? " compact" : ""}`} role="tablist" ref={tabsRef}>
           {tabs.map((item) => (
             <button
               className={`tab ${tab === item.key ? "active" : ""}`}
@@ -1210,7 +1345,6 @@ export function App() {
               <FilterSection
                 title={t("local.facetGitStatus")}
                 activeCount={localFilters.status !== "all" ? 1 : 0}
-                open
                 onClear={() => setLocalFilters((f) => ({ ...f, status: "all" }))}
               >
                 <div className="local-status-filter">
@@ -1230,6 +1364,7 @@ export function App() {
             }
             onReset={() => setLocalFilters(defaultLocalFilters())}
             onClose={() => setFiltersOpen(false)}
+            onCollapse={() => setSidebarCollapsed(true)}
           />
         ) : (
           <SidebarControls
@@ -1256,6 +1391,7 @@ export function App() {
             }}
             onReset={resetFilters}
             onClose={() => setFiltersOpen(false)}
+            onCollapse={() => setSidebarCollapsed(true)}
             authLogin={authLogin || undefined}
             collaboratorsFetchedAt={collaboratorsFetchedAt}
             collaboratorsLoading={collaboratorsLoading}
@@ -1263,6 +1399,15 @@ export function App() {
             inbox={inboxSidebar}
           />
         )}
+        <button
+          type="button"
+          className="sidebar-expand-edge tip"
+          data-tip={t("common.expandFilters")}
+          aria-label={t("common.expandFilters")}
+          onClick={() => setSidebarCollapsed(false)}
+        >
+          <LuChevronRight size={16} />
+        </button>
         <main className={`main${dataStale ? " data-stale" : ""}`}>
           {error ? <div className="error">{error}</div> : null}
 
@@ -1398,7 +1543,12 @@ export function App() {
                   <option value="authored-me">{t("preset.authoredMe")}</option>
                   <option value="stale">{t("preset.stale")}</option>
                 </select>
-                <SortSelect id="prs-sort" value={prSort} options={PR_SORT_OPTIONS} onChange={setPrSort} />
+                <SortSelect
+                  id="prs-sort"
+                  value={prSort}
+                  options={PR_SORT_OPTIONS}
+                  onChange={setPrSort}
+                />
               </div>
               <PullRequestList pullRequests={visiblePullRequests} />
               <Pagination
@@ -1711,7 +1861,7 @@ export function App() {
           {tab === "kanban" && projectsEnabled ? <KanbanView /> : null}
         </main>
       </div>
-      <Footer />
+      <Footer segments={footerSegments} />
       {paletteOpen ? (
         <CommandPalette
           repos={repos}

@@ -1,21 +1,24 @@
 /* Layout */
 .layout {
+  --sidebar-w: clamp(260px, 18vw, 316px);
+  --layout-pad: 16px;
   display: grid;
-  grid-template-columns: clamp(260px, 18vw, 316px) minmax(0, 1fr);
+  grid-template-columns: var(--sidebar-w) minmax(0, 1fr);
   gap: clamp(14px, 1.2vw, 22px);
   width: 100%;
   margin: 0;
-  padding: 16px;
+  padding: var(--layout-pad);
 }
 @media (min-width: 720px) {
   .layout {
-    padding: 18px clamp(18px, 2vw, 34px) 44px;
+    --layout-pad: clamp(18px, 2vw, 34px);
+    padding: 18px var(--layout-pad) 44px;
   }
 }
 @media (min-width: 1800px) {
   .layout {
-    grid-template-columns: 300px minmax(0, 1fr);
-    padding-inline: 32px;
+    --sidebar-w: 300px;
+    --layout-pad: 32px;
   }
 }
 @media (max-width: 960px) {
@@ -31,13 +34,15 @@
     bottom: 0;
     left: auto;
     width: min(340px, 88vw);
-    /* biome-ignore lint/complexity/noImportantStyles: needed to override the later-defined base .sidebar { max-height: calc(...) } (equal specificity, wins by source order) */
-    max-height: none !important;
     z-index: 50;
     border-radius: 12px 0 0 12px;
     transform: translateX(105%);
     transition: transform 0.25s ease;
     box-shadow: -12px 0 40px rgba(0, 0, 0, 0.6);
+  }
+  /* Drawer fills the viewport height; the inner wrapper scrolls within it. */
+  .sidebar-scroll {
+    max-height: 100dvh;
   }
   body.filters-open .sidebar {
     transform: translateX(0);
@@ -70,17 +75,36 @@
   position: sticky;
   top: 72px;
   /* Hug the content instead of stretching to the (tall) content column's grid
-     row; cap at the viewport so a long facet list still scrolls internally. */
+     row. The inner `.sidebar-scroll` caps the height and scrolls; the box itself
+     stays overflow-visible so the full-height collapse handle can sit on its
+     right edge without being clipped. */
   align-self: start;
-  max-height: calc(100vh - 96px);
-  overflow: auto;
   background: var(--panel);
   border: 1px solid var(--border-soft);
   border-radius: 10px;
-  padding: 5px;
   box-shadow:
     0 1px 0 rgba(255, 255, 255, 0.035),
     0 14px 34px rgba(0, 0, 0, 0.14);
+}
+.sidebar-scroll {
+  max-height: calc(100vh - 96px);
+  overflow: auto;
+  padding: 5px;
+  border-radius: 10px;
+}
+@media (min-width: 961px) {
+  /* Reserve the right edge for the full-height collapse handle. */
+  .sidebar-scroll {
+    margin-right: 22px;
+  }
+}
+/* On the grid tabs, drop the sidebar so its top lines up with the first content
+   row instead of the view toolbar above it (toolbar height + the row gap). */
+@media (min-width: 961px) {
+  body.tab-repos .sidebar,
+  body.tab-local .sidebar {
+    margin-top: 44px;
+  }
 }
 .side-head {
   display: flex;
@@ -127,6 +151,81 @@
 @media (max-width: 960px) {
   .side-close {
     display: inline-flex;
+  }
+}
+
+/* Desktop-only collapse. Collapsing hides the sidebar and lets the content span
+   the full width. Mobile (<= 960px) keeps the slide-in drawer. */
+@media (min-width: 961px) {
+  body.sidebar-collapsed .layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  body.sidebar-collapsed .sidebar {
+    display: none;
+  }
+}
+
+/* Collapse handle: a full-height strip down the sidebar's right edge (rendered
+   inside the sidebar by SidebarShell, so it always matches the sidebar's height).
+   Expand handle: a matching strip pinned to the screen's left edge, shown only
+   when collapsed. Both are desktop-only — mobile uses the slide-in drawer. */
+.sidebar-collapse-edge,
+.sidebar-expand-edge {
+  display: none;
+}
+@media (min-width: 961px) {
+  .sidebar-collapse-edge {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 22px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    background: transparent;
+    border: none;
+    border-left: 1px solid var(--border-soft);
+    border-radius: 0 10px 10px 0;
+    color: var(--muted-2);
+    cursor: pointer;
+    transition:
+      color 0.15s,
+      background 0.15s;
+  }
+  .sidebar-collapse-edge:hover {
+    color: var(--text);
+    background: var(--panel-2);
+  }
+
+  body.sidebar-collapsed .sidebar-expand-edge {
+    position: fixed;
+    left: 0;
+    top: 124px;
+    bottom: calc(var(--footer-h, 34px) + 14px);
+    z-index: 25;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    padding: 0;
+    background: var(--panel);
+    border: 1px solid var(--border-soft);
+    border-left: none;
+    border-radius: 0 9px 9px 0;
+    color: var(--muted-2);
+    cursor: pointer;
+    box-shadow: 4px 0 14px rgba(0, 0, 0, 0.28);
+    transition:
+      color 0.15s,
+      border-color 0.15s,
+      background 0.15s;
+  }
+  body.sidebar-collapsed .sidebar-expand-edge:hover {
+    color: var(--text);
+    border-color: var(--border);
+    background: var(--panel-2);
   }
 }
 
