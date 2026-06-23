@@ -32,7 +32,10 @@ export function rgbToHsl(r: number, g: number, b: number): [number, number, numb
   return [hue * 60, saturation * 100, lightness * 100];
 }
 
-export function getLabelCssVars(hex: string): CSSProperties | undefined {
+type LabelCssVars = CSSProperties &
+  Record<"--label-r" | "--label-g" | "--label-b" | "--label-h" | "--label-s" | "--label-l", string>;
+
+export function getLabelCssVars(hex: string | undefined): LabelCssVars | undefined {
   const cleaned = (hex || "").replace("#", "").trim();
   if (cleaned.length < 6) return undefined;
   const r = Number.parseInt(cleaned.slice(0, 2), 16);
@@ -47,5 +50,5 @@ export function getLabelCssVars(hex: string): CSSProperties | undefined {
     "--label-h": Math.round(h).toString(),
     "--label-s": Math.round(s).toString(),
     "--label-l": Math.round(l).toString(),
-  } as CSSProperties;
+  } as LabelCssVars;
 }
