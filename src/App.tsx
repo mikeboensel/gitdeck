@@ -73,91 +73,22 @@ import { clearStatsCache, readStatsCache, writeStatsCache } from "./utils/statsC
 import { clearFiltersCache, hydrateFilters, readFiltersCache, writeFiltersCache } from "./utils/filtersCache";
 import { useI18n } from "./i18n/I18nProvider";
 import { useAccounts, useCapability } from "./contexts/AccountContext";
+import { errorMessage } from "./utils/errors";
+import {
+  CACHE_KEY,
+  TAB_ROUTES,
+  defaultIssueFilters,
+  defaultPrFilters,
+  defaultRepoFilters,
+  detailTabFromParams,
+  downloadJson,
+  metricKindFromParams,
+  tabFromPath,
+  type Tab,
+} from "./appHelpers";
 
-type Tab = "inbox" | "repos" | "issues" | "prs" | "kanban" | "insights" | "alerts" | "ci" | "digests";
 type Theme = "dark" | "light" | "auto";
 type TextSize = "small" | "normal" | "large";
-
-const TAB_ROUTES: Record<Tab, string> = {
-  inbox: "/inbox",
-  repos: "/repositories",
-  issues: "/issues",
-  prs: "/pull-requests",
-  kanban: "/board",
-  insights: "/insights",
-  alerts: "/alerts",
-  ci: "/ci",
-  digests: "/daily",
-};
-
-const ROUTE_TABS = new Map<string, Tab>(Object.entries(TAB_ROUTES).map(([tab, route]) => [route, tab as Tab]));
-const DETAIL_TABS = new Set<DetailTab>(["overview", "actions", "pull-requests", "issues", "releases", "forks", "traffic", "mentions", "dependents"]);
-const METRIC_KINDS = new Set<MetricKind>(["stars", "forks"]);
-
-function tabFromPath(pathname: string): Tab {
-  if (pathname === "/alert") return "alerts";
-  return ROUTE_TABS.get(pathname) ?? "repos";
-}
-
-function detailTabFromParams(params: URLSearchParams): DetailTab {
-  const tab = params.get("detail");
-  return tab && DETAIL_TABS.has(tab as DetailTab) ? tab as DetailTab : "overview";
-}
-
-function metricKindFromParams(params: URLSearchParams): MetricKind | null {
-  const metric = params.get("metric");
-  return metric && METRIC_KINDS.has(metric as MetricKind) ? metric as MetricKind : null;
-}
-
-const CACHE_KEY = {
-  repos: "/api/repos",
-  issues: "/api/issues",
-  prs: "/api/prs",
-  insights: "/api/repo-insights",
-  digests: "/api/daily-digests",
-  ciHealth: "/api/ci-health",
-} as const;
-
-const defaultIssueFilters = (): IssueFilters => ({
-  search: "",
-  orgs: new Set(),
-  repos: new Set(),
-  labels: new Set(),
-  authors: new Set(),
-  assignees: new Set(),
-  dates: { cf: "", ct: "", uf: "", ut: "" },
-  preset: "",
-});
-
-const defaultPrFilters = (): PullRequestFilters => ({
-  search: "",
-  orgs: new Set(),
-  repos: new Set(),
-  labels: new Set(),
-  authors: new Set(),
-  assignees: new Set(),
-  dates: { cf: "", ct: "", uf: "", ut: "" },
-  preset: "",
-});
-
-const defaultRepoFilters = (): RepoFilters => ({
-  search: "",
-  orgs: new Set(),
-  languages: new Set(),
-  visibility: "all",
-  includeForks: true,
-  includeArchived: false,
-});
-
-function downloadJson(filename: string, rows: unknown[]) {
-  const blob = new Blob([JSON.stringify(rows, null, 2)], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = filename;
-  anchor.click();
-  URL.revokeObjectURL(url);
-}
 
 type AuthState = "checking" | "anonymous" | "authenticated";
 
@@ -273,8 +204,8 @@ export function App() {
         setAuthLogin(null);
         return;
       }
-      if ((err as Error).name === "AbortError") return;
-      setError((err as Error).message);
+      if (err instanceof Error && err.name === "AbortError") return;
+      setError(errorMessage(err));
     };
 
     void swr<ReposData>(CACHE_KEY.repos, (signal) => fetchRepos(fresh, signal), {
