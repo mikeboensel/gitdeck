@@ -3,6 +3,9 @@ import type { IconType } from "react-icons";
 import {
   LuArrowDownUp,
   LuCircleCheck,
+  LuClock,
+  LuEye,
+  LuEyeOff,
   LuFilePen,
   LuFilePlus,
   LuFileQuestion,
@@ -11,7 +14,7 @@ import {
   LuLock,
   LuPickaxe,
   LuRefreshCw,
-  LuRotateCcw,
+  LuSettings,
   LuTreePine,
   LuTriangleAlert,
 } from "react-icons/lu";
@@ -117,13 +120,6 @@ export function LocalReposView({
                 })
               : t("local.reposFound", { count: formatNumber(totalCount) })}
           </strong>
-          {scannedAt ? (
-            <span className="local-scanned-at">
-              {t("local.scannedAt", {
-                time: formatRelativeTime(scannedAt, Date.now(), language),
-              })}
-            </span>
-          ) : null}
         </div>
         <div className="local-toolbar-actions">
           <RepoViewControls
@@ -147,11 +143,31 @@ export function LocalReposView({
               </option>
             ))}
           </select>
-          <button type="button" className="btn" onClick={() => setSettingsOpen((v) => !v)}>
-            {t("local.manage")}
+          <button
+            type="button"
+            className="btn icon-btn tip"
+            data-tip={t("local.manage")}
+            aria-label={t("local.manage")}
+            onClick={() => setSettingsOpen((v) => !v)}
+          >
+            <LuSettings size={15} />
           </button>
-          <button type="button" className="btn" disabled={loading} onClick={onRescan}>
-            <LuRefreshCw size={13} className={loading ? "spin" : ""} /> {t("local.rescan")}
+          {scannedAt ? (
+            <span className="local-scanned-at">
+              {t("local.scannedAt", {
+                time: formatRelativeTime(scannedAt, Date.now(), language),
+              })}
+            </span>
+          ) : null}
+          <button
+            type="button"
+            className="btn icon-btn tip"
+            data-tip={t("local.rescan")}
+            aria-label={t("local.rescan")}
+            disabled={loading}
+            onClick={onRescan}
+          >
+            <LuRefreshCw size={15} className={loading ? "spin" : ""} />
           </button>
         </div>
       </div>
@@ -187,10 +203,12 @@ export function LocalReposView({
                     </span>
                     <button
                       type="button"
-                      className="btn local-unhide-btn"
+                      className="btn icon-btn tip local-unhide-btn"
+                      data-tip={t("local.unhide")}
+                      aria-label={t("local.unhide")}
                       onClick={() => onUnhide(path)}
                     >
-                      <LuRotateCcw size={13} /> {t("local.unhide")}
+                      <LuEye size={14} />
                     </button>
                   </li>
                 ))}
@@ -478,19 +496,24 @@ function LocalRepoCard({
           </span>
         ) : null}
         {repo.lastCommit ? (
-          <span>
-            {t("local.committed", {
+          <span
+            className="local-committed tip"
+            data-tip={t("local.committed", {
               time: formatRelativeTime(repo.lastCommit.date, Date.now(), language),
             })}
+          >
+            <LuClock size={12} aria-hidden />{" "}
+            {formatRelativeTime(repo.lastCommit.date, Date.now(), language)}
           </span>
         ) : null}
         <button
           type="button"
-          className="local-hide-btn"
+          className="local-hide-btn tip"
+          data-tip={t("local.hide")}
+          aria-label={t("local.hide")}
           onClick={() => onHide(repo.path)}
-          title={t("local.hide")}
         >
-          {t("local.hide")}
+          <LuEyeOff size={14} aria-hidden />
         </button>
       </div>
     </article>
@@ -629,20 +652,33 @@ function LocalRepoRow({
             <LuTreePine size={13} /> {worktrees.length}
           </span>
         ) : null}
-        <span className="repo-row-pushed">
-          {repo.lastCommit
-            ? t("local.committed", {
-                time: formatRelativeTime(repo.lastCommit.date, Date.now(), language),
-              })
-            : "-"}
+        <span
+          className="repo-row-pushed local-committed tip"
+          data-tip={
+            repo.lastCommit
+              ? t("local.committed", {
+                  time: formatRelativeTime(repo.lastCommit.date, Date.now(), language),
+                })
+              : undefined
+          }
+        >
+          {repo.lastCommit ? (
+            <>
+              <LuClock size={12} aria-hidden />{" "}
+              {formatRelativeTime(repo.lastCommit.date, Date.now(), language)}
+            </>
+          ) : (
+            "-"
+          )}
         </span>
         <button
           type="button"
-          className="local-hide-btn"
+          className="local-hide-btn tip"
+          data-tip={t("local.hide")}
+          aria-label={t("local.hide")}
           onClick={() => onHide(repo.path)}
-          title={t("local.hide")}
         >
-          {t("local.hide")}
+          <LuEyeOff size={14} aria-hidden />
         </button>
       </div>
     </div>

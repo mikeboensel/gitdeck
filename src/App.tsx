@@ -267,6 +267,13 @@ export function App() {
   const [repoDensity, setRepoDensity] = useState<RepoDensity>(
     () => (localStorage.getItem("gh-dash.repoDensity") as RepoDensity) || "cozy",
   );
+  // Local tab keeps its own layout/density so toggling one tab never moves the other.
+  const [localLayout, setLocalLayout] = useState<RepoLayout>(
+    () => (localStorage.getItem("gh-dash.localLayout") as RepoLayout) || "grid",
+  );
+  const [localDensity, setLocalDensity] = useState<RepoDensity>(
+    () => (localStorage.getItem("gh-dash.localDensity") as RepoDensity) || "cozy",
+  );
   const abortRef = useRef<AbortController | null>(null);
   const initialLoadRef = useRef(false);
 
@@ -696,14 +703,20 @@ export function App() {
   );
   useEffect(() => localStorage.setItem("gh-dash.repoLayout", repoLayout), [repoLayout]);
   useEffect(() => localStorage.setItem("gh-dash.repoDensity", repoDensity), [repoDensity]);
-  const cycleRepoDensity = useCallback(() => {
-    setRepoDensity(
-      (current) =>
-        REPO_DENSITY_OPTIONS[
-          (REPO_DENSITY_OPTIONS.indexOf(current) + 1) % REPO_DENSITY_OPTIONS.length
-        ] ?? current,
-    );
-  }, []);
+  useEffect(() => localStorage.setItem("gh-dash.localLayout", localLayout), [localLayout]);
+  useEffect(() => localStorage.setItem("gh-dash.localDensity", localDensity), [localDensity]);
+  const cycleDensity = useCallback(
+    (set: typeof setRepoDensity) =>
+      set(
+        (current) =>
+          REPO_DENSITY_OPTIONS[
+            (REPO_DENSITY_OPTIONS.indexOf(current) + 1) % REPO_DENSITY_OPTIONS.length
+          ] ?? current,
+      ),
+    [],
+  );
+  const cycleRepoDensity = useCallback(() => cycleDensity(setRepoDensity), [cycleDensity]);
+  const cycleLocalDensity = useCallback(() => cycleDensity(setLocalDensity), [cycleDensity]);
   useEffect(
     () => localStorage.setItem("gh-dash.inboxPageSize", String(inboxPageSize)),
     [inboxPageSize],
@@ -1699,11 +1712,11 @@ export function App() {
               loading={localLoading}
               error={localError}
               config={localConfig}
-              layout={repoLayout}
-              density={repoDensity}
+              layout={localLayout}
+              density={localDensity}
               sort={localSort}
-              onLayoutChange={setRepoLayout}
-              onCycleDensity={cycleRepoDensity}
+              onLayoutChange={setLocalLayout}
+              onCycleDensity={cycleLocalDensity}
               onSortChange={setLocalSort}
               onRescan={() => reloadLocalRepos(true)}
               onSaveConfig={saveLocalConfig}

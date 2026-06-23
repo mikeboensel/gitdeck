@@ -461,10 +461,14 @@ body.tab-repos .section[data-for="issues-only"] {
    the legacy `.tip::after` pseudo-element was removed. The `tip` class is now
    inert (kept on call sites until a mechanical cleanup pass). */
 
-/* Dense, clickable facet chips: icon/avatar + count, name on hover */
+/* Dense, clickable facet chips: icon/avatar + count, name on hover. Centered so
+   a partial last row (fixed-width chips that wrap) splits its leftover space
+   evenly instead of leaving a dead gutter on the sidebar's right edge. Shared by
+   every facet sidebar (Repositories, Local Repos, …) via the FacetChips primitive. */
 .facet-chips {
   display: flex;
   flex-wrap: wrap;
+  justify-content: center;
   gap: 6px;
   padding: 4px 2px;
 }

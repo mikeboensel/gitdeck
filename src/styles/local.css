@@ -26,6 +26,7 @@
 
 .local-toolbar-actions {
   display: flex;
+  align-items: center;
   gap: 8px;
 }
 
@@ -215,6 +216,9 @@
 }
 
 .local-hide-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   margin-left: auto;
   background: none;
   border: none;
@@ -287,13 +291,6 @@
   gap: 4px;
 }
 
-/* The fixed-width facet chips left-align and wrap, so a partial last column
-   leaves a dead gutter on the sidebar's right edge. Center the rows on the
-   Local tab so the leftover space splits evenly instead. */
-body.tab-local .facet-chips {
-  justify-content: center;
-}
-
 /* List layout: dense one-row-per-repo, reusing the Repos `.repo-row` grid +
    density vars (see views.css). Only the local-specific slots are styled here.
    Placed after the base .local-* rules so the overrides win without raising
@@ -310,11 +307,16 @@ body.tab-local .facet-chips {
   color: var(--muted);
 }
 
-/* Keep the identity column to a single clipped line (name + branch); all the
-   variable-width status/metadata lives in the right stats cluster instead. */
+/* Keep the identity column to a single clipped line (name + branch inline); all
+   the variable-width status/metadata lives in the right stats cluster instead. */
 .local-row .repo-row-main {
+  flex-direction: row;
   flex-wrap: nowrap;
   overflow: hidden;
+}
+.local-row .repo-row-title {
+  flex: 0 1 auto;
+  min-width: 0;
 }
 
 .local-row .local-row-branch {
@@ -334,4 +336,31 @@ body.tab-local .facet-chips {
 .local-row .local-git-status {
   margin-left: 0;
   flex-wrap: nowrap;
+}
+
+/* Icon-only toolbar / action buttons (Manage gear, Rescan, Unhide): square,
+   centered glyph, with the label surfaced on hover via the shared .tip styles. */
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  line-height: 0;
+}
+
+/* Last commit: clock glyph + relative time, replacing the "committed …" text.
+   The full "committed {time}" phrase moves to the hover tooltip. */
+.local-committed {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+.local-committed svg {
+  flex-shrink: 0;
+  opacity: 0.8;
+}
+/* In the row the committed lane is right-aligned (see .repo-row-pushed). */
+.repo-row-pushed.local-committed {
+  justify-content: flex-end;
 }
