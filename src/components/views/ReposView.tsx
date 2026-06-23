@@ -13,10 +13,13 @@ export interface RepoViewDataProps {
   repos: GhRepo[];
   issues: GhIssue[];
   insightsByRepo: Map<string, RepoInsight>;
+  /** Lowercased nameWithOwner → local clone paths on disk. */
+  localClonesByRepo: Map<string, string[]>;
   onRepoClick: (repo: GhRepo) => void;
   onIssuesClick: (repo: string) => void;
   onStarsClick: (repo: string) => void;
   onForksClick: (repo: string) => void;
+  onLocalClick: (repo: string) => void;
 }
 
 interface ReposViewProps extends RepoViewDataProps {

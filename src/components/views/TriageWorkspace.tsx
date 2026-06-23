@@ -12,7 +12,7 @@ import {
   DensityIcon,
   IssueIcon,
   KeyboardIcon,
-  PulseIcon,
+  PullRequestIcon,
   RefreshIcon,
   SearchIcon,
 } from "../common/Icons";
@@ -490,7 +490,7 @@ export function TriageWorkspace({
             </label>
           )}
           <div className="inbox-toolbar">
-            <label className="inbox-checkbox" title="Select all">
+            <label className="inbox-checkbox tip" data-tip="Select all">
               <input
                 type="checkbox"
                 checked={allChecked}
@@ -519,23 +519,23 @@ export function TriageWorkspace({
             )}
             <span className="inbox-toolbar-spacer" />
             {onRefresh ? (
-              <button className="icon-btn" type="button" onClick={onRefresh} title="Refresh">
+              <button className="icon-btn tip" type="button" onClick={onRefresh} data-tip="Refresh">
                 <RefreshIcon />
               </button>
             ) : null}
             <button
-              className="icon-btn"
+              className="icon-btn tip"
               type="button"
               onClick={cycleDensity}
-              title={`Density: ${density}`}
+              data-tip={`Density: ${density}`}
             >
               <DensityIcon />
             </button>
             <button
-              className="icon-btn"
+              className="icon-btn tip"
               type="button"
               onClick={() => setShortcutsOpen((prev) => !prev)}
-              title="Shortcuts"
+              data-tip="Shortcuts"
             >
               <KeyboardIcon />
             </button>
@@ -593,7 +593,7 @@ export function TriageWorkspace({
                     {density !== "compact" ? (
                       <div className="inbox-row-meta">
                         <span className={`inbox-kind ${item.kind}`}>
-                          {item.kind === "pull-request" ? <PulseIcon /> : <IssueIcon />}
+                          {item.kind === "pull-request" ? <PullRequestIcon /> : <IssueIcon />}
                           {kindLabel(item)}
                         </span>
                         <span className="inbox-row-summary">{primaryReason(item)}</span>

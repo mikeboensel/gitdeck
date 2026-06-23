@@ -63,6 +63,11 @@
   --accent-border: rgba(46, 230, 195, 0.32);
   --accent-shadow: rgba(0, 0, 0, 0.22);
   --selection-bg: rgba(46, 230, 195, 0.28);
+
+  /* Global hover-label reveal delay. Single source of truth for every `.tip`
+     tooltip in the app — change here to retune how long users hover before a
+     label appears. */
+  --tip-delay: 0.4s;
 }
 
 :root[data-theme="light"],

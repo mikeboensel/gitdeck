@@ -113,6 +113,18 @@ export interface ReposData {
   fetchedAt: string;
 }
 
+/** A single git remote configured in a local clone's .git/config. */
+export interface LocalRemote {
+  /** Remote name, e.g. "origin", "upstream". */
+  name: string;
+  /** Remote URL as configured. */
+  url: string;
+  /** Parsed host (e.g. "github.com"), or null if unparseable. */
+  host: string | null;
+  /** Parsed owner segment, or null. */
+  owner: string | null;
+}
+
 /** A git repository discovered on the local filesystem. */
 export interface LocalRepo {
   /** Absolute path to the repo's working directory. */
@@ -121,7 +133,9 @@ export interface LocalRepo {
   name: string;
   /** `origin` remote URL, or null when no remote is configured. */
   remoteUrl: string | null;
-  /** Parsed `owner/repo` from the origin remote, or null. */
+  /** All configured remotes (origin, upstream, …), read offline from .git/config. */
+  remotes: LocalRemote[];
+  /** Parsed `owner/repo` from the authoritative (origin) remote, or null. */
   nameWithOwner: string | null;
   /** Host parsed from the origin remote (e.g. "github.com"), or null. */
   host: string | null;
@@ -135,6 +149,13 @@ export interface LocalRepo {
   dirty: boolean;
   /** Most recent commit, or null for an empty repo. */
   lastCommit: { sha: string; date: string; message: string } | null;
+  /** True when this checkout is a linked worktree rather than the primary clone. */
+  isWorktree: boolean;
+  /**
+   * Absolute path to the shared git common dir. The primary clone and all its
+   * linked worktrees share this value — used to cluster them under one repo.
+   */
+  gitCommonDir: string | null;
   /** GitHub metadata when the user's token could read the repo. */
   enrichment: GhRepo | null;
   /**
@@ -328,17 +349,13 @@ export interface RepoInsight {
   starsDelta: number | null;
   forksDelta: number | null;
   releaseCount: number;
+  // Per-repo fetched metrics. A value of -1 (METRIC_UNKNOWN) means the data could
+  // not be read (no access / disabled / API error) and must NOT be shown as 0.
   totalDownloads: number;
   recentDownloads: number;
   viewsCount: number;
   viewsUniques: number;
-  healthScore: number;
-  healthLabel: "strong" | "watch" | "risky";
   securityAlertsCount: number;
-  securityAlertsUnavailable: boolean;
-  alerts: string[];
-  opportunities: string[];
-  correlations: string[];
   latestReleasePublishedAt: string | null;
 }
 

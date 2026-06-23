@@ -63,3 +63,27 @@ export from `src/server/http.ts` and demoted `send`/`sendJson` to internal
 by `repoInsights.ts` + `digests.ts`). The larger follow-up still stands: finish
 migrating `repoInsights`/`digests` off the raw `req/res` helpers entirely, which
 would let `http.ts` go away too.
+
+## Provider abstraction bypassed — GitHub hardcoded in core modules
+
+**Status:** open · **Source:** naming/responsibility triage (finding #1)
+
+A `providers/` layer exists to support both GitHub and Forgejo-compatible
+forges, but several core modules skip it and hardcode `api.github.com`, so any
+Forgejo account silently targets GitHub on these paths — making Forgejo support
+partly fictional.
+
+**Hardcoded call sites:**
+- `src/server/githubClient.ts` — `restApi()` / `gql()` / `restApiPaginate()` all
+  point at `api.github.com`. Used by collaborators, ciHealth, repoInsights,
+  securityAlerts, routes/mentions, routes/delegated, routes/projects.
+- `src/server/authProvider.ts:9` — `USER_URL = "https://api.github.com/user"`;
+  `fetchLogin()` assumes GitHub identity endpoint.
+- `src/server/localReposData.ts:31` — `githubEnricher()` filters to `github.com`
+  only (`ENRICHABLE_HOSTS` hardcoded).
+
+**Plan:** grep `api.github.com` usages, map which call sites have a provider in
+scope, then decide between (a) routing everything through the provider interface
+or (b) making `githubClient` provider-parameterized. Draft a plan before
+touching code. Generic names (`restApi`, `gql`, `githubEnricher`) also hide the
+GitHub-only assumption — rename or fold into the provider as part of this.

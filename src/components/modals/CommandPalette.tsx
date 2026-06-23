@@ -230,11 +230,8 @@ export function CommandPalette({
   }, [activeIndex]);
 
   function handleKeyDown(event: React.KeyboardEvent) {
-    if (event.key === "Escape") {
-      event.preventDefault();
-      onClose();
-      return;
-    }
+    // Escape is handled globally in App (single authority for stacked modals);
+    // a local handler here would race the global one and close two layers at once.
     if (event.key === "ArrowDown") {
       event.preventDefault();
       setActiveIndex((idx) => Math.min(results.flat.length - 1, idx + 1));

@@ -1,4 +1,4 @@
-import { LuArchive, LuGitFork, LuGlobe, LuLock } from "react-icons/lu";
+import { LuArchive, LuFolderGit2, LuGitFork, LuGlobe, LuLock } from "react-icons/lu";
 import { useRightClickMenu } from "../../contexts/RightClickMenuProvider";
 import { useI18n } from "../../i18n/I18nProvider";
 import { buildRepoMenu } from "../../menus/repoMenu";
@@ -17,10 +17,12 @@ import type { RepoViewDataProps } from "./ReposView";
 export function RepoList({
   repos,
   issues,
+  localClonesByRepo,
   onRepoClick,
   onIssuesClick,
   onStarsClick,
   onForksClick,
+  onLocalClick,
 }: RepoViewDataProps) {
   const { language, t } = useI18n();
   const { open } = useRightClickMenu();
@@ -37,6 +39,8 @@ export function RepoList({
     <div className="data-list repo-list">
       {repos.map((repo) => {
         const issueCount = issueCountForRepo(issues, repo.nameWithOwner);
+        const clonePaths = localClonesByRepo.get(repo.nameWithOwner.toLowerCase());
+        const cloneCount = clonePaths?.length ?? 0;
         return (
           // biome-ignore lint/a11y/useSemanticElements: row contains nested interactive elements (repo anchor + stat buttons); a native <button> cannot wrap them, so role="button" with tabIndex/onKeyDown is used instead.
           <div
@@ -118,7 +122,8 @@ export function RepoList({
               </span>
               <button
                 type="button"
-                className={`rc-stat strong star ${repo.stargazerCount ? "clickable" : ""}`}
+                className={`rc-stat strong star tip ${repo.stargazerCount ? "clickable" : ""}`}
+                data-tip={t("repo.stars")}
                 onClick={(event) => {
                   event.stopPropagation();
                   if (repo.stargazerCount) onStarsClick(repo.nameWithOwner);
@@ -128,7 +133,8 @@ export function RepoList({
               </button>
               <button
                 type="button"
-                className={`rc-stat strong fork ${repo.forkCount ? "clickable" : ""}`}
+                className={`rc-stat strong fork tip ${repo.forkCount ? "clickable" : ""}`}
+                data-tip={t("repo.forks")}
                 onClick={(event) => {
                   event.stopPropagation();
                   if (repo.forkCount) onForksClick(repo.nameWithOwner);
@@ -138,13 +144,29 @@ export function RepoList({
               </button>
               <button
                 type="button"
-                className={`rc-stat iss ${issueCount ? "clickable" : ""}`}
+                className={`rc-stat iss tip ${issueCount ? "clickable" : ""}`}
+                data-tip={t("repo.issues")}
                 onClick={(event) => {
                   event.stopPropagation();
                   if (issueCount) onIssuesClick(repo.nameWithOwner);
                 }}
               >
                 <IssueIcon /> {issueCount}
+              </button>
+              <button
+                type="button"
+                className={`rc-stat local-clones tip ${cloneCount ? "clickable" : ""}`}
+                data-tip={
+                  cloneCount
+                    ? `${t("repo.localClones", { count: cloneCount })}\n${clonePaths?.join("\n")}`
+                    : t("repo.localClones", { count: 0 })
+                }
+                onClick={(event) => {
+                  event.stopPropagation();
+                  if (cloneCount) onLocalClick(repo.nameWithOwner);
+                }}
+              >
+                <LuFolderGit2 /> {cloneCount}
               </button>
               <span className="repo-row-pushed">
                 {t("repo.pushed", {

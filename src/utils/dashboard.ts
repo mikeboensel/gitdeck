@@ -1,4 +1,4 @@
-import type { GhIssue, GhPullRequest, GhRepo, RepoInsight, ReviewDecision } from "../types/github";
+import type { GhIssue, GhPullRequest, GhRepo, ReviewDecision } from "../types/github";
 import { getOwner } from "./repository";
 
 export interface DateFilters {
@@ -358,26 +358,16 @@ export function sortIssues(issues: GhIssue[], sort: string): GhIssue[] {
   return sorted;
 }
 
-export function sortRepos(
-  repos: GhRepo[],
-  issues: GhIssue[],
-  sort: string,
-  insightsByRepo?: Map<string, RepoInsight>,
-): GhRepo[] {
+export function sortRepos(repos: GhRepo[], issues: GhIssue[], sort: string): GhRepo[] {
   const sorted = [...repos];
   sorted.sort((a, b) => {
     const issueDelta =
       issueCountForRepo(issues, b.nameWithOwner) - issueCountForRepo(issues, a.nameWithOwner);
-    const healthDelta =
-      (insightsByRepo?.get(b.nameWithOwner)?.healthScore ?? 0) -
-      (insightsByRepo?.get(a.nameWithOwner)?.healthScore ?? 0);
     if (sort === "stars_asc") return a.stargazerCount - b.stargazerCount;
     if (sort === "forks_desc") return b.forkCount - a.forkCount;
     if (sort === "forks_asc") return a.forkCount - b.forkCount;
     if (sort === "issues_desc") return issueDelta;
     if (sort === "issues_asc") return -issueDelta;
-    if (sort === "health_desc") return healthDelta;
-    if (sort === "health_asc") return -healthDelta;
     if (sort === "pushed_desc") return Date.parse(b.pushedAt) - Date.parse(a.pushedAt);
     if (sort === "updated_desc") return Date.parse(b.updatedAt) - Date.parse(a.updatedAt);
     if (sort === "name_asc") return a.nameWithOwner.localeCompare(b.nameWithOwner);

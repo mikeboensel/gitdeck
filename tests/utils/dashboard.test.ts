@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { GhIssue, GhPullRequest, GhRepo, RepoInsight } from "../../src/types/github";
+import type { GhIssue, GhPullRequest, GhRepo } from "../../src/types/github";
 import {
   buildIssueFacets,
   buildPullRequestFacets,
@@ -185,68 +185,6 @@ describe("dashboard utilities", () => {
       "acme/cli",
       "acme/app",
     ]);
-  });
-
-  it("sorts repositories by health score when insight data is available", () => {
-    const insights = new Map<string, RepoInsight>([
-      [
-        "acme/app",
-        {
-          repo: "acme/app",
-          issueCount: 1,
-          staleIssueCount: 0,
-          daysSincePush: 1,
-          daysSinceUpdate: 1,
-          starsDelta: 1,
-          forksDelta: 0,
-          releaseCount: 1,
-          totalDownloads: 10,
-          recentDownloads: 10,
-          viewsCount: 10,
-          viewsUniques: 5,
-          healthScore: 85,
-          healthLabel: "strong",
-          securityAlertsCount: 0,
-          securityAlertsUnavailable: false,
-          alerts: [],
-          opportunities: [],
-          correlations: [],
-          latestReleasePublishedAt: "2026-04-20T10:00:00Z",
-        },
-      ],
-      [
-        "acme/cli",
-        {
-          repo: "acme/cli",
-          issueCount: 1,
-          staleIssueCount: 1,
-          daysSincePush: 40,
-          daysSinceUpdate: 40,
-          starsDelta: null,
-          forksDelta: null,
-          releaseCount: 0,
-          totalDownloads: 0,
-          recentDownloads: 0,
-          viewsCount: 0,
-          viewsUniques: 0,
-          healthScore: 30,
-          healthLabel: "risky",
-          securityAlertsCount: 1,
-          securityAlertsUnavailable: false,
-          alerts: ["risk"],
-          opportunities: [],
-          correlations: [],
-          latestReleasePublishedAt: null,
-        },
-      ],
-    ]);
-
-    expect(
-      sortRepos(repos, issues, "health_desc", insights).map((repo) => repo.nameWithOwner),
-    ).toEqual(["acme/app", "acme/cli"]);
-    expect(
-      sortRepos(repos, issues, "health_asc", insights).map((repo) => repo.nameWithOwner),
-    ).toEqual(["acme/cli", "acme/app"]);
   });
 
   it("builds PR facets from shared PR types", () => {

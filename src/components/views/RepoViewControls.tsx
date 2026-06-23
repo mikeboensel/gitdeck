@@ -30,9 +30,9 @@ export function RepoViewControls({
             <button
               key={option}
               type="button"
-              className={`hover-label-btn${layout === option ? " active" : ""}`}
+              className={`hover-label-btn tip${layout === option ? " active" : ""}`}
               aria-pressed={layout === option}
-              title={label}
+              data-tip={label}
               onClick={() => onLayoutChange(option)}
             >
               <Icon /> <span className="label">{label}</span>
@@ -41,11 +41,11 @@ export function RepoViewControls({
         })}
       </fieldset>
       <button
-        className="hover-label-btn repo-density-btn"
+        className="hover-label-btn repo-density-btn tip"
         type="button"
         onClick={onCycleDensity}
         aria-label={`${t("repo.padding")}: ${density}`}
-        title={`${t("repo.padding")}: ${density}`}
+        data-tip={`${t("repo.padding")}: ${density}`}
       >
         <PaddingIcon density={density} /> <span className="label">{t("repo.padding")}</span>
       </button>

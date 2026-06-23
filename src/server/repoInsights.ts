@@ -1,6 +1,6 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { GhIssue, GhRepo, RepoInsight } from "../types/github";
-import { buildRepoInsight } from "../utils/insights";
+import { buildRepoInsight, METRIC_UNKNOWN } from "../utils/insights";
 import { getIssuesCached, getReposCached } from "./dashboardData";
 import { ghApiJson, restApiPaginate } from "./githubClient";
 import { sendJsonCacheable } from "./http";
@@ -28,19 +28,8 @@ async function fetchInsightForRepo(repo: GhRepo, issues: GhIssue[]): Promise<Rep
     fetchRepoSecuritySummary(repo.nameWithOwner),
   ]);
   const releaseList = releases.ok ? releases.data : [];
-  const totalDownloads = releaseList.reduce(
-    (sum, release) =>
-      sum +
-      (release.assets ?? []).reduce((assetSum, asset) => assetSum + (asset.download_count || 0), 0),
-    0,
-  );
-  const recentDownloads = releaseList
-    .filter(
-      (release) =>
-        release.published_at &&
-        Date.now() - new Date(release.published_at).getTime() <= 30 * 86_400_000,
-    )
-    .reduce(
+  const sumAssetDownloads = (list: ReleaseApi[]) =>
+    list.reduce(
       (sum, release) =>
         sum +
         (release.assets ?? []).reduce(
@@ -49,6 +38,18 @@ async function fetchInsightForRepo(repo: GhRepo, issues: GhIssue[]): Promise<Rep
         ),
       0,
     );
+  // When the releases call failed we cannot know download counts — report -1
+  // (unknown) rather than 0, which would imply a real "no downloads".
+  const totalDownloads = releases.ok ? sumAssetDownloads(releaseList) : METRIC_UNKNOWN;
+  const recentDownloads = releases.ok
+    ? sumAssetDownloads(
+        releaseList.filter(
+          (release) =>
+            release.published_at &&
+            Date.now() - new Date(release.published_at).getTime() <= 30 * 86_400_000,
+        ),
+      )
+    : METRIC_UNKNOWN;
   const latestReleasePublishedAt =
     releaseList
       .map((release) => release.published_at)
@@ -60,14 +61,15 @@ async function fetchInsightForRepo(repo: GhRepo, issues: GhIssue[]): Promise<Rep
   return buildRepoInsight({
     repo,
     issues,
-    viewsCount: viewData?.count ?? 0,
-    viewsUniques: viewData?.uniques ?? 0,
+    // Traffic needs push access; a failed call is unknown (-1), not 0 views.
+    viewsCount: views.ok ? (viewData?.count ?? 0) : METRIC_UNKNOWN,
+    viewsUniques: views.ok ? (viewData?.uniques ?? 0) : METRIC_UNKNOWN,
     releaseCount: releaseList.length,
     totalDownloads,
     recentDownloads,
     latestReleasePublishedAt,
-    securityAlertsCount: security.totalOpen,
-    securityAlertsUnavailable: security.unavailable,
+    // security.unavailable => we could not read alerts; surface as unknown (-1).
+    securityAlertsCount: security.unavailable ? METRIC_UNKNOWN : security.totalOpen,
   });
 }
 
@@ -120,7 +122,7 @@ export async function getRepoInsightsCached(forceFresh: boolean) {
       generatedAt: new Date().toISOString(),
       insights: insights.sort(
         (a, b) =>
-          a.healthScore - b.healthScore ||
+          b.securityAlertsCount - a.securityAlertsCount ||
           b.issueCount - a.issueCount ||
           a.repo.localeCompare(b.repo),
       ),

@@ -91,9 +91,56 @@
   gap: 12px;
 }
 
+/* A repo and its linked worktrees, boxed together so the duplication reads as
+   intentional rather than as accidental dupes. */
+.local-cluster {
+  margin-top: 12px;
+  padding: 10px;
+  border: 1px solid var(--border-soft);
+  border-left: 3px solid var(--accent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--accent) 4%, transparent);
+}
+
+.local-cluster-head {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+.local-card-worktree {
+  border-style: dashed;
+}
+
+.local-worktree-badge {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
 .local-card .local-card-icon {
   color: var(--muted);
   flex: 0 0 auto;
+}
+
+/* Clone targeted from a repo card's clone badge: brief ring to orient the user. */
+.local-card.local-card-focused {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+  animation: local-card-pulse 1.6s ease-out 1;
+}
+
+@keyframes local-card-pulse {
+  0% {
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 55%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 1px var(--accent);
+  }
 }
 
 .local-path {
@@ -169,4 +216,14 @@
 
 .local-hide-btn:hover {
   color: var(--danger);
+}
+
+/* Git-status radio group in the FacetSidebar (reuses .check label styling). */
+.local-status-filter {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.local-status-filter .check {
+  cursor: pointer;
 }

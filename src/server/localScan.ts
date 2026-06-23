@@ -1,8 +1,9 @@
 import { execFile } from "node:child_process";
 import type { Dirent } from "node:fs";
 import { readdir } from "node:fs/promises";
-import { basename, join } from "node:path";
+import { basename, join, resolve } from "node:path";
 import { promisify } from "node:util";
+import type { LocalRemote } from "../types/github";
 import { logger } from "./logger";
 
 const execFileAsync = promisify(execFile);
@@ -12,6 +13,8 @@ export interface ScannedRepo {
   path: string;
   name: string;
   remoteUrl: string | null;
+  /** All configured remotes, read offline from .git/config. */
+  remotes: LocalRemote[];
   nameWithOwner: string | null;
   host: string | null;
   branch: string | null;
@@ -19,6 +22,14 @@ export interface ScannedRepo {
   behind: number;
   dirty: boolean;
   lastCommit: { sha: string; date: string; message: string } | null;
+  /** True when this checkout is a linked worktree (`git worktree add`), not the primary. */
+  isWorktree: boolean;
+  /**
+   * Absolute path to the shared git common dir (the primary repo's `.git`). All
+   * checkouts of one repo — the primary plus every linked worktree — share this
+   * value, so it's the stable identity used to cluster them together.
+   */
+  gitCommonDir: string | null;
 }
 
 /**
@@ -91,6 +102,29 @@ export function parseRemoteUrl(url: string): { host: string; owner: string; repo
   return { host, owner, repo };
 }
 
+/**
+ * Parse `git remote -v` output into a deduped list of remotes. Output is two
+ * lines per remote (fetch + push); we key off the fetch line and keep one entry
+ * per remote name, preserving discovery order (origin typically first).
+ */
+export function parseRemotes(raw: string): LocalRemote[] {
+  const byName = new Map<string, LocalRemote>();
+  for (const line of raw.split("\n")) {
+    const match = /^(\S+)\s+(\S+)\s+\((fetch|push)\)/.exec(line.trim());
+    if (!match) continue;
+    const [, name, url] = match;
+    if (!name || !url || byName.has(name)) continue;
+    const parsed = parseRemoteUrl(url);
+    byName.set(name, {
+      name,
+      url,
+      host: parsed?.host ?? null,
+      owner: parsed?.owner ?? null,
+    });
+  }
+  return [...byName.values()];
+}
+
 async function git(cwd: string, args: string[]): Promise<string | null> {
   try {
     const { stdout } = await execFileAsync("git", ["-C", cwd, ...args], {
@@ -104,15 +138,21 @@ async function git(cwd: string, args: string[]): Promise<string | null> {
 }
 
 async function readGitMeta(repoPath: string): Promise<ScannedRepo> {
-  const [remoteRaw, branchRaw, statusRaw, aheadBehindRaw, lastCommitRaw] = await Promise.all([
-    git(repoPath, ["remote", "get-url", "origin"]),
-    git(repoPath, ["rev-parse", "--abbrev-ref", "HEAD"]),
-    git(repoPath, ["status", "--porcelain"]),
-    git(repoPath, ["rev-list", "--left-right", "--count", "@{u}...HEAD"]),
-    git(repoPath, ["log", "-1", "--format=%H%n%cI%n%s"]),
-  ]);
+  const [remotesRaw, branchRaw, statusRaw, aheadBehindRaw, lastCommitRaw, gitDirsRaw] =
+    await Promise.all([
+      git(repoPath, ["remote", "-v"]),
+      git(repoPath, ["rev-parse", "--abbrev-ref", "HEAD"]),
+      git(repoPath, ["status", "--porcelain"]),
+      git(repoPath, ["rev-list", "--left-right", "--count", "@{u}...HEAD"]),
+      git(repoPath, ["log", "-1", "--format=%H%n%cI%n%s"]),
+      git(repoPath, ["rev-parse", "--git-dir", "--git-common-dir"]),
+    ]);
 
-  const remoteUrl = remoteRaw?.trim() || null;
+  // `origin` is the authoritative remote for owner/name; fall back to the first
+  // configured remote when there's no `origin`.
+  const remotes = remotesRaw ? parseRemotes(remotesRaw) : [];
+  const authoritative = remotes.find((r) => r.name === "origin") ?? remotes[0] ?? null;
+  const remoteUrl = authoritative?.url ?? null;
   const parsed = remoteUrl ? parseRemoteUrl(remoteUrl) : null;
   const branchValue = branchRaw?.trim();
   const branch = branchValue ? branchValue : null;
@@ -137,10 +177,28 @@ async function readGitMeta(repoPath: string): Promise<ScannedRepo> {
     if (sha && date) lastCommit = { sha, date, message: lines[2] ?? "" };
   }
 
+  // `--git-dir --git-common-dir` prints the per-checkout gitdir then the shared
+  // common dir. They're equal for the primary repo and differ for a linked
+  // worktree (whose gitdir is `<common>/.git/worktrees/<name>`). Resolve both
+  // against the repo path since git may emit either relative or absolute forms.
+  let isWorktree = false;
+  let gitCommonDir: string | null = null;
+  if (gitDirsRaw) {
+    const lines = gitDirsRaw.trim().split("\n");
+    const gitDir = lines[0]?.trim();
+    const commonDir = lines[1]?.trim();
+    if (gitDir && commonDir) {
+      const absGitDir = resolve(repoPath, gitDir);
+      gitCommonDir = resolve(repoPath, commonDir);
+      isWorktree = absGitDir !== gitCommonDir;
+    }
+  }
+
   return {
     path: repoPath,
     name: parsed?.repo ?? basename(repoPath),
     remoteUrl,
+    remotes,
     nameWithOwner: parsed ? `${parsed.owner}/${parsed.repo}` : null,
     host: parsed?.host ?? null,
     branch,
@@ -148,6 +206,8 @@ async function readGitMeta(repoPath: string): Promise<ScannedRepo> {
     behind,
     dirty: Boolean(statusRaw && statusRaw.trim().length > 0),
     lastCommit,
+    isWorktree,
+    gitCommonDir,
   };
 }
 

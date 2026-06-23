@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { LuBuilding2, LuGitBranch, LuServer } from "react-icons/lu";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { invalidate as invalidateCache, peek, swr } from "./api/cache";
 import {
@@ -8,6 +9,8 @@ import {
   fetchCollaborators,
   fetchDailyDigests,
   fetchIssues,
+  fetchLocalRepos,
+  fetchLocalReposConfig,
   fetchNotifications,
   fetchPullRequests,
   fetchRepoInsights,
@@ -15,6 +18,7 @@ import {
   logoutAuth,
   markAllNotificationsRead,
   markNotificationRead,
+  updateLocalReposConfig,
 } from "./api/github";
 import {
   CACHE_KEY,
@@ -29,7 +33,19 @@ import {
   tabFromPath,
 } from "./appHelpers";
 import { AuthGate } from "./components/AuthGate";
-import { BoardIcon, BookIcon, InboxIcon, IssueIcon, PulseIcon } from "./components/common/Icons";
+import { Avatar } from "./components/common/Avatar";
+import {
+  BarChartIcon,
+  BoardIcon,
+  BookIcon,
+  CalendarIcon,
+  FolderIcon,
+  InboxIcon,
+  IssueIcon,
+  PullRequestIcon,
+  PulseIcon,
+  ShieldIcon,
+} from "./components/common/Icons";
 import { Pagination } from "./components/common/Pagination";
 import { Footer } from "./components/Footer";
 import { ChangelogModal } from "./components/modals/ChangelogModal";
@@ -39,6 +55,8 @@ import { type DetailTab, RepositoryDetailsModal } from "./components/modals/Repo
 import { type MetricKind, RepositoryMetricModal } from "./components/modals/RepositoryMetricModal";
 import { WelcomeModal } from "./components/modals/WelcomeModal";
 import { type InboxSidebarState, SidebarControls } from "./components/SidebarControls";
+import { type FacetGroup, FacetSidebar } from "./components/sidebar/FacetSidebar";
+import { FilterSection, toggleSetValue } from "./components/sidebar/primitives";
 import { TopBar } from "./components/TopBar";
 import { CIHealthView } from "./components/views/CIHealthView";
 import { DailyDigestView } from "./components/views/DailyDigestView";
@@ -67,6 +85,9 @@ import type {
   GhPullRequest,
   GhRepo,
   IssuesData,
+  LocalRepo,
+  LocalReposConfig,
+  LocalReposData,
   PullRequestsData,
   RepoCIHealth,
   RepoInsight,
@@ -108,6 +129,12 @@ import {
   matchesInboxMailbox,
   mergeNotifications,
 } from "./utils/inbox";
+import {
+  buildLocalFacets,
+  defaultLocalFilters,
+  filterLocalRepos,
+  type LocalRepoFilters,
+} from "./utils/localRepos";
 import { clampPage } from "./utils/pagination";
 import { clearStatsCache, readStatsCache, writeStatsCache } from "./utils/statsCache";
 
@@ -152,6 +179,20 @@ export function App() {
     () => readCollaboratorsCache()?.fetchedAt ?? null,
   );
   const [collaboratorsLoading, setCollaboratorsLoading] = useState(false);
+  // Repo nameWithOwner (lowercased) → local clone paths on disk. Drives the
+  // clone-count badge on repo cards; not account-scoped (clones live on disk).
+  const [localClonesByRepo, setLocalClonesByRepo] = useState<Map<string, string[]>>(new Map());
+  // -1 = not yet scanned (uncertain); a real count once the scan resolves.
+  const [localReposCount, setLocalReposCount] = useState(-1);
+  const localReposFetchedRef = useRef(false);
+  // Full local-repo dataset + scan/config/filter state for the Local tab. App
+  // owns it (like GitHub repos) so the FacetSidebar and the view share one fetch.
+  const [localRepos, setLocalRepos] = useState<LocalRepo[]>([]);
+  const [localScannedAt, setLocalScannedAt] = useState<string | null>(null);
+  const [localLoading, setLocalLoading] = useState(false);
+  const [localError, setLocalError] = useState("");
+  const [localConfig, setLocalConfig] = useState<LocalReposConfig | null>(null);
+  const [localFilters, setLocalFilters] = useState<LocalRepoFilters>(() => defaultLocalFilters());
   const [dailyDigests, setDailyDigests] = useState<DailyDigestEntry[]>([]);
   const [digestPeriod, setDigestPeriod] = useState<DigestPeriod>(
     () => (localStorage.getItem("gh-dash.digestPeriod") as DigestPeriod) || "day",
@@ -420,6 +461,74 @@ export function App() {
     return () => controller.abort();
   }, [tab, authState, activeAccountId, collaboratorsFetchedAt, applyCollaborators]);
 
+  // Apply a fresh local-repo dataset: store the repos + scan time, and derive
+  // the clone-count map (lowercased nameWithOwner → on-disk paths) used by the
+  // Repos-tab clone badge. Local data is disk state, not account-scoped.
+  const applyLocalRepos = useCallback((data: LocalReposData) => {
+    setLocalRepos(data.repos);
+    setLocalScannedAt(data.scannedAt);
+    const map = new Map<string, string[]>();
+    for (const local of data.repos) {
+      if (!local.nameWithOwner) continue;
+      const key = local.nameWithOwner.toLowerCase();
+      const paths = map.get(key) ?? [];
+      paths.push(local.path);
+      map.set(key, paths);
+    }
+    setLocalClonesByRepo(map);
+    setLocalReposCount(data.repos.length);
+  }, []);
+
+  const reloadLocalRepos = useCallback(
+    (fresh: boolean) => {
+      setLocalLoading(true);
+      setLocalError("");
+      fetchLocalRepos(fresh)
+        .then(applyLocalRepos)
+        .catch((err: unknown) => setLocalError(err instanceof Error ? err.message : String(err)))
+        .finally(() => setLocalLoading(false));
+    },
+    [applyLocalRepos],
+  );
+
+  // Scan once when the Repos or Local tab is first opened (the disk walk is
+  // expensive — explicit Rescan / config changes drive freshness afterwards).
+  useEffect(() => {
+    if (authState !== "authenticated") return;
+    if (tab !== "repos" && tab !== "local") return;
+    if (localReposFetchedRef.current) return;
+    localReposFetchedRef.current = true;
+    reloadLocalRepos(false);
+    fetchLocalReposConfig()
+      .then(({ config }) => setLocalConfig(config))
+      .catch(() => {});
+  }, [tab, authState, reloadLocalRepos]);
+
+  // Persist a scan-config change (roots/excludes), then rescan to reflect it.
+  const saveLocalConfig = useCallback(
+    (updates: Partial<LocalReposConfig>) => {
+      updateLocalReposConfig(updates)
+        .then(({ config }) => {
+          setLocalConfig(config);
+          reloadLocalRepos(true);
+        })
+        .catch((err: unknown) => setLocalError(err instanceof Error ? err.message : String(err)));
+    },
+    [reloadLocalRepos],
+  );
+
+  // Triage: add a repo path to the denylist (optimistically drop it from view).
+  const hideLocalRepo = useCallback(
+    (path: string) => {
+      setLocalRepos((prev) => prev.filter((r) => r.path !== path));
+      const denylist = [...(localConfig?.denylist ?? []), path];
+      updateLocalReposConfig({ denylist })
+        .then(({ config }) => setLocalConfig(config))
+        .catch((err: unknown) => setLocalError(err instanceof Error ? err.message : String(err)));
+    },
+    [localConfig],
+  );
+
   const refreshCollaborators = useCallback(() => {
     setCollaboratorsLoading(true);
     fetchCollaborators(true)
@@ -523,6 +632,36 @@ export function App() {
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, []);
+
+  // Escape closes the topmost open overlay. Modals can stack (e.g. the command
+  // palette opens via ⌘K over a repo modal), so close only the frontmost one in
+  // priority order rather than all at once.
+  useEffect(() => {
+    function handler(event: KeyboardEvent) {
+      if (event.key !== "Escape") return;
+      // routeRepoName covers both the repo-detail and metric modals (searchParams
+      // driven); both dismiss by navigating back to the current tab route.
+      if (paletteOpen) setPaletteOpen(false);
+      else if (routeRepoName) navigate(TAB_ROUTES[tab]);
+      else if (changelogOpen) setChangelogOpen(false);
+      else if (contributorsOpen) setContributorsOpen(false);
+      else if (welcomeOpen) setWelcomeOpen(false);
+      else if (filtersOpen) setFiltersOpen(false);
+      else return;
+      event.preventDefault();
+    }
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [
+    paletteOpen,
+    routeRepoName,
+    changelogOpen,
+    contributorsOpen,
+    welcomeOpen,
+    filtersOpen,
+    navigate,
+    tab,
+  ]);
 
   useEffect(
     () => localStorage.setItem("gh-dash.issuesPageSize", String(issuePageSize)),
@@ -651,6 +790,46 @@ export function App() {
     () => buildRepoFacets(repos, collaboratorsByRepo),
     [repos, collaboratorsByRepo],
   );
+  const localFacets = useMemo(() => buildLocalFacets(localRepos), [localRepos]);
+  const filteredLocalRepos = useMemo(
+    () => filterLocalRepos(localRepos, localFilters),
+    [localRepos, localFilters],
+  );
+  const localFacetGroups = useMemo<FacetGroup[]>(
+    () => [
+      {
+        key: "owners",
+        title: t("local.facetOwner"),
+        icon: <LuBuilding2 size={16} />,
+        entries: [...localFacets.owners.entries()],
+        selected: localFilters.owners,
+        onToggle: (v) => setLocalFilters((f) => ({ ...f, owners: toggleSetValue(f.owners, v) })),
+        onClear: () => setLocalFilters((f) => ({ ...f, owners: new Set() })),
+        render: "chips",
+        renderIcon: (name) => <Avatar login={name} size={24} className="facet-chip-avatar" />,
+        open: true,
+      },
+      {
+        key: "hosts",
+        title: t("local.facetHost"),
+        icon: <LuServer size={16} />,
+        entries: [...localFacets.hosts.entries()],
+        selected: localFilters.hosts,
+        onToggle: (v) => setLocalFilters((f) => ({ ...f, hosts: toggleSetValue(f.hosts, v) })),
+        onClear: () => setLocalFilters((f) => ({ ...f, hosts: new Set() })),
+      },
+      {
+        key: "remotes",
+        title: t("local.facetRemote"),
+        icon: <LuGitBranch size={16} />,
+        entries: [...localFacets.remotes.entries()],
+        selected: localFilters.remotes,
+        onToggle: (v) => setLocalFilters((f) => ({ ...f, remotes: toggleSetValue(f.remotes, v) })),
+        onClear: () => setLocalFilters((f) => ({ ...f, remotes: new Set() })),
+      },
+    ],
+    [localFacets, localFilters, t],
+  );
   const insightsByRepo = useMemo(
     () => new Map(repoInsights.map((insight) => [insight.repo, insight])),
     [repoInsights],
@@ -664,14 +843,8 @@ export function App() {
     [pullRequests, prFilters, prSort, userLogin],
   );
   const filteredRepos = useMemo(
-    () =>
-      sortRepos(
-        filterRepos(repos, issues, repoFilters, collaboratorsByRepo),
-        issues,
-        repoSort,
-        insightsByRepo,
-      ),
-    [repos, issues, repoFilters, repoSort, insightsByRepo, collaboratorsByRepo],
+    () => sortRepos(filterRepos(repos, issues, repoFilters, collaboratorsByRepo), issues, repoSort),
+    [repos, issues, repoFilters, repoSort, collaboratorsByRepo],
   );
   const filteredInsights = useMemo(
     () =>
@@ -680,7 +853,10 @@ export function App() {
         .filter((value): value is RepoInsight => Boolean(value))
         .filter(
           (insight) =>
-            insight.alerts.length || insight.opportunities.length || insight.correlations.length,
+            insight.issueCount > 0 ||
+            insight.securityAlertsCount > 0 ||
+            insight.viewsCount > 0 ||
+            insight.totalDownloads > 0,
         ),
     [filteredRepos, insightsByRepo],
   );
@@ -715,29 +891,31 @@ export function App() {
   const stalePrCount = pullRequests.filter(
     (pr) => Date.now() - new Date(pr.updatedAt).getTime() > 14 * 86_400_000,
   ).length;
-  const averageHealth = repoInsights.length
-    ? Math.round(
-        repoInsights.reduce((sum, insight) => sum + insight.healthScore, 0) / repoInsights.length,
-      )
-    : 0;
-  const totalAlerts = repoInsights.reduce((sum, insight) => sum + insight.alerts.length, 0);
-  const totalSecurityAlerts = repoInsights.reduce(
-    (sum, insight) => sum + insight.securityAlertsCount,
+  const totalOpenIssues = repoInsights.reduce((sum, insight) => sum + insight.issueCount, 0);
+  const reposWithIssuesCount = repoInsights.filter((insight) => insight.issueCount > 0).length;
+  // Unknown metrics are -1; exclude them from totals so a failed fetch never
+  // inflates or deflates a sum (and never reads as a confident 0).
+  const totalViews = repoInsights.reduce(
+    (sum, insight) => (insight.viewsCount >= 0 ? sum + insight.viewsCount : sum),
     0,
   );
+  const totalReleaseDownloads = repoInsights.reduce(
+    (sum, insight) => (insight.totalDownloads >= 0 ? sum + insight.totalDownloads : sum),
+    0,
+  );
+  const totalSecurityAlerts = repoInsights.reduce(
+    (sum, insight) => (insight.securityAlertsCount >= 0 ? sum + insight.securityAlertsCount : sum),
+    0,
+  );
+  const viewsKnownCount = repoInsights.filter((insight) => insight.viewsCount >= 0).length;
+  const downloadsKnownCount = repoInsights.filter((insight) => insight.totalDownloads >= 0).length;
   const securityRepoCount = repoInsights.filter(
     (insight) => insight.securityAlertsCount > 0,
   ).length;
-  const securityInsightsAlertCount = securityInsights.reduce(
-    (sum, insight) => sum + insight.alerts.length,
-    0,
-  );
-  const securityAverageHealth = securityInsights.length
-    ? Math.round(
-        securityInsights.reduce((sum, insight) => sum + insight.healthScore, 0) /
-          securityInsights.length,
-      )
-    : 0;
+  const securityUnavailableCount = repoInsights.filter(
+    (insight) => insight.securityAlertsCount < 0,
+  ).length;
+  const securityOpenIssues = securityInsights.reduce((sum, insight) => sum + insight.issueCount, 0);
   const reposByName = useMemo(
     () => new Map(repos.map((repo) => [repo.nameWithOwner, repo])),
     [repos],
@@ -864,32 +1042,37 @@ export function App() {
       count: repos.length,
       icon: <BookIcon />,
     },
-    { key: "local" as const, label: t("tabs.local"), count: "—", icon: <BookIcon /> },
+    {
+      key: "local" as const,
+      label: t("tabs.local"),
+      count: localReposCount < 0 ? "—" : localReposCount,
+      icon: <FolderIcon />,
+    },
     { key: "issues" as const, label: t("tabs.issues"), count: issues.length, icon: <IssueIcon /> },
     {
       key: "prs" as const,
       label: t("tabs.pullRequests"),
       count: pullRequests.length,
-      icon: <PulseIcon />,
+      icon: <PullRequestIcon />,
     },
     {
       key: "insights" as const,
       label: t("tabs.insights"),
       count: filteredInsights.length,
-      icon: <PulseIcon />,
+      icon: <BarChartIcon />,
     },
     {
       key: "alerts" as const,
       label: t("tabs.alerts"),
       count: totalSecurityAlerts,
-      icon: <PulseIcon />,
+      icon: <ShieldIcon />,
     },
     { key: "ci" as const, label: t("tabs.ci"), count: ciHealth.length, icon: <PulseIcon /> },
     {
       key: "digests" as const,
       label: t("tabs.digest"),
       count: dailyDigests.length,
-      icon: <PulseIcon />,
+      icon: <CalendarIcon />,
     },
     ...(projectsEnabled
       ? [{ key: "kanban" as const, label: t("tabs.board"), count: "—", icon: <BoardIcon /> }]
@@ -938,36 +1121,68 @@ export function App() {
         onClick={() => setFiltersOpen(false)}
       />
       <div className="layout">
-        <SidebarControls
-          tab={tab}
-          search={search}
-          issueFilters={issueFilters}
-          prFilters={prFilters}
-          repoFilters={repoFilters}
-          issueFacets={issueFacets}
-          prFacets={prFacets}
-          repoFacets={repoFacets}
-          onSearchChange={setSearch}
-          onIssueFiltersChange={(next) => {
-            setIssueFilters(next);
-            setIssuePage(1);
-          }}
-          onPrFiltersChange={(next) => {
-            setPrFilters(next);
-            setPrPage(1);
-          }}
-          onRepoFiltersChange={(next) => {
-            setRepoFilters(next);
-            setRepoPage(1);
-          }}
-          onReset={resetFilters}
-          onClose={() => setFiltersOpen(false)}
-          authLogin={authLogin || undefined}
-          collaboratorsFetchedAt={collaboratorsFetchedAt}
-          collaboratorsLoading={collaboratorsLoading}
-          onRefreshCollaborators={refreshCollaborators}
-          inbox={inboxSidebar}
-        />
+        {tab === "local" ? (
+          <FacetSidebar
+            search={localFilters.search}
+            onSearchChange={(value) => setLocalFilters((f) => ({ ...f, search: value }))}
+            groups={localFacetGroups}
+            extraSections={
+              <FilterSection
+                title={t("local.facetGitStatus")}
+                activeCount={localFilters.status !== "all" ? 1 : 0}
+                open
+                onClear={() => setLocalFilters((f) => ({ ...f, status: "all" }))}
+              >
+                <div className="local-status-filter">
+                  {(["all", "dirty", "clean"] as const).map((s) => (
+                    <label className="check" key={s}>
+                      <input
+                        type="radio"
+                        name="local-status"
+                        checked={localFilters.status === s}
+                        onChange={() => setLocalFilters((f) => ({ ...f, status: s }))}
+                      />
+                      <span className="label-text">{t(`local.status_${s}`)}</span>
+                    </label>
+                  ))}
+                </div>
+              </FilterSection>
+            }
+            onReset={() => setLocalFilters(defaultLocalFilters())}
+            onClose={() => setFiltersOpen(false)}
+          />
+        ) : (
+          <SidebarControls
+            tab={tab}
+            search={search}
+            issueFilters={issueFilters}
+            prFilters={prFilters}
+            repoFilters={repoFilters}
+            issueFacets={issueFacets}
+            prFacets={prFacets}
+            repoFacets={repoFacets}
+            onSearchChange={setSearch}
+            onIssueFiltersChange={(next) => {
+              setIssueFilters(next);
+              setIssuePage(1);
+            }}
+            onPrFiltersChange={(next) => {
+              setPrFilters(next);
+              setPrPage(1);
+            }}
+            onRepoFiltersChange={(next) => {
+              setRepoFilters(next);
+              setRepoPage(1);
+            }}
+            onReset={resetFilters}
+            onClose={() => setFiltersOpen(false)}
+            authLogin={authLogin || undefined}
+            collaboratorsFetchedAt={collaboratorsFetchedAt}
+            collaboratorsLoading={collaboratorsLoading}
+            onRefreshCollaborators={refreshCollaborators}
+            inbox={inboxSidebar}
+          />
+        )}
         <main className={`main${dataStale ? " data-stale" : ""}`}>
           {error ? <div className="error">{error}</div> : null}
 
@@ -1177,10 +1392,10 @@ export function App() {
                   </div>
                   <div className="sub">{t("stats.acrossShown")}</div>
                 </div>
-                <div className="stat">
-                  <div className="k">{t("stats.averageHealth")}</div>
-                  <div className="v">{formatNumber(averageHealth)}</div>
-                  <div className="sub">{t("stats.fromRepoSignals")}</div>
+                <div className="stat" title={t("tip.totalOpenIssues")}>
+                  <div className="k">{t("stats.openIssues")}</div>
+                  <div className="v">{formatNumber(totalOpenIssues)}</div>
+                  <div className="sub">{t("stats.acrossShown")}</div>
                 </div>
               </section>
               <div className="toolbar">
@@ -1208,8 +1423,6 @@ export function App() {
                   <option value="forks_asc">{t("sort.fewestForks")}</option>
                   <option value="issues_desc">{t("sort.mostOpenIssues")}</option>
                   <option value="issues_asc">{t("sort.fewestOpenIssues")}</option>
-                  <option value="health_desc">{t("sort.bestHealth")}</option>
-                  <option value="health_asc">{t("sort.mostAtRisk")}</option>
                   <option value="pushed_desc">{t("sort.recentlyPushed")}</option>
                   <option value="updated_desc">{t("sort.recentlyUpdated")}</option>
                   <option value="name_asc">{t("sort.nameAZ")}</option>
@@ -1221,6 +1434,10 @@ export function App() {
                 repos={visibleRepos}
                 issues={issues}
                 insightsByRepo={insightsByRepo}
+                localClonesByRepo={localClonesByRepo}
+                onLocalClick={(repo) =>
+                  navigate(`${TAB_ROUTES.local}?localFocus=${encodeURIComponent(repo)}`)
+                }
                 onRepoClick={openRepoModal}
                 onIssuesClick={(repo) => {
                   setIssueFilters({ ...issueFilters, repos: new Set([repo]) });
@@ -1245,29 +1462,29 @@ export function App() {
           {tab === "insights" ? (
             <div className="view-insights" style={{ display: "block" }}>
               <section className="stats">
-                <div className="stat">
-                  <div className="k">{t("stats.averageHealth")}</div>
-                  <div className="v">{formatNumber(averageHealth)}</div>
-                  <div className="sub">{t("stats.acrossTrackedRepos")}</div>
+                <div className="stat" title={t("tip.totalOpenIssues")}>
+                  <div className="k">{t("stats.openIssues")}</div>
+                  <div className="v">{formatNumber(totalOpenIssues)}</div>
+                  <div className="sub">{t("stats.acrossShown")}</div>
                 </div>
-                <div className="stat">
-                  <div className="k">{t("stats.alertCount")}</div>
-                  <div className="v">{formatNumber(totalAlerts)}</div>
-                  <div className="sub">{t("stats.activeRisksDetected")}</div>
+                <div className="stat" title={t("tip.reposWithOpenIssues")}>
+                  <div className="k">{t("stats.reposWithOpenIssues")}</div>
+                  <div className="v">{formatNumber(reposWithIssuesCount)}</div>
+                  <div className="sub">{t("stats.withOpenIssues")}</div>
                 </div>
-                <div className="stat">
-                  <div className="k">{t("stats.reposWithInsights")}</div>
-                  <div className="v">{formatNumber(filteredInsights.length)}</div>
-                  <div className="sub">{t("stats.alertsOpportunitiesCorrelations")}</div>
-                </div>
-                <div className="stat">
-                  <div className="k">{t("stats.atRiskRepos")}</div>
+                <div className="stat" title={t("tip.totalViews")}>
+                  <div className="k">{t("stats.totalViews")}</div>
                   <div className="v">
-                    {formatNumber(
-                      repoInsights.filter((insight) => insight.healthLabel === "risky").length,
-                    )}
+                    {viewsKnownCount ? formatNumber(totalViews) : t("metric.na")}
                   </div>
-                  <div className="sub">{t("stats.healthScoreUnder55")}</div>
+                  <div className="sub">{t("stats.last14Days")}</div>
+                </div>
+                <div className="stat" title={t("tip.totalDownloads")}>
+                  <div className="k">{t("stats.totalDownloads")}</div>
+                  <div className="v">
+                    {downloadsKnownCount ? formatNumber(totalReleaseDownloads) : t("metric.na")}
+                  </div>
+                  <div className="sub">{t("stats.acrossReleaseAssets")}</div>
                 </div>
               </section>
               <InsightsView
@@ -1281,27 +1498,27 @@ export function App() {
           {tab === "alerts" ? (
             <div className="view-alerts" style={{ display: "block" }}>
               <section className="stats">
-                <div className="stat">
+                <div className="stat" title={t("tip.totalSecurityAlerts")}>
                   <div className="k">{t("alerts.totalAlerts")}</div>
                   <div className="v">{formatNumber(totalSecurityAlerts)}</div>
                   <div className="sub">
                     {t("alerts.affectedRepos", { count: formatNumber(securityRepoCount) })}
                   </div>
                 </div>
-                <div className="stat">
+                <div className="stat" title={t("tip.reposAffected")}>
                   <div className="k">{t("alerts.reposWithAlerts")}</div>
                   <div className="v">{formatNumber(securityRepoCount)}</div>
                   <div className="sub">{t("alerts.securityFocusedView")}</div>
                 </div>
-                <div className="stat">
-                  <div className="k">{t("stats.averageHealth")}</div>
-                  <div className="v">{formatNumber(securityAverageHealth)}</div>
-                  <div className="sub">{t("alerts.acrossSecurityRepos")}</div>
+                <div className="stat" title={t("tip.alertsUnavailable")}>
+                  <div className="k">{t("stats.alertsUnavailable")}</div>
+                  <div className="v">{formatNumber(securityUnavailableCount)}</div>
+                  <div className="sub">{t("stats.couldNotLoad")}</div>
                 </div>
-                <div className="stat">
-                  <div className="k">{t("stats.alertCount")}</div>
-                  <div className="v">{formatNumber(securityInsightsAlertCount)}</div>
-                  <div className="sub">{t("alerts.repoInsightAlerts")}</div>
+                <div className="stat" title={t("tip.affectedOpenIssues")}>
+                  <div className="k">{t("stats.openIssues")}</div>
+                  <div className="v">{formatNumber(securityOpenIssues)}</div>
+                  <div className="sub">{t("alerts.onAffectedRepos")}</div>
                 </div>
               </section>
               <InsightsView
@@ -1445,7 +1662,19 @@ export function App() {
             </div>
           ) : null}
 
-          {tab === "local" ? <LocalReposView /> : null}
+          {tab === "local" ? (
+            <LocalReposView
+              repos={filteredLocalRepos}
+              totalCount={localRepos.length}
+              scannedAt={localScannedAt}
+              loading={localLoading}
+              error={localError}
+              config={localConfig}
+              onRescan={() => reloadLocalRepos(true)}
+              onSaveConfig={saveLocalConfig}
+              onHide={hideLocalRepo}
+            />
+          ) : null}
 
           {tab === "kanban" && projectsEnabled ? <KanbanView /> : null}
         </main>

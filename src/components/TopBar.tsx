@@ -113,10 +113,10 @@ export function TopBar({
       </div>
       <div className="topbar-search">
         <button
-          className="btn search-btn"
+          className="btn search-btn tip"
           type="button"
           aria-label={t("common.searchShortcut")}
-          title={t("common.searchShortcut")}
+          data-tip={t("common.searchShortcut")}
           onClick={onOpenPalette}
         >
           <svg
@@ -140,10 +140,10 @@ export function TopBar({
       <div className="topbar-actions">
         <span className="meta">{lastUpdated}</span>
         <button
-          className="btn filters-toggle"
+          className="btn filters-toggle tip"
           type="button"
           aria-label={t("common.openFilters")}
-          title={t("common.openFilters")}
+          data-tip={t("common.openFilters")}
           onClick={onOpenFilters}
         >
           <svg
@@ -162,10 +162,10 @@ export function TopBar({
           <span className="label">{t("common.filters")}</span>
         </button>
         <button
-          className="btn"
+          className="btn tip"
           type="button"
           aria-label={t("common.refresh")}
-          title={t("common.refresh")}
+          data-tip={t("common.refresh")}
           disabled={loading}
           onClick={onRefresh}
         >
@@ -189,14 +189,16 @@ export function TopBar({
         <span className="topbar-divider" aria-hidden="true" />
         <div className="profile-menu" ref={profileRef}>
           <button
-            className={`btn profile-btn ${profileOpen ? "active" : ""}`}
+            className={`btn profile-btn tip ${profileOpen ? "active" : ""}`}
             type="button"
             aria-label={
               authLogin ? `${t("common.signedIn")} ${authLogin}` : t("common.authenticated")
             }
             aria-haspopup="menu"
             aria-expanded={profileOpen}
-            title={authLogin ? `${t("common.signedIn")} ${authLogin}` : t("common.authenticated")}
+            data-tip={
+              authLogin ? `${t("common.signedIn")} ${authLogin}` : t("common.authenticated")
+            }
             onClick={() => setProfileOpen((open) => !open)}
           >
             <Avatar login={authLogin ?? undefined} size={22} className="profile-avatar" />
@@ -266,9 +268,9 @@ export function TopBar({
                         ) : !account.ephemeral ? (
                           <button
                             type="button"
-                            className="profile-account-remove"
+                            className="profile-account-remove tip"
                             aria-label={t("accounts.remove").replace("{name}", labelText)}
-                            title={t("accounts.remove").replace("{name}", labelText)}
+                            data-tip={t("accounts.remove").replace("{name}", labelText)}
                             onClick={(event) =>
                               void handleRemoveAccount(event, account.id, labelText)
                             }

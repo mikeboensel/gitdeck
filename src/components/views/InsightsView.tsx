@@ -1,6 +1,7 @@
 import { useI18n } from "../../i18n/I18nProvider";
 import type { GhRepo, RepoInsight } from "../../types/github";
-import { formatNumber, formatRelativeTime } from "../../utils/format";
+import { formatRelativeTime } from "../../utils/format";
+import { metricChip } from "../../utils/metricDisplay";
 
 interface InsightsViewProps {
   insights: RepoInsight[];
@@ -33,44 +34,59 @@ export function InsightsView({
         const repo = reposByName.get(insight.repo);
         if (!repo) return null;
         return (
-          // biome-ignore lint/a11y/useSemanticElements: the card holds heading/paragraph flow content, which a native <button> may not contain
-          <div
+          <article
             className="insight-card"
             key={insight.repo}
-            role="button"
+            // biome-ignore lint/a11y/noNoninteractiveTabindex: intentionally keyboard-focusable card (see .insight-card:focus-visible); holds heading/paragraph flow content, so it cannot be a native <button>
             tabIndex={0}
             onClick={() => onRepoClick(repo)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter" || event.key === " ") {
-                event.preventDefault();
-                onRepoClick(repo);
-              }
-            }}
+            onKeyDown={(event) => event.key === "Enter" && onRepoClick(repo)}
           >
             <div className="insight-head">
-              <div>
-                <strong>{insight.repo}</strong>
-                <span>
-                  {t("insights.health", { score: insight.healthScore, label: insight.healthLabel })}
-                </span>
-              </div>
-              <div className={`health-pill ${insight.healthLabel}`}>{insight.healthLabel}</div>
+              <strong>{insight.repo}</strong>
             </div>
             <div className="insight-meta">
-              <span>{t("insights.openIssues", { count: insight.issueCount })}</span>
-              <span>{t("insights.stale", { count: insight.staleIssueCount })}</span>
-              <span>{t("insights.views", { count: formatNumber(insight.viewsCount) })}</span>
-              <span>
-                {t("insights.downloads", { count: formatNumber(insight.totalDownloads) })}
+              <span className="tip" data-tip={t("tip.openIssues")}>
+                {t("insights.openIssues", { count: insight.issueCount })}
               </span>
-              {insight.securityAlertsCount > 0 ? (
-                <span>
-                  {t("insights.securityAlerts", {
-                    count: formatNumber(insight.securityAlertsCount),
-                  })}
+              <span className="tip" data-tip={t("tip.staleIssues")}>
+                {t("insights.stale", { count: insight.staleIssueCount })}
+              </span>
+              {[
+                metricChip(insight.viewsCount, "insights.views", "tip.views", t),
+                metricChip(insight.totalDownloads, "insights.downloads", "tip.downloads", t),
+                metricChip(
+                  insight.recentDownloads,
+                  "insights.recentDownloads",
+                  "tip.recentDownloads",
+                  t,
+                ),
+              ].map((chip) => (
+                <span
+                  key={chip.text}
+                  className={chip.known ? "tip" : "unknown tip"}
+                  data-tip={chip.title}
+                >
+                  {chip.text}
                 </span>
-              ) : null}
-              <span>
+              ))}
+              {(() => {
+                // Show the security chip only when it carries signal: a real count
+                // (>0) or unknown (-1). A confirmed clean 0 stays uncluttered.
+                if (insight.securityAlertsCount === 0) return null;
+                const chip = metricChip(
+                  insight.securityAlertsCount,
+                  "insights.securityAlerts",
+                  "tip.securityAlerts",
+                  t,
+                );
+                return (
+                  <span className={chip.known ? "tip" : "unknown tip"} data-tip={chip.title}>
+                    {chip.text}
+                  </span>
+                );
+              })()}
+              <span className="tip" data-tip={t("tip.pushed")}>
                 {t("repo.pushed", {
                   time: repo.pushedAt
                     ? formatRelativeTime(repo.pushedAt, Date.now(), language)
@@ -78,37 +94,7 @@ export function InsightsView({
                 })}
               </span>
             </div>
-            {insight.securityAlertsUnavailable ? (
-              <div className="insight-section">
-                <h4>{t("insights.securityStatus")}</h4>
-                <p>{t("insights.securityUnavailable")}</p>
-              </div>
-            ) : null}
-            {insight.alerts.length ? (
-              <div className="insight-section">
-                <h4>{t("insights.alerts")}</h4>
-                {insight.alerts.map((item) => (
-                  <p key={item}>{item}</p>
-                ))}
-              </div>
-            ) : null}
-            {insight.opportunities.length ? (
-              <div className="insight-section">
-                <h4>{t("insights.opportunities")}</h4>
-                {insight.opportunities.map((item) => (
-                  <p key={item}>{item}</p>
-                ))}
-              </div>
-            ) : null}
-            {insight.correlations.length ? (
-              <div className="insight-section">
-                <h4>{t("insights.correlation")}</h4>
-                {insight.correlations.map((item) => (
-                  <p key={item}>{item}</p>
-                ))}
-              </div>
-            ) : null}
-          </div>
+          </article>
         );
       })}
     </div>

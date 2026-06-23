@@ -15,10 +15,14 @@ async function fetchOpenAlerts(
   path: string,
 ): Promise<{ alerts: SecurityAlertRecord[]; unavailable: boolean }> {
   const result = await restApiPaginate<SecurityAlertRecord>(path);
-  if (!result.ok) {
-    return { alerts: [], unavailable: true };
+  if (result.ok) {
+    return { alerts: result.data, unavailable: false };
   }
-  return { alerts: result.data, unavailable: false };
+  // Any non-OK response means we could NOT determine the alert count: 403
+  // (disabled or no access), 404 (not configured / hidden private repo), 401
+  // (token), 5xx/network. We deliberately do not treat these as "0 alerts" —
+  // that would imply a clean repo. The caller surfaces this as unknown (-1).
+  return { alerts: [], unavailable: true };
 }
 
 export async function fetchRepoSecuritySummary(repo: string): Promise<RepoSecuritySummary> {

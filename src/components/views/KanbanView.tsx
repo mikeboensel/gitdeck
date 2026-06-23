@@ -135,11 +135,11 @@ export function KanbanView() {
 
   const fullscreenButton = (
     <button
-      className="btn board-fullscreen-btn"
+      className="btn board-fullscreen-btn tip"
       type="button"
       onClick={toggleBoardFullscreen}
       aria-pressed={boardFullscreen}
-      title={boardFullscreen ? "Exit fullscreen" : "Fullscreen board"}
+      data-tip={boardFullscreen ? "Exit fullscreen" : "Fullscreen board"}
     >
       {boardFullscreen ? <CompressIcon /> : <ExpandIcon />}
       {boardFullscreen ? "Exit fullscreen" : "Fullscreen"}

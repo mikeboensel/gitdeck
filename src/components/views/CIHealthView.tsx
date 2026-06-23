@@ -115,10 +115,10 @@ export function CIHealthView({ data, reposByName, onRepoClick }: CIHealthViewPro
                   <span className={`ci-health-dot ci-health-${label}`} aria-hidden="true" />
                   <button
                     type="button"
-                    className="ci-repo-link"
+                    className="ci-repo-link tip"
                     onClick={() => repo && onRepoClick(repo)}
                     disabled={!repo}
-                    title={entry.repo}
+                    data-tip={entry.repo}
                   >
                     {entry.repo}
                   </button>

@@ -467,6 +467,7 @@ body.tab-repos .section[data-for="issues-only"] {
 }
 .tip::after {
   content: attr(data-tip);
+  text-transform: none;
   position: absolute;
   top: calc(100% + 4px);
   left: 50%;
@@ -482,12 +483,15 @@ body.tab-repos .section[data-for="issues-only"] {
   white-space: nowrap;
   opacity: 0;
   pointer-events: none;
+  /* No delay on the base rule, so the label hides immediately on mouse-out. */
   transition: opacity 0.08s ease;
   z-index: 60;
 }
 .tip:hover::after,
 .tip:focus-visible::after {
   opacity: 1;
+  /* Reveal is gated by the global constant (see --tip-delay in tokens.css). */
+  transition-delay: var(--tip-delay);
 }
 
 /* Dense, clickable facet chips: icon/avatar + count, name on hover */

@@ -4,7 +4,7 @@ import { getLabelCssVars } from "../../utils/colors";
 import { reviewDecisionLabel } from "../../utils/dashboard";
 import { formatNumber, formatRelativeTime } from "../../utils/format";
 import { Avatar } from "../common/Avatar";
-import { PulseIcon } from "../common/Icons";
+import { PullRequestIcon } from "../common/Icons";
 
 function reviewBadgeClass(pr: GhPullRequest): string {
   if (pr.reviewDecision === "APPROVED") return "approved";
@@ -41,7 +41,7 @@ export function PullRequestList({ pullRequests }: { pullRequests: GhPullRequest[
               <div className="data-row-title">{pr.title}</div>
               <div className="data-row-meta">
                 <span className="data-kind pull-request">
-                  <PulseIcon /> {t("list.pr")}
+                  <PullRequestIcon /> {t("list.pr")}
                 </span>
                 {pr.isDraft ? <span className="pr-badge draft">{t("list.draft")}</span> : null}
                 <span className={`pr-badge review ${reviewBadgeClass(pr)}`}>

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { GhIssue, GhRepo } from "../../src/types/github";
-import { buildRepoInsight } from "../../src/utils/insights";
+import { buildRepoInsight, isKnownMetric, METRIC_UNKNOWN } from "../../src/utils/insights";
 
 const repo: GhRepo = {
   nameWithOwner: "acme/sdk",
@@ -51,7 +51,7 @@ const issues: GhIssue[] = [
 ];
 
 describe("insight utilities", () => {
-  it("builds a strong insight for active repositories", () => {
+  it("aggregates factual signals and passes through provided counts", () => {
     const insight = buildRepoInsight({
       repo,
       issues,
@@ -62,17 +62,23 @@ describe("insight utilities", () => {
       recentDownloads: 120,
       latestReleasePublishedAt: "2026-04-18T10:00:00Z",
       securityAlertsCount: 0,
-      securityAlertsUnavailable: false,
       now: new Date("2026-04-23T10:00:00Z").getTime(),
     });
 
-    expect(insight.healthScore).toBeGreaterThanOrEqual(80);
-    expect(insight.healthLabel).toBe("strong");
-    expect(insight.correlations.length).toBeGreaterThan(0);
+    expect(insight.repo).toBe("acme/sdk");
+    expect(insight.issueCount).toBe(2);
+    expect(insight.viewsCount).toBe(320);
+    expect(insight.totalDownloads).toBe(900);
+    expect(insight.recentDownloads).toBe(120);
+    expect(insight.securityAlertsCount).toBe(0);
+    // stars/forks deltas derived from history snapshots (110->120, 12->14)
+    expect(insight.starsDelta).toBe(10);
+    expect(insight.forksDelta).toBe(2);
+    expect(insight.latestReleasePublishedAt).toBe("2026-04-18T10:00:00Z");
   });
 
-  it("creates risk alerts for inactive repositories with open issues", () => {
-    const risky = buildRepoInsight({
+  it("counts stale issues and surfaces security availability", () => {
+    const insight = buildRepoInsight({
       repo: {
         ...repo,
         pushedAt: "2026-01-01T10:00:00Z",
@@ -84,15 +90,33 @@ describe("insight utilities", () => {
       releaseCount: 0,
       totalDownloads: 20,
       securityAlertsCount: 4,
-      securityAlertsUnavailable: false,
       now: new Date("2026-04-23T10:00:00Z").getTime(),
     });
 
-    expect(risky.healthLabel).toBe("risky");
-    expect(risky.alerts.some((alert) => /No push/i.test(alert))).toBe(true);
-    expect(risky.alerts.some((alert) => /security alerts/i.test(alert))).toBe(true);
-    expect(risky.opportunities.some((item) => /without any formal releases/i.test(item))).toBe(
-      true,
-    );
+    // issue A (updated 2026-03-10) is >30d stale; issue B (updated 2026-04-22) is not
+    expect(insight.staleIssueCount).toBe(1);
+    expect(insight.daysSincePush).toBeGreaterThan(100);
+    expect(insight.securityAlertsCount).toBe(4);
+    // no history snapshots => deltas are null, not 0
+    expect(insight.starsDelta).toBeNull();
+    expect(insight.forksDelta).toBeNull();
+  });
+
+  it("preserves the unknown sentinel rather than coercing it to 0", () => {
+    const insight = buildRepoInsight({
+      repo,
+      issues,
+      viewsCount: METRIC_UNKNOWN,
+      totalDownloads: METRIC_UNKNOWN,
+      recentDownloads: METRIC_UNKNOWN,
+      securityAlertsCount: METRIC_UNKNOWN,
+      now: new Date("2026-04-23T10:00:00Z").getTime(),
+    });
+
+    expect(insight.viewsCount).toBe(METRIC_UNKNOWN);
+    expect(insight.totalDownloads).toBe(METRIC_UNKNOWN);
+    expect(insight.securityAlertsCount).toBe(METRIC_UNKNOWN);
+    expect(isKnownMetric(insight.viewsCount)).toBe(false);
+    expect(isKnownMetric(insight.issueCount)).toBe(true);
   });
 });

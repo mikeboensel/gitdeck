@@ -1,33 +1,25 @@
-import { LuGitFork, LuGlobe, LuLock } from "react-icons/lu";
+import { LuFolderGit2, LuGitFork, LuGlobe, LuLock } from "react-icons/lu";
 import { useRightClickMenu } from "../../contexts/RightClickMenuProvider";
 import { useI18n } from "../../i18n/I18nProvider";
 import { buildRepoMenu } from "../../menus/repoMenu";
-import type { GhIssue, GhRepo, RepoInsight } from "../../types/github";
-import { getLanguageColor } from "../../utils/colors";
 import { issueCountForRepo } from "../../utils/dashboard";
 import { formatNumber, formatRelativeTime } from "../../utils/format";
 import { Avatar } from "../common/Avatar";
 import { ForkIcon, IssueIcon, StarIcon } from "../common/Icons";
-
-interface RepoGridProps {
-  repos: GhRepo[];
-  issues: GhIssue[];
-  insightsByRepo: Map<string, RepoInsight>;
-  onRepoClick: (repo: GhRepo) => void;
-  onIssuesClick: (repo: string) => void;
-  onStarsClick: (repo: string) => void;
-  onForksClick: (repo: string) => void;
-}
+import { LanguageIcon } from "../common/LanguageIcon";
+import type { RepoViewDataProps } from "./ReposView";
 
 export function RepoGrid({
   repos,
   issues,
   insightsByRepo,
+  localClonesByRepo,
   onRepoClick,
   onIssuesClick,
   onStarsClick,
   onForksClick,
-}: RepoGridProps) {
+  onLocalClick,
+}: RepoViewDataProps) {
   const { language, t } = useI18n();
   const { open } = useRightClickMenu();
   if (!repos.length) {
@@ -45,6 +37,22 @@ export function RepoGrid({
         const issueCount = issueCountForRepo(issues, repo.nameWithOwner);
         const primaryLanguage = repo.primaryLanguage?.name;
         const insight = insightsByRepo.get(repo.nameWithOwner);
+        const clonePaths = localClonesByRepo.get(repo.nameWithOwner.toLowerCase());
+        const cloneCount = clonePaths?.length ?? 0;
+        // Show a security row only when it carries signal: real open alerts (>0,
+        // styled as an alert) or unknown (-1, a muted "—" meaning "couldn't read",
+        // not a clean 0). A confirmed 0 shows nothing.
+        const securityCount = insight?.securityAlertsCount ?? 0;
+        const securityNote =
+          securityCount > 0 ? (
+            <span className="repo-security-note alert tip" data-tip={t("tip.securityAlerts")}>
+              {t("insights.securityAlerts", { count: formatNumber(securityCount) })}
+            </span>
+          ) : securityCount < 0 ? (
+            <span className="repo-security-note unknown tip" data-tip={t("tip.unavailable")}>
+              {t("insights.securityAlerts", { count: t("metric.na") })}
+            </span>
+          ) : null;
         return (
           <article
             className="repo-card"
@@ -114,31 +122,12 @@ export function RepoGrid({
               </div>
             </div>
             <div className="repo-desc">{repo.description || t("repo.noDescription")}</div>
-            {insight ? (
-              <div className="repo-health-row">
-                <span className={`repo-health-pill ${insight.healthLabel}`}>
-                  {t("repo.health", { score: insight.healthScore })}
-                </span>
-                {insight.alerts[0] ? (
-                  <span className="repo-health-note">{insight.alerts[0]}</span>
-                ) : insight.opportunities[0] ? (
-                  <span className="repo-health-note">{insight.opportunities[0]}</span>
-                ) : null}
-                {insight.securityAlertsCount > 0 ? (
-                  <span className="repo-health-note">
-                    {t("insights.securityAlerts", {
-                      count: formatNumber(insight.securityAlertsCount),
-                    })}
-                  </span>
-                ) : insight.securityAlertsUnavailable ? (
-                  <span className="repo-health-note">{t("insights.securityUnavailable")}</span>
-                ) : null}
-              </div>
-            ) : null}
+            {securityNote ? <div className="repo-security-row">{securityNote}</div> : null}
             <div className="rc-stats">
               <button
                 type="button"
-                className={`rc-stat strong star ${repo.stargazerCount ? "clickable" : ""}`}
+                className={`rc-stat strong star tip ${repo.stargazerCount ? "clickable" : ""}`}
+                data-tip={t("repo.stars")}
                 onClick={(event) => {
                   event.stopPropagation();
                   if (repo.stargazerCount) onStarsClick(repo.nameWithOwner);
@@ -148,7 +137,8 @@ export function RepoGrid({
               </button>
               <button
                 type="button"
-                className={`rc-stat strong fork ${repo.forkCount ? "clickable" : ""}`}
+                className={`rc-stat strong fork tip ${repo.forkCount ? "clickable" : ""}`}
+                data-tip={t("repo.forks")}
                 onClick={(event) => {
                   event.stopPropagation();
                   if (repo.forkCount) onForksClick(repo.nameWithOwner);
@@ -158,7 +148,8 @@ export function RepoGrid({
               </button>
               <button
                 type="button"
-                className={`rc-stat iss ${issueCount ? "clickable" : ""}`}
+                className={`rc-stat iss tip ${issueCount ? "clickable" : ""}`}
+                data-tip={t("repo.issues")}
                 onClick={(event) => {
                   event.stopPropagation();
                   if (issueCount) onIssuesClick(repo.nameWithOwner);
@@ -167,14 +158,30 @@ export function RepoGrid({
                 <IssueIcon /> {issueCount}
               </button>
               {primaryLanguage ? (
-                <span className="rc-lang">
-                  <span
-                    className="lang-dot"
-                    style={{ background: getLanguageColor(primaryLanguage) }}
-                  />
-                  {primaryLanguage}
+                <span
+                  className="rc-lang tip"
+                  role="img"
+                  aria-label={primaryLanguage}
+                  data-tip={primaryLanguage}
+                >
+                  <LanguageIcon name={primaryLanguage} />
                 </span>
               ) : null}
+              <button
+                type="button"
+                className={`rc-stat local-clones tip ${cloneCount ? "clickable" : ""}`}
+                data-tip={
+                  cloneCount
+                    ? `${t("repo.localClones", { count: cloneCount })}\n${clonePaths?.join("\n")}`
+                    : t("repo.localClones", { count: 0 })
+                }
+                onClick={(event) => {
+                  event.stopPropagation();
+                  if (cloneCount) onLocalClick(repo.nameWithOwner);
+                }}
+              >
+                <LuFolderGit2 /> {cloneCount}
+              </button>
               <span>
                 {t("repo.pushed", {
                   time: repo.pushedAt

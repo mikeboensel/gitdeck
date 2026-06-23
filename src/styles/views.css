@@ -895,45 +895,46 @@ select.sort:focus-visible {
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
-.repo-health-row {
+.repo-security-row {
   display: flex;
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
   font-size: 11.5px;
 }
-.repo-health-pill {
+.repo-security-note {
   display: inline-flex;
   align-items: center;
-  padding: 3px 8px;
-  border-radius: 999px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  background: var(--panel-2);
-  border: 1px solid var(--border-soft);
-}
-.repo-health-pill.strong {
-  color: #86efac;
-  border-color: rgba(34, 197, 94, 0.3);
-  background: rgba(34, 197, 94, 0.1);
-}
-.repo-health-pill.watch {
-  color: #fde68a;
-  border-color: rgba(245, 158, 11, 0.3);
-  background: rgba(245, 158, 11, 0.12);
-}
-.repo-health-pill.risky {
-  color: #fca5a5;
-  border-color: rgba(239, 68, 68, 0.35);
-  background: rgba(239, 68, 68, 0.1);
-}
-.repo-health-note {
   color: var(--muted);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   min-width: 0;
+}
+.repo-security-note.alert {
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #fca5a5;
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  background: rgba(239, 68, 68, 0.1);
+}
+/* Unknown (-1) metrics: muted "—" so they read as "no data", not zero. */
+.repo-security-note.unknown,
+.insight-meta span.unknown {
+  opacity: 0.55;
+  font-style: italic;
+}
+/* Metric tooltips carry full explanations; let them wrap instead of the default
+   single-line label behavior, which would overflow the viewport. */
+.insight-meta .tip::after,
+.repo-security-row .tip::after {
+  white-space: normal;
+  width: max-content;
+  max-width: 260px;
+  text-align: left;
 }
 .rc-stats {
   display: flex;
@@ -975,11 +976,31 @@ select.sort:focus-visible {
   align-items: center;
   gap: 5px;
 }
-.rc-lang .lang-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  flex: 0 0 auto;
+.rc-stat.local-clones svg {
+  color: var(--accent);
+}
+/* No local clone: dim the icon + count so 0 reads as "none". Dim the content
+   only (not the whole button) — opacity on the button would multiply down to
+   the ::after tooltip and keep the hover label permanently faint. */
+.rc-stat.local-clones:not(.clickable) {
+  color: var(--muted-2);
+}
+.rc-stat.local-clones:not(.clickable) svg {
+  opacity: 0.5;
+}
+/* Stat-row tooltips sit at the card's bottom edge; flip them above the icon so
+   the card's `overflow: hidden` doesn't clip them (badges at the top render below). */
+.rc-stats .tip::after {
+  top: auto;
+  bottom: calc(100% + 4px);
+}
+/* Local-clones tooltip lists the count plus one clone path per line, so it must
+   preserve the newlines in data-tip (the base .tip is single-line nowrap). */
+.rc-stat.local-clones.tip::after {
+  white-space: pre-line;
+  text-align: left;
+  max-width: 360px;
+  overflow-wrap: anywhere;
 }
 
 /* ──────────────────────────────────────────────────────────────────────
@@ -1342,37 +1363,6 @@ body.tab-digests .view-digests {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 13px;
   color: var(--text);
-}
-.insight-head span {
-  font-size: 11.5px;
-  color: var(--muted);
-}
-.health-pill {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 64px;
-  padding: 4px 8px;
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  border: 1px solid var(--border-soft);
-}
-.health-pill.strong {
-  color: #86efac;
-  border-color: rgba(34, 197, 94, 0.3);
-  background: rgba(34, 197, 94, 0.1);
-}
-.health-pill.watch {
-  color: #fde68a;
-  border-color: rgba(245, 158, 11, 0.3);
-  background: rgba(245, 158, 11, 0.12);
-}
-.health-pill.risky {
-  color: #fca5a5;
-  border-color: rgba(239, 68, 68, 0.35);
-  background: rgba(239, 68, 68, 0.1);
 }
 .insight-meta {
   display: flex;
