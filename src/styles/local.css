@@ -193,9 +193,12 @@
   color: var(--muted);
 }
 
+/* Clean state reads as a lone green check — icon only, no text/border (matches
+   the icon-only dirty pills). */
 .local-pill.clean {
   color: var(--success);
-  border-color: var(--border-soft);
+  border-color: transparent;
+  padding-inline: 2px;
 }
 
 .local-status {

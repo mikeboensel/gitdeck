@@ -544,7 +544,7 @@ function GitStatusPills({ repo }: { repo: LocalRepo }) {
           data-tip={`${t("local.clean")} — ${t("local.cleanTitle")}`}
           aria-label={t("local.clean")}
         >
-          <LuCircleCheck size={11} aria-hidden /> {t("local.clean")}
+          <LuCircleCheck size={11} aria-hidden />
         </span>
       )}
       {repo.ahead > 0 ? <span className="local-pill">↑{repo.ahead}</span> : null}
