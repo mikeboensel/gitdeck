@@ -1,6 +1,15 @@
 import { useMemo } from "react";
-import changelogSource from "../../../CHANGELOG.md?raw";
 import { parseChangelog } from "../../utils/changelog";
+
+// Optional import: the app must still build if CHANGELOG.md has been removed.
+// import.meta.glob resolves to {} when no file matches, instead of erroring like
+// a static `import ... from "...?raw"` would.
+const changelogModules = import.meta.glob<string>("../../../CHANGELOG.md", {
+  query: "?raw",
+  import: "default",
+  eager: true,
+});
+const changelogSource = Object.values(changelogModules)[0] ?? "";
 import { APP_VERSION } from "../../version";
 import { CloseIcon } from "../common/Icons";
 
@@ -53,8 +62,8 @@ export function ChangelogModal({ onClose }: ChangelogModalProps) {
                 <section className="changelog-section" key={section.title}>
                   <h4>{section.title}</h4>
                   <ul>
-                    {section.items.map((item, index) => (
-                      <li key={index}>
+                    {section.items.map((item) => (
+                      <li key={item.text}>
                         {item.scope ? (
                           <strong className="changelog-scope">{item.scope}:</strong>
                         ) : null}{" "}
