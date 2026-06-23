@@ -1,4 +1,4 @@
-import { LuGlobe, LuLock } from "react-icons/lu";
+import { LuGitFork, LuGlobe, LuLock } from "react-icons/lu";
 import { useRightClickMenu } from "../../contexts/RightClickMenuProvider";
 import { useI18n } from "../../i18n/I18nProvider";
 import { buildRepoMenu } from "../../menus/repoMenu";
@@ -98,7 +98,15 @@ export function RepoGrid({
                   </span>
                 )}
                 {repo.isArchived ? <span className="rb archived">{t("repo.archived")}</span> : null}
-                {repo.isFork ? <span className="rb fork">{t("repo.fork")}</span> : null}
+                {repo.isFork ? (
+                  <span
+                    className="rb rb-icon fork tip"
+                    data-tip={t("repo.fork")}
+                    aria-label={t("repo.fork")}
+                  >
+                    <LuGitFork size={11} />
+                  </span>
+                ) : null}
               </div>
             </div>
             <div className="repo-desc">{repo.description || t("repo.noDescription")}</div>
