@@ -1257,6 +1257,15 @@ select.sort:focus-visible {
   font-size: 13px;
   min-height: 34px;
 }
+/* No page-size selector (showPageSize={false}, e.g. the inbox): drop the empty
+   third column so info + controls fill the bar instead of bunching left. Placed
+   after the base .controls rule so these overrides win without specificity churn. */
+.pagination:not(:has(.pagesize)) {
+  grid-template-columns: auto 1fr;
+}
+.pagination:not(:has(.pagesize)) .controls {
+  justify-content: flex-end;
+}
 @media (max-width: 640px) {
   .pagination {
     grid-template-columns: 1fr;
