@@ -1,4 +1,4 @@
-import { LuArchive, LuFolderGit2, LuGitFork, LuGlobe, LuLock } from "react-icons/lu";
+import { LuArchive, LuClock, LuFolderGit2, LuGitFork, LuGlobe, LuLock } from "react-icons/lu";
 import { useRightClickMenu } from "../../contexts/RightClickMenuProvider";
 import { useI18n } from "../../i18n/I18nProvider";
 import { buildRepoMenu } from "../../menus/repoMenu";
@@ -168,12 +168,9 @@ export function RepoList({
               >
                 <LuFolderGit2 /> {cloneCount}
               </button>
-              <span className="repo-row-pushed">
-                {t("repo.pushed", {
-                  time: repo.pushedAt
-                    ? formatRelativeTime(repo.pushedAt, Date.now(), language)
-                    : "-",
-                })}
+              <span className="repo-row-pushed repo-pushed tip" data-tip={t("tip.pushed")}>
+                <LuClock size={12} aria-hidden />{" "}
+                {repo.pushedAt ? formatRelativeTime(repo.pushedAt, Date.now(), language) : "-"}
               </span>
             </div>
           </div>
