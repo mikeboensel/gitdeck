@@ -1,4 +1,4 @@
-import { LuFolderGit2, LuGitFork, LuGlobe, LuLock } from "react-icons/lu";
+import { LuFolderGit2, LuGitFork, LuGlobe, LuLock, LuTriangleAlert } from "react-icons/lu";
 import { useRightClickMenu } from "../../contexts/RightClickMenuProvider";
 import { useI18n } from "../../i18n/I18nProvider";
 import { buildRepoMenu } from "../../menus/repoMenu";
@@ -39,20 +39,25 @@ export function RepoGrid({
         const insight = insightsByRepo.get(repo.nameWithOwner);
         const clonePaths = localClonesByRepo.get(repo.nameWithOwner.toLowerCase());
         const cloneCount = clonePaths?.length ?? 0;
-        // Show a security row only when it carries signal: real open alerts (>0,
-        // styled as an alert) or unknown (-1, a muted "—" meaning "couldn't read",
-        // not a clean 0). A confirmed 0 shows nothing.
+        // Security row carries signal only when there are real open alerts (>0,
+        // styled as an alert) or the fetch failed (error icon + the real reason on
+        // hover). A confirmed clean 0 shows nothing.
+        const securityError = insight?.errors?.security;
         const securityCount = insight?.securityAlertsCount ?? 0;
-        const securityNote =
-          securityCount > 0 ? (
-            <span className="repo-security-note alert tip" data-tip={t("tip.securityAlerts")}>
-              {t("insights.securityAlerts", { count: formatNumber(securityCount) })}
-            </span>
-          ) : securityCount < 0 ? (
-            <span className="repo-security-note unknown tip" data-tip={t("tip.unavailable")}>
-              {t("insights.securityAlerts", { count: t("metric.na") })}
-            </span>
-          ) : null;
+        const securityNote = securityError ? (
+          <span
+            className="repo-security-note metric-error tip"
+            data-tip={securityError}
+            role="img"
+            aria-label={securityError}
+          >
+            <LuTriangleAlert size={11} /> {t("insights.securityAlerts", { count: "" }).trim()}
+          </span>
+        ) : securityCount > 0 ? (
+          <span className="repo-security-note alert tip" data-tip={t("tip.securityAlerts")}>
+            {t("insights.securityAlerts", { count: formatNumber(securityCount) })}
+          </span>
+        ) : null;
         return (
           <article
             className="repo-card"

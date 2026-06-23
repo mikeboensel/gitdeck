@@ -332,7 +332,6 @@ export const fr: Record<keyof typeof en, string> = {
   "insights.downloads": "{count} téléchargements",
   "insights.recentDownloads": "{count} téléchargements récents",
   "insights.securityAlerts": "{count} alertes de sécurité",
-  "metric.na": "—",
   "alerts.emptyTitle": "Aucune alerte de sécurité",
   "alerts.emptyText": "Essayez un autre filtre de dépôts ou actualisez le tableau de bord.",
   "alerts.totalAlerts": "Alertes de sécurité",
@@ -350,8 +349,6 @@ export const fr: Record<keyof typeof en, string> = {
     "Téléchargements cumulés des fichiers des releases publiées au cours des 30 derniers jours — et non les téléchargements effectués durant les 30 derniers jours.",
   "tip.securityAlerts":
     "Alertes Dependabot et d'analyse de code ouvertes signalées par GitHub pour ce dépôt.",
-  "tip.unavailable":
-    "N'a pas pu être lu pour ce dépôt (accès manquant, fonctionnalité désactivée ou erreur d'API). Cette valeur est inconnue — pas nulle. Les données de trafic et de sécurité nécessitent généralement un accès admin/écriture, elles sont donc vides sur les forks que vous ne possédez pas.",
   "tip.pushed": "Date du dernier push sur le dépôt.",
   "tip.totalOpenIssues": "Somme des issues ouvertes sur les dépôts affichés.",
   "tip.reposWithOpenIssues": "Nombre de dépôts ayant au moins une issue ouverte.",

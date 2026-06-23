@@ -1,18 +1,6 @@
-import type { GhIssue, GhRepo, RepoInsight } from "../types/github";
+import type { GhIssue, GhRepo, RepoInsight, RepoInsightErrors } from "../types/github";
 
 const DAY_MS = 86_400_000;
-
-/**
- * Sentinel for a per-repo metric we could not read (no access, disabled feature,
- * or an API error). Distinct from a real 0 so the UI never shows a failed fetch as
- * a clean "0" — it renders these as "—" (unknown). Aggregations must skip it.
- */
-export const METRIC_UNKNOWN = -1;
-
-/** True when a metric value is an actual reading rather than the unknown sentinel. */
-export function isKnownMetric(value: number): boolean {
-  return value >= 0;
-}
 
 export interface RepoInsightInput {
   repo: GhRepo;
@@ -24,6 +12,8 @@ export interface RepoInsightInput {
   recentDownloads?: number;
   latestReleasePublishedAt?: string | null;
   securityAlertsCount?: number;
+  /** Reasons individual metric groups could not be read; omitted when all loaded. */
+  errors?: RepoInsightErrors;
   now?: number;
 }
 
@@ -64,5 +54,6 @@ export function buildRepoInsight(input: RepoInsightInput): RepoInsight {
     viewsUniques: input.viewsUniques ?? 0,
     securityAlertsCount: input.securityAlertsCount ?? 0,
     latestReleasePublishedAt: input.latestReleasePublishedAt ?? null,
+    ...(input.errors && Object.keys(input.errors).length ? { errors: input.errors } : {}),
   };
 }

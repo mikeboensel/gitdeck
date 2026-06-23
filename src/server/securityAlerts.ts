@@ -1,6 +1,6 @@
 import type { RepoSecuritySummary } from "../types/github";
 import { buildRepoSecuritySummary } from "../utils/security";
-import { restApiPaginate } from "./githubClient";
+import { describeRestError, restApiPaginate } from "./githubClient";
 
 const CACHE_TTL_MS = 5 * 60 * 1000;
 
@@ -13,16 +13,16 @@ interface SecurityAlertRecord {
 
 async function fetchOpenAlerts(
   path: string,
-): Promise<{ alerts: SecurityAlertRecord[]; unavailable: boolean }> {
+): Promise<{ alerts: SecurityAlertRecord[]; reason: string | null }> {
   const result = await restApiPaginate<SecurityAlertRecord>(path);
   if (result.ok) {
-    return { alerts: result.data, unavailable: false };
+    return { alerts: result.data, reason: null };
   }
   // Any non-OK response means we could NOT determine the alert count: 403
   // (disabled or no access), 404 (not configured / hidden private repo), 401
-  // (token), 5xx/network. We deliberately do not treat these as "0 alerts" —
-  // that would imply a clean repo. The caller surfaces this as unknown (-1).
-  return { alerts: [], unavailable: true };
+  // (token), 5xx/network. We never treat these as "0 alerts" — that would imply
+  // a clean repo. We carry the real reason so the UI can show what failed.
+  return { alerts: [], reason: describeRestError(result.error, result.status) };
 }
 
 export async function fetchRepoSecuritySummary(repo: string): Promise<RepoSecuritySummary> {
@@ -41,10 +41,14 @@ export async function fetchRepoSecuritySummary(repo: string): Promise<RepoSecuri
       fetchOpenAlerts(`/repos/${repo}/dependabot/alerts?state=open&per_page=100`),
       fetchOpenAlerts(`/repos/${repo}/code-scanning/alerts?state=open&per_page=100`),
     ]);
+    const reasons: string[] = [];
+    if (dependabot.reason) reasons.push(`Dependabot: ${dependabot.reason}`);
+    if (codeScanning.reason) reasons.push(`Code scanning: ${codeScanning.reason}`);
     return buildRepoSecuritySummary({
       dependabotAlerts: dependabot.alerts,
       codeScanningAlerts: codeScanning.alerts,
-      unavailable: dependabot.unavailable || codeScanning.unavailable,
+      unavailable: Boolean(dependabot.reason || codeScanning.reason),
+      unavailableReason: reasons.join(" · ") || undefined,
     });
   })().finally(() => {
     inflightSummaries.delete(repo);

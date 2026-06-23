@@ -440,32 +440,7 @@ function LocalRepoCard({
 
       <div className="local-git-row">
         {repo.branch ? <span className="local-branch">{repo.branch}</span> : null}
-        <div className="local-git-status">
-          {repo.dirty ? (
-            CHANGE_PILLS.filter((p) => repo.changes[p.field] > 0).map((p) => (
-              <span
-                key={p.field}
-                className={`local-pill dirty ${p.cls} tip`}
-                role="img"
-                data-tip={`${repo.changes[p.field]} ${t(p.label)} — ${t(p.title)}`}
-                aria-label={`${repo.changes[p.field]} ${t(p.label)}`}
-              >
-                <p.icon size={11} aria-hidden /> {repo.changes[p.field]}
-              </span>
-            ))
-          ) : (
-            <span
-              className="local-pill clean tip"
-              role="img"
-              data-tip={`${t("local.clean")} — ${t("local.cleanTitle")}`}
-              aria-label={t("local.clean")}
-            >
-              <LuCircleCheck size={11} aria-hidden /> {t("local.clean")}
-            </span>
-          )}
-          {repo.ahead > 0 ? <span className="local-pill">↑{repo.ahead}</span> : null}
-          {repo.behind > 0 ? <span className="local-pill">↓{repo.behind}</span> : null}
-        </div>
+        <GitStatusPills repo={repo} />
       </div>
 
       {actionError ? (
@@ -540,7 +515,14 @@ function GitStatusPills({ repo }: { repo: LocalRepo }) {
           </span>
         ))
       ) : (
-        <span className="local-pill clean">{t("local.clean")}</span>
+        <span
+          className="local-pill clean tip"
+          role="img"
+          data-tip={`${t("local.clean")} — ${t("local.cleanTitle")}`}
+          aria-label={t("local.clean")}
+        >
+          <LuCircleCheck size={11} aria-hidden /> {t("local.clean")}
+        </span>
       )}
       {repo.ahead > 0 ? <span className="local-pill">↑{repo.ahead}</span> : null}
       {repo.behind > 0 ? <span className="local-pill">↓{repo.behind}</span> : null}
@@ -598,7 +580,6 @@ function LocalRepoRow({
         {repo.isWorktree ? (
           <span className="rb local-worktree-badge">{t("local.worktree")}</span>
         ) : null}
-        <GitStatusPills repo={repo} />
         {actionError ? (
           <span className="local-action-error" role="alert">
             {actionError}
@@ -606,6 +587,7 @@ function LocalRepoRow({
         ) : null}
       </div>
       <div className="repo-row-stats">
+        <GitStatusPills repo={repo} />
         <span className="repo-row-flags">
           {enrich ? (
             enrich.isPrivate ? (

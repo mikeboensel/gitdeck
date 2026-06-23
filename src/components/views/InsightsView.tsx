@@ -2,6 +2,7 @@ import { useI18n } from "../../i18n/I18nProvider";
 import type { GhRepo, RepoInsight } from "../../types/github";
 import { formatRelativeTime } from "../../utils/format";
 import { metricChip } from "../../utils/metricDisplay";
+import { MetricChip } from "./MetricChip";
 
 interface InsightsViewProps {
   insights: RepoInsight[];
@@ -52,40 +53,44 @@ export function InsightsView({
               <span className="tip" data-tip={t("tip.staleIssues")}>
                 {t("insights.stale", { count: insight.staleIssueCount })}
               </span>
-              {[
-                metricChip(insight.viewsCount, "insights.views", "tip.views", t),
-                metricChip(insight.totalDownloads, "insights.downloads", "tip.downloads", t),
-                metricChip(
+              <MetricChip
+                chip={metricChip(
+                  insight.viewsCount,
+                  insight.errors?.views,
+                  "insights.views",
+                  "tip.views",
+                  t,
+                )}
+              />
+              <MetricChip
+                chip={metricChip(
+                  insight.totalDownloads,
+                  insight.errors?.downloads,
+                  "insights.downloads",
+                  "tip.downloads",
+                  t,
+                )}
+              />
+              <MetricChip
+                chip={metricChip(
                   insight.recentDownloads,
+                  insight.errors?.downloads,
                   "insights.recentDownloads",
                   "tip.recentDownloads",
                   t,
-                ),
-              ].map((chip) => (
-                <span
-                  key={chip.text}
-                  className={chip.known ? "tip" : "unknown tip"}
-                  data-tip={chip.title}
-                >
-                  {chip.text}
-                </span>
-              ))}
-              {(() => {
-                // Show the security chip only when it carries signal: a real count
-                // (>0) or unknown (-1). A confirmed clean 0 stays uncluttered.
-                if (insight.securityAlertsCount === 0) return null;
-                const chip = metricChip(
-                  insight.securityAlertsCount,
-                  "insights.securityAlerts",
-                  "tip.securityAlerts",
-                  t,
-                );
-                return (
-                  <span className={chip.known ? "tip" : "unknown tip"} data-tip={chip.title}>
-                    {chip.text}
-                  </span>
-                );
-              })()}
+                )}
+              />
+              {insight.errors?.security || insight.securityAlertsCount > 0 ? (
+                <MetricChip
+                  chip={metricChip(
+                    insight.securityAlertsCount,
+                    insight.errors?.security,
+                    "insights.securityAlerts",
+                    "tip.securityAlerts",
+                    t,
+                  )}
+                />
+              ) : null}
               <span className="tip" data-tip={t("tip.pushed")}>
                 {t("repo.pushed", {
                   time: repo.pushedAt

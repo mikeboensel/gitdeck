@@ -332,7 +332,6 @@ export const it: Record<keyof typeof en, string> = {
   "insights.downloads": "{count} download",
   "insights.recentDownloads": "{count} download recenti",
   "insights.securityAlerts": "{count} alert di sicurezza",
-  "metric.na": "—",
   "alerts.emptyTitle": "Nessun alert di sicurezza",
   "alerts.emptyText": "Prova un filtro repository diverso o aggiorna la dashboard.",
   "alerts.totalAlerts": "Alert di sicurezza",
@@ -370,8 +369,6 @@ export const it: Record<keyof typeof en, string> = {
     "Download totali degli asset delle release pubblicate negli ultimi 30 giorni — non i download avvenuti negli ultimi 30 giorni.",
   "tip.securityAlerts":
     "Alert Dependabot e di code scanning aperti segnalati da GitHub per questo repository.",
-  "tip.unavailable":
-    "Non è stato possibile leggere questo dato per il repository (nessun accesso, una funzione disabilitata o un errore dell'API). È sconosciuto — non zero. I dati di traffico e sicurezza richiedono di solito permessi di amministrazione/push, quindi restano vuoti sui fork che non possiedi.",
   "tip.pushed": "Quando è stato effettuato l'ultimo push sul repository.",
   "tip.totalOpenIssues": "Somma delle issue aperte tra i repository mostrati.",
   "tip.reposWithOpenIssues": "Numero di repository con almeno una issue aperta.",

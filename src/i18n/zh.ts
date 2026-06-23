@@ -325,7 +325,6 @@ export const zh: Record<keyof typeof en, string> = {
   "insights.downloads": "{count} 次下载",
   "insights.recentDownloads": "{count} 次最近下载",
   "insights.securityAlerts": "{count} 个安全告警",
-  "metric.na": "—",
   "alerts.emptyTitle": "没有安全告警",
   "alerts.emptyText": "尝试不同的仓库筛选条件或刷新 dashboard。",
   "alerts.totalAlerts": "安全告警",
@@ -340,8 +339,6 @@ export const zh: Record<keyof typeof en, string> = {
   "tip.downloads": "所有发布资源的累计下载量——GitHub 的累积计数器。",
   "tip.recentDownloads": "最近 30 天内发布的版本中资源的累计下载量——而非最近 30 天内发生的下载。",
   "tip.securityAlerts": "GitHub 为本仓库报告的开放 Dependabot 和代码扫描告警。",
-  "tip.unavailable":
-    "无法为此仓库读取（无访问权限、功能已禁用或 API 错误）。这是未知——而非零。流量和安全数据通常需要管理员/push 权限，因此在你不拥有的 fork 上为空。",
   "tip.pushed": "仓库最后一次被 push 的时间。",
   "tip.totalOpenIssues": "所显示仓库的开放 issue 总和。",
   "tip.reposWithOpenIssues": "至少有一个开放 issue 的仓库数量。",

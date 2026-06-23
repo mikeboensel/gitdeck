@@ -332,7 +332,6 @@ export const de: Record<keyof typeof en, string> = {
   "insights.downloads": "{count} Downloads",
   "insights.recentDownloads": "{count} neue Downloads",
   "insights.securityAlerts": "{count} Sicherheitswarnungen",
-  "metric.na": "—",
   "alerts.emptyTitle": "Keine Sicherheitswarnungen",
   "alerts.emptyText": "Versuche einen anderen Repository-Filter oder aktualisiere das Dashboard.",
   "alerts.totalAlerts": "Sicherheitswarnungen",
@@ -350,8 +349,6 @@ export const de: Record<keyof typeof en, string> = {
     "Downloads über die gesamte Lebensdauer von Assets aus Releases, die in den letzten 30 Tagen veröffentlicht wurden — nicht Downloads, die in den letzten 30 Tagen erfolgten.",
   "tip.securityAlerts":
     "Offene Dependabot- und Code-Scanning-Warnungen, die GitHub für dieses Repository meldet.",
-  "tip.unavailable":
-    "Konnte für dieses Repo nicht gelesen werden (kein Zugriff, eine deaktivierte Funktion oder ein API-Fehler). Das ist unbekannt — nicht null. Traffic- und Sicherheitsdaten erfordern in der Regel Admin-/Push-Zugriff, daher sind sie bei Forks, die dir nicht gehören, leer.",
   "tip.pushed": "Wann zuletzt in das Repository gepusht wurde.",
   "tip.totalOpenIssues": "Summe der offenen Issues über die angezeigten Repositories.",
   "tip.reposWithOpenIssues": "Anzahl der Repositories mit mindestens einem offenen Issue.",

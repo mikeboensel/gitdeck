@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { GhIssue, GhRepo } from "../../src/types/github";
-import { buildRepoInsight, isKnownMetric, METRIC_UNKNOWN } from "../../src/utils/insights";
+import { buildRepoInsight } from "../../src/utils/insights";
 
 const repo: GhRepo = {
   nameWithOwner: "acme/sdk",
@@ -102,21 +102,30 @@ describe("insight utilities", () => {
     expect(insight.forksDelta).toBeNull();
   });
 
-  it("preserves the unknown sentinel rather than coercing it to 0", () => {
+  it("carries per-metric error reasons when fetches fail", () => {
     const insight = buildRepoInsight({
       repo,
       issues,
-      viewsCount: METRIC_UNKNOWN,
-      totalDownloads: METRIC_UNKNOWN,
-      recentDownloads: METRIC_UNKNOWN,
-      securityAlertsCount: METRIC_UNKNOWN,
+      viewsCount: 0,
+      totalDownloads: 0,
+      securityAlertsCount: 0,
+      errors: { views: "HTTP 403", security: "Dependabot: disabled (HTTP 403)" },
       now: new Date("2026-04-23T10:00:00Z").getTime(),
     });
 
-    expect(insight.viewsCount).toBe(METRIC_UNKNOWN);
-    expect(insight.totalDownloads).toBe(METRIC_UNKNOWN);
-    expect(insight.securityAlertsCount).toBe(METRIC_UNKNOWN);
-    expect(isKnownMetric(insight.viewsCount)).toBe(false);
-    expect(isKnownMetric(insight.issueCount)).toBe(true);
+    expect(insight.errors?.views).toBe("HTTP 403");
+    expect(insight.errors?.security).toBe("Dependabot: disabled (HTTP 403)");
+    expect(insight.errors?.downloads).toBeUndefined();
+  });
+
+  it("omits the errors object entirely when everything loaded", () => {
+    const insight = buildRepoInsight({
+      repo,
+      issues,
+      viewsCount: 5,
+      now: new Date("2026-04-23T10:00:00Z").getTime(),
+    });
+
+    expect(insight.errors).toBeUndefined();
   });
 });

@@ -7,6 +7,7 @@ export interface RepoSecuritySummaryInput {
   dependabotAlerts: RepoSecurityAlertLike[];
   codeScanningAlerts: RepoSecurityAlertLike[];
   unavailable?: boolean;
+  unavailableReason?: string;
 }
 
 export interface RepoSecuritySummary {
@@ -15,6 +16,8 @@ export interface RepoSecuritySummary {
   totalOpen: number;
   latestUpdatedAt: string | null;
   unavailable: boolean;
+  /** Human-readable reason the alerts could not be read (status + GitHub message). */
+  unavailableReason?: string;
 }
 
 function latestTimestamp(items: RepoSecurityAlertLike[]): string | null {
@@ -40,5 +43,6 @@ export function buildRepoSecuritySummary(input: RepoSecuritySummaryInput): RepoS
     totalOpen: dependabotOpen + codeScanningOpen,
     latestUpdatedAt,
     unavailable: Boolean(input.unavailable),
+    unavailableReason: input.unavailableReason,
   };
 }

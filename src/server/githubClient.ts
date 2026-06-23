@@ -131,3 +131,27 @@ export async function restApiPaginate<T = unknown>(path: string): Promise<RestRe
 export async function ghApiJson(path: string): Promise<RestResult> {
   return restApi(path);
 }
+
+/**
+ * Turns a failed RestResult into a human-readable reason for the UI, e.g.
+ * "Dependabot alerts are disabled for this repository. (HTTP 403)". Prefers
+ * GitHub's own error message (parsed from the JSON body) and appends the status.
+ */
+export function describeRestError(error?: string, status?: number): string {
+  let detail = (error ?? "").trim();
+  if (detail) {
+    try {
+      const parsed = JSON.parse(detail) as { message?: unknown };
+      if (typeof parsed.message === "string" && parsed.message.trim()) {
+        detail = parsed.message.trim();
+      }
+    } catch {
+      // body wasn't JSON — use the raw text (likely already "HTTP <status>")
+    }
+  }
+  const statusSuffix = status ? `HTTP ${status}` : "";
+  if (detail && statusSuffix && !detail.includes(String(status))) {
+    return `${detail} (${statusSuffix})`;
+  }
+  return detail || statusSuffix || "Request failed";
+}

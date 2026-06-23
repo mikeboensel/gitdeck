@@ -924,25 +924,27 @@ export function App() {
   const reposWithIssuesCount = repoInsights.filter((insight) => insight.issueCount > 0).length;
   // Unknown metrics are -1; exclude them from totals so a failed fetch never
   // inflates or deflates a sum (and never reads as a confident 0).
+  // Metrics whose fetch failed carry an `errors` entry; exclude them from totals so
+  // a failed read never inflates or deflates a sum (nor reads as a confident 0).
   const totalViews = repoInsights.reduce(
-    (sum, insight) => (insight.viewsCount >= 0 ? sum + insight.viewsCount : sum),
+    (sum, insight) => (insight.errors?.views ? sum : sum + insight.viewsCount),
     0,
   );
   const totalReleaseDownloads = repoInsights.reduce(
-    (sum, insight) => (insight.totalDownloads >= 0 ? sum + insight.totalDownloads : sum),
+    (sum, insight) => (insight.errors?.downloads ? sum : sum + insight.totalDownloads),
     0,
   );
   const totalSecurityAlerts = repoInsights.reduce(
-    (sum, insight) => (insight.securityAlertsCount >= 0 ? sum + insight.securityAlertsCount : sum),
+    (sum, insight) => (insight.errors?.security ? sum : sum + insight.securityAlertsCount),
     0,
   );
-  const viewsKnownCount = repoInsights.filter((insight) => insight.viewsCount >= 0).length;
-  const downloadsKnownCount = repoInsights.filter((insight) => insight.totalDownloads >= 0).length;
+  const viewsKnownCount = repoInsights.filter((insight) => !insight.errors?.views).length;
+  const downloadsKnownCount = repoInsights.filter((insight) => !insight.errors?.downloads).length;
   const securityRepoCount = repoInsights.filter(
     (insight) => insight.securityAlertsCount > 0,
   ).length;
   const securityUnavailableCount = repoInsights.filter(
-    (insight) => insight.securityAlertsCount < 0,
+    (insight) => insight.errors?.security,
   ).length;
   const securityOpenIssues = securityInsights.reduce((sum, insight) => sum + insight.issueCount, 0);
   const reposByName = useMemo(
@@ -1503,15 +1505,13 @@ export function App() {
                 </div>
                 <div className="stat" title={t("tip.totalViews")}>
                   <div className="k">{t("stats.totalViews")}</div>
-                  <div className="v">
-                    {viewsKnownCount ? formatNumber(totalViews) : t("metric.na")}
-                  </div>
+                  <div className="v">{viewsKnownCount ? formatNumber(totalViews) : "—"}</div>
                   <div className="sub">{t("stats.last14Days")}</div>
                 </div>
                 <div className="stat" title={t("tip.totalDownloads")}>
                   <div className="k">{t("stats.totalDownloads")}</div>
                   <div className="v">
-                    {downloadsKnownCount ? formatNumber(totalReleaseDownloads) : t("metric.na")}
+                    {downloadsKnownCount ? formatNumber(totalReleaseDownloads) : "—"}
                   </div>
                   <div className="sub">{t("stats.acrossReleaseAssets")}</div>
                 </div>

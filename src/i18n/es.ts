@@ -331,7 +331,6 @@ export const es: Record<keyof typeof en, string> = {
   "insights.downloads": "{count} descargas",
   "insights.recentDownloads": "{count} descargas recientes",
   "insights.securityAlerts": "{count} alertas de seguridad",
-  "metric.na": "—",
   "alerts.emptyTitle": "Sin alertas de seguridad",
   "alerts.emptyText": "Prueba con otro filtro de repositorios o actualiza el dashboard.",
   "alerts.totalAlerts": "Alertas de seguridad",
@@ -349,8 +348,6 @@ export const es: Record<keyof typeof en, string> = {
     "Descargas acumuladas de los activos de releases publicados en los últimos 30 días — no las descargas realizadas en los últimos 30 días.",
   "tip.securityAlerts":
     "Alertas abiertas de Dependabot y de análisis de código notificadas por GitHub para este repositorio.",
-  "tip.unavailable":
-    "No se pudo leer en este repo (sin acceso, una función deshabilitada o un error de la API). Esto es desconocido — no cero. Los datos de tráfico y seguridad normalmente requieren acceso de administrador/escritura, por lo que aparecen en blanco en forks que no posees.",
   "tip.pushed": "Cuándo se hizo el último push al repositorio.",
   "tip.totalOpenIssues": "Suma de issues abiertas en los repositorios mostrados.",
   "tip.reposWithOpenIssues": "Número de repositorios que tienen al menos una issue abierta.",

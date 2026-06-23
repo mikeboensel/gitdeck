@@ -1,8 +1,8 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import type { GhIssue, GhRepo, RepoInsight } from "../types/github";
-import { buildRepoInsight, METRIC_UNKNOWN } from "../utils/insights";
+import type { GhIssue, GhRepo, RepoInsight, RepoInsightErrors } from "../types/github";
+import { buildRepoInsight } from "../utils/insights";
 import { getIssuesCached, getReposCached } from "./dashboardData";
-import { ghApiJson, restApiPaginate } from "./githubClient";
+import { describeRestError, ghApiJson, restApiPaginate } from "./githubClient";
 import { sendJsonCacheable } from "./http";
 import { fetchRepoSecuritySummary } from "./securityAlerts";
 
@@ -17,7 +17,7 @@ interface ReleaseApi {
 
 async function fetchReleases(repo: string) {
   const result = await restApiPaginate<ReleaseApi>(`/repos/${repo}/releases?per_page=100`);
-  if (!result.ok) return { ok: false as const, error: result.error };
+  if (!result.ok) return { ok: false as const, error: result.error, status: result.status };
   return { ok: true as const, data: result.data };
 }
 
@@ -38,9 +38,7 @@ async function fetchInsightForRepo(repo: GhRepo, issues: GhIssue[]): Promise<Rep
         ),
       0,
     );
-  // When the releases call failed we cannot know download counts — report -1
-  // (unknown) rather than 0, which would imply a real "no downloads".
-  const totalDownloads = releases.ok ? sumAssetDownloads(releaseList) : METRIC_UNKNOWN;
+  const totalDownloads = releases.ok ? sumAssetDownloads(releaseList) : 0;
   const recentDownloads = releases.ok
     ? sumAssetDownloads(
         releaseList.filter(
@@ -49,7 +47,7 @@ async function fetchInsightForRepo(repo: GhRepo, issues: GhIssue[]): Promise<Rep
             Date.now() - new Date(release.published_at).getTime() <= 30 * 86_400_000,
         ),
       )
-    : METRIC_UNKNOWN;
+    : 0;
   const latestReleasePublishedAt =
     releaseList
       .map((release) => release.published_at)
@@ -58,18 +56,24 @@ async function fetchInsightForRepo(repo: GhRepo, issues: GhIssue[]): Promise<Rep
 
   const viewData = views.ok ? (views.data as { count?: number; uniques?: number } | null) : null;
 
+  // Each failed call carries its real reason; the value falls back to 0 but the
+  // UI keys off `errors` so a failed fetch is shown as an error, never a real 0.
+  const errors: RepoInsightErrors = {};
+  if (!views.ok) errors.views = describeRestError(views.error, views.status);
+  if (!releases.ok) errors.downloads = describeRestError(releases.error, releases.status);
+  if (security.unavailable) errors.security = security.unavailableReason ?? "Could not be read.";
+
   return buildRepoInsight({
     repo,
     issues,
-    // Traffic needs push access; a failed call is unknown (-1), not 0 views.
-    viewsCount: views.ok ? (viewData?.count ?? 0) : METRIC_UNKNOWN,
-    viewsUniques: views.ok ? (viewData?.uniques ?? 0) : METRIC_UNKNOWN,
+    viewsCount: viewData?.count ?? 0,
+    viewsUniques: viewData?.uniques ?? 0,
     releaseCount: releaseList.length,
     totalDownloads,
     recentDownloads,
     latestReleasePublishedAt,
-    // security.unavailable => we could not read alerts; surface as unknown (-1).
-    securityAlertsCount: security.unavailable ? METRIC_UNKNOWN : security.totalOpen,
+    securityAlertsCount: security.totalOpen,
+    errors,
   });
 }
 

@@ -328,7 +328,6 @@ export const en = {
   "insights.downloads": "{count} downloads",
   "insights.recentDownloads": "{count} recent downloads",
   "insights.securityAlerts": "{count} security alerts",
-  "metric.na": "—",
   "alerts.emptyTitle": "No security alerts",
   "alerts.emptyText": "Try a different repository filter or refresh the dashboard.",
   "alerts.totalAlerts": "Security alerts",
@@ -345,8 +344,6 @@ export const en = {
     "Lifetime downloads of assets from releases published in the last 30 days — not downloads that happened in the last 30 days.",
   "tip.securityAlerts":
     "Open Dependabot and code-scanning alerts reported by GitHub for this repository.",
-  "tip.unavailable":
-    "Couldn't be read for this repo (no access, a disabled feature, or an API error). This is unknown — not zero. Traffic and security data usually need admin/push access, so they're blank on forks you don't own.",
   "tip.pushed": "When the repository was last pushed to.",
   "tip.totalOpenIssues": "Sum of open issues across the repositories shown.",
   "tip.reposWithOpenIssues": "Number of repositories that have at least one open issue.",

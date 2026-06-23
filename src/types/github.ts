@@ -320,6 +320,8 @@ export interface RepoSecuritySummary {
   totalOpen: number;
   latestUpdatedAt: string | null;
   unavailable: boolean;
+  /** Human-readable reason the alerts could not be read (status + GitHub message). */
+  unavailableReason?: string;
 }
 
 export interface RepoDetailsData {
@@ -367,14 +369,23 @@ export interface RepoInsight {
   starsDelta: number | null;
   forksDelta: number | null;
   releaseCount: number;
-  // Per-repo fetched metrics. A value of -1 (METRIC_UNKNOWN) means the data could
-  // not be read (no access / disabled / API error) and must NOT be shown as 0.
+  // Per-repo fetched metrics. When the underlying call failed, the value is 0 and
+  // the matching `errors` entry holds the reason — never show a failed fetch as a
+  // real 0; consult `errors` first.
   totalDownloads: number;
   recentDownloads: number;
   viewsCount: number;
   viewsUniques: number;
   securityAlertsCount: number;
   latestReleasePublishedAt: string | null;
+  /** Reason a metric could not be read (HTTP status + GitHub's message), per group. */
+  errors?: RepoInsightErrors;
+}
+
+export interface RepoInsightErrors {
+  views?: string;
+  downloads?: string;
+  security?: string;
 }
 
 export interface RepoInsightsData {
