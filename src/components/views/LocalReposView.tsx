@@ -10,6 +10,7 @@ import {
   LuFilePlus,
   LuFileQuestion,
   LuFolderGit2,
+  LuGitBranch,
   LuGlobe,
   LuLock,
   LuPickaxe,
@@ -457,7 +458,11 @@ function LocalRepoCard({
       </div>
 
       <div className="local-git-row">
-        {repo.branch ? <span className="local-branch">{repo.branch}</span> : null}
+        {repo.branch ? (
+          <span className="local-branch">
+            <LuGitBranch size={11} aria-hidden /> {repo.branch}
+          </span>
+        ) : null}
         <GitStatusPills repo={repo} />
       </div>
 
@@ -599,7 +604,11 @@ function LocalRepoRow({
             <span>{repo.name}</span>
           )}
         </div>
-        {repo.branch ? <span className="local-branch local-row-branch">{repo.branch}</span> : null}
+        {repo.branch ? (
+          <span className="local-branch local-row-branch">
+            <LuGitBranch size={11} aria-hidden /> {repo.branch}
+          </span>
+        ) : null}
         {repo.isWorktree ? (
           <span className="rb local-worktree-badge">{t("local.worktree")}</span>
         ) : null}

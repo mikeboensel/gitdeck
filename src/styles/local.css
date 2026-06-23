@@ -152,12 +152,21 @@
 }
 
 .local-branch {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   font-size: 12px;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   color: var(--text);
   background: var(--hover-surface);
   border-radius: 4px;
   padding: 1px 6px;
+}
+
+/* The branch glyph reads as a quiet affordance — dim it relative to the name. */
+.local-branch svg {
+  flex-shrink: 0;
+  color: var(--muted);
 }
 
 .local-pill {
