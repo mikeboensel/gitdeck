@@ -223,7 +223,7 @@ export function SidebarControls({
           entries={[...orgEntries.entries()]}
           selected={orgSelection}
           userLogin={authLogin || undefined}
-          renderIcon={(name) => <Avatar login={name} size={24} className="facet-chip-avatar" />}
+          renderIcon={(name) => <Avatar login={name} size={40} className="facet-chip-avatar" />}
           onToggle={(value) =>
             ticketMode
               ? onActiveFiltersChange({
@@ -287,7 +287,7 @@ export function SidebarControls({
             <FacetChips
               entries={[...activeFacets.authors.entries()]}
               selected={activeFilters.authors}
-              renderIcon={(name) => <Avatar login={name} size={24} className="facet-chip-avatar" />}
+              renderIcon={(name) => <Avatar login={name} size={40} className="facet-chip-avatar" />}
               onToggle={(value) =>
                 onActiveFiltersChange({
                   ...activeFilters,
@@ -306,7 +306,7 @@ export function SidebarControls({
             <FacetChips
               entries={[...activeFacets.assignees.entries()]}
               selected={activeFilters.assignees}
-              renderIcon={(name) => <Avatar login={name} size={24} className="facet-chip-avatar" />}
+              renderIcon={(name) => <Avatar login={name} size={40} className="facet-chip-avatar" />}
               onToggle={(value) =>
                 onActiveFiltersChange({
                   ...activeFilters,
@@ -385,7 +385,7 @@ export function SidebarControls({
               entries={[...repoFacets.collaborators.entries()]}
               selected={repoFilters.collaborators}
               userLogin={authLogin || undefined}
-              renderIcon={(name) => <Avatar login={name} size={24} className="facet-chip-avatar" />}
+              renderIcon={(name) => <Avatar login={name} size={40} className="facet-chip-avatar" />}
               onToggle={(value) =>
                 onRepoFiltersChange({
                   ...repoFilters,

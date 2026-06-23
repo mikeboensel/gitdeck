@@ -478,9 +478,11 @@ body.tab-repos .section[data-for="issues-only"] {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: 5px;
   width: 48px;
-  padding: 7px 4px;
+  /* Tight padding so the avatar can fill most of the chip; extra bottom space
+     pushes the count down to the chip's lower edge. */
+  padding: 4px 4px 5px;
   background: var(--panel-2);
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -505,13 +507,16 @@ body.tab-repos .section[data-for="issues-only"] {
   background: var(--accent-soft);
 }
 .facet-chip-count {
-  font-size: 10.5px;
+  font-size: 11px;
   line-height: 1;
   color: var(--muted-2);
   font-variant-numeric: tabular-nums;
 }
-.facet-chip-avatar {
-  border-radius: 50%;
+/* Rounded-square avatar that mirrors the chip's shape (not a circle), so the
+   image reads as larger and more parsable. Compound selector overrides the
+   circular `.avatar` base (which loads after this file). */
+.facet-chips .facet-chip-avatar {
+  border-radius: 6px;
   overflow: hidden;
   flex: 0 0 auto;
 }

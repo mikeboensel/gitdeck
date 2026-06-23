@@ -847,7 +847,7 @@ export function App() {
         onToggle: (v) => setLocalFilters((f) => ({ ...f, owners: toggleSetValue(f.owners, v) })),
         onClear: () => setLocalFilters((f) => ({ ...f, owners: new Set() })),
         render: "chips",
-        renderIcon: (name) => <Avatar login={name} size={24} className="facet-chip-avatar" />,
+        renderIcon: (name) => <Avatar login={name} size={40} className="facet-chip-avatar" />,
         open: true,
       },
       {
