@@ -80,6 +80,56 @@
   text-overflow: ellipsis;
 }
 
+/* Persistent summary status bar: a slim, sticky strip pinned to the bottom of
+   the content column. Replaces the tall top stats band — compact "value label"
+   pairs, always visible while the list scrolls behind it. Each tab renders its
+   own, so it's inherently context-aware. */
+.status-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  margin-top: 14px;
+  padding: 8px 14px;
+  border: 1px solid var(--border-soft);
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--panel) 88%, transparent);
+  backdrop-filter: blur(8px);
+  box-shadow:
+    0 -1px 0 rgba(255, 255, 255, 0.035),
+    0 -10px 24px rgba(0, 0, 0, 0.16);
+  font-size: 12px;
+}
+.status-bar .stat {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  padding: 0;
+  border: none;
+  background: none;
+}
+/* Number first, then the muted label — "165 repositories". */
+.status-bar .stat .v {
+  order: -1;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.status-bar .stat .k {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  font-weight: 700;
+}
+.status-bar .stat .sub {
+  display: none;
+}
+
 .toolbar {
   display: flex;
   align-items: center;

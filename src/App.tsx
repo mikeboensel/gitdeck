@@ -1416,34 +1416,6 @@ export function App() {
 
           {tab === "repos" ? (
             <div className="view-repos" style={{ display: "block" }}>
-              <section className="stats">
-                <div className="stat">
-                  <div className="k">{t("stats.repositories")}</div>
-                  <div className="v">{formatNumber(filteredRepos.length)}</div>
-                  <div className="sub">{t("stats.matchingFilters")}</div>
-                </div>
-                <div className="stat">
-                  <div className="k">{t("stats.totalStars")}</div>
-                  <div className="v">
-                    {formatNumber(
-                      filteredRepos.reduce((sum, repo) => sum + repo.stargazerCount, 0),
-                    )}
-                  </div>
-                  <div className="sub">{t("stats.acrossShown")}</div>
-                </div>
-                <div className="stat">
-                  <div className="k">{t("stats.totalForks")}</div>
-                  <div className="v">
-                    {formatNumber(filteredRepos.reduce((sum, repo) => sum + repo.forkCount, 0))}
-                  </div>
-                  <div className="sub">{t("stats.acrossShown")}</div>
-                </div>
-                <div className="stat" title={t("tip.totalOpenIssues")}>
-                  <div className="k">{t("stats.openIssues")}</div>
-                  <div className="v">{formatNumber(totalOpenIssues)}</div>
-                  <div className="sub">{t("stats.acrossShown")}</div>
-                </div>
-              </section>
               <div className="toolbar">
                 <div className="spacer" />
                 <RepoViewControls
@@ -1487,6 +1459,30 @@ export function App() {
                   setRepoPage(1);
                 }}
               />
+              <section className="status-bar" aria-label={t("stats.repositories")}>
+                <div className="stat" title={t("stats.matchingFilters")}>
+                  <div className="k">{t("stats.repositories")}</div>
+                  <div className="v">{formatNumber(filteredRepos.length)}</div>
+                </div>
+                <div className="stat" title={t("stats.acrossShown")}>
+                  <div className="k">{t("stats.totalStars")}</div>
+                  <div className="v">
+                    {formatNumber(
+                      filteredRepos.reduce((sum, repo) => sum + repo.stargazerCount, 0),
+                    )}
+                  </div>
+                </div>
+                <div className="stat" title={t("stats.acrossShown")}>
+                  <div className="k">{t("stats.totalForks")}</div>
+                  <div className="v">
+                    {formatNumber(filteredRepos.reduce((sum, repo) => sum + repo.forkCount, 0))}
+                  </div>
+                </div>
+                <div className="stat" title={t("tip.totalOpenIssues")}>
+                  <div className="k">{t("stats.openIssues")}</div>
+                  <div className="v">{formatNumber(totalOpenIssues)}</div>
+                </div>
+              </section>
             </div>
           ) : null}
 
