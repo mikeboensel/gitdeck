@@ -1,6 +1,7 @@
 import { access, mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { DATA_DIR, LEGACY_DATA_DIR } from "./config";
+import { logger } from "./logger";
 import type { Account, AccountStoreData, ProviderConfig } from "./providers/types";
 
 const ACCOUNTS_PATH = resolve(DATA_DIR, "accounts.json");
@@ -121,8 +122,8 @@ async function writePersisted(data: AccountStoreData): Promise<void> {
 async function backupLegacy(): Promise<void> {
   try {
     await rename(LEGACY_TOKEN_PATH, LEGACY_BACKUP_PATH);
-  } catch {
-    // best-effort
+  } catch (err) {
+    logger.warn({ err }, "legacy token backup failed (best-effort)");
   }
 }
 
@@ -141,8 +142,8 @@ async function migrateLegacyDataDir(): Promise<void> {
   }
   try {
     await rename(LEGACY_DATA_DIR, DATA_DIR);
-  } catch {
-    // best-effort: leave legacy in place if rename fails
+  } catch (err) {
+    logger.warn({ err }, "legacy data dir migration failed (best-effort)");
   }
 }
 

@@ -1,6 +1,7 @@
 import type { GhRepo } from "../types/github";
 import { getReposCached } from "./dashboardData";
 import { AuthRequiredError, restApi } from "./githubClient";
+import { logger } from "./logger";
 
 export interface CIRunSummary {
   id: number;
@@ -197,6 +198,7 @@ async function build(): Promise<CIHealthResult> {
     if (error instanceof AuthRequiredError) {
       return { ok: false, error: "authentication required", needsAuth: true };
     }
+    logger.error({ err: error }, "CI health fetch failed");
     return { ok: false, error: (error as Error).message || String(error) };
   }
 }

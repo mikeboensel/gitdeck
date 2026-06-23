@@ -1,6 +1,7 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { getActive as getActiveAccountFromStore, init as initAccountStore } from "./accountStore";
+import { logger } from "./logger";
 import type { Account } from "./providers/types";
 
 const execFileAsync = promisify(execFile);
@@ -55,7 +56,8 @@ async function fetchLogin(token: string): Promise<{ login: string | null; scope:
       login: data.login ?? null,
       scope: response.headers.get("x-oauth-scopes"),
     };
-  } catch {
+  } catch (err) {
+    logger.warn({ err }, "failed to fetch GitHub identity");
     return { login: null, scope: null };
   }
 }

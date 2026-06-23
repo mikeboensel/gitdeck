@@ -2,6 +2,7 @@ import type { GhIssue, GhPullRequest, GhRepo } from "../types/github";
 import { getActive as getActiveAccount } from "./accountStore";
 import { recordDailyDigest } from "./digests";
 import { AuthRequiredError } from "./githubClient";
+import { logger } from "./logger";
 import { getProviderForAccount } from "./providers/registry";
 import type { Account, OwnersOutcome, Provider } from "./providers/types";
 import { attachHistory, recordSnapshots } from "./snapshots";
@@ -58,6 +59,7 @@ function authFail(): { ok: false; error: string; needsAuth: true } {
 }
 
 function genericFail(error: unknown): { ok: false; error: string } {
+  logger.error({ err: error }, "dashboard data fetch failed");
   return { ok: false, error: (error as Error).message || String(error) };
 }
 
@@ -84,8 +86,9 @@ const reposStore = memoize<ReposResult>(TTL_MS, async (): Promise<ReposResult> =
     try {
       await recordSnapshots(repos);
       await attachHistory(repos);
-    } catch {
-      // Snapshot/history is best-effort.
+    } catch (err) {
+      // Snapshot/history is best-effort, but a persistent failure must be visible.
+      logger.warn({ err }, "snapshot/history record failed (best-effort)");
     }
     const result: ReposResult = { ok: true, repos, owners: ownersResult.owners, fetchedAt: new Date().toISOString() };
     maybeRecordDigest(result, issuesStore.peek());
@@ -134,7 +137,8 @@ function maybeRecordDigest(repos: ReposResult | null, issues: IssuesResult | nul
     return;
   }
   digestRecordedFor = { reposAt: repos.fetchedAt, issuesAt: issues.fetchedAt };
-  void recordDailyDigest(repos.repos, issues.issues).catch(() => {
+  void recordDailyDigest(repos.repos, issues.issues).catch((err) => {
+    logger.warn({ err }, "daily digest recording failed");
     digestRecordedFor = null;
   });
 }

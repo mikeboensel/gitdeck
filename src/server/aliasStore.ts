@@ -1,6 +1,7 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { DATA_DIR } from "./config";
+import { logger } from "./logger";
 
 const ALIASES_PATH = resolve(DATA_DIR, "aliases.json");
 const MAX_ALIASES_PER_REPO = 10;
@@ -17,7 +18,10 @@ async function load(): Promise<AliasFile> {
     try {
       const raw = await readFile(ALIASES_PATH, "utf-8");
       cache = JSON.parse(raw) as AliasFile;
-    } catch {
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code !== "ENOENT") {
+        logger.warn({ err }, "aliases file unreadable/corrupt — starting empty");
+      }
       cache = {};
     }
     return cache;

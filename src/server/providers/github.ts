@@ -10,6 +10,7 @@ import type {
   GhUser,
   ReviewDecision,
 } from "../../types/github";
+import { logger } from "../logger";
 import type {
   Account,
   DeviceFlowPoll,
@@ -298,7 +299,11 @@ export class GitHubProvider implements Provider {
       let data: RepoListResponse;
       try {
         data = await this.gqlCall<RepoListResponse>(account, REPO_LIST_QUERY, { owner, cursor });
-      } catch {
+      } catch (err) {
+        // First page failed → nothing usable; surface it. Later page failed →
+        // return partial but log loudly so truncation is never silent.
+        if (page === 0) throw err;
+        logger.warn({ err, owner, page, collected: collected.length }, "repo pagination truncated");
         return collected;
       }
       const owned = data.repositoryOwner?.repositories;

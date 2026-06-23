@@ -1,6 +1,7 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import type { GhRepo, SnapshotEntry } from "../types/github";
 import { DATA_DIR, SNAPSHOTS_PATH } from "./config";
+import { logger } from "./logger";
 
 const MAX_HISTORY_DAYS = 90;
 const HISTORY_RESPONSE_DAYS = 30;
@@ -17,7 +18,10 @@ async function loadSnapshots(): Promise<SnapshotsFile> {
     try {
       const raw = await readFile(SNAPSHOTS_PATH, "utf-8");
       snapshotsCache = JSON.parse(raw) as SnapshotsFile;
-    } catch {
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code !== "ENOENT") {
+        logger.warn({ err }, "snapshots file unreadable/corrupt — starting empty");
+      }
       snapshotsCache = {};
     }
     return snapshotsCache;
