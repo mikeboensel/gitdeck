@@ -11,6 +11,7 @@ function makeDefaultRepoFilters() {
     search: "",
     orgs: new Set<string>(),
     languages: new Set<string>(),
+    collaborators: new Set<string>(),
     visibility: "all" as const,
     includeForks: true,
     includeArchived: false,

@@ -15,19 +15,21 @@ import {
   LuSlidersHorizontal,
   LuTag,
   LuUserCheck,
+  LuUsers,
 } from "react-icons/lu";
 import { useI18n } from "../i18n/I18nProvider";
 import type { FacetValue, IssueFilters, PullRequestFilters, RepoFilters } from "../utils/dashboard";
-import { formatNumber } from "../utils/format";
+import { formatNumber, formatRelativeTime } from "../utils/format";
 import { INBOX_MAILBOXES, type InboxMailbox } from "../utils/inbox";
 import { Avatar } from "./common/Avatar";
-import { ChevronIcon, CloseIcon, SearchIcon } from "./common/Icons";
+import { ChevronIcon, CloseIcon, RefreshIcon, SearchIcon } from "./common/Icons";
 import { isUnknownLanguage, LanguageIcon } from "./common/LanguageIcon";
 
 type Tab =
   | "inbox"
   | "issues"
   | "repos"
+  | "local"
   | "kanban"
   | "insights"
   | "alerts"
@@ -63,6 +65,7 @@ interface SidebarControlsProps {
   repoFacets: {
     orgs: Map<string, number>;
     languages: Map<string, number>;
+    collaborators: Map<string, number>;
   };
   onSearchChange: (value: string) => void;
   onIssueFiltersChange: (filters: IssueFilters) => void;
@@ -71,6 +74,9 @@ interface SidebarControlsProps {
   onReset: () => void;
   onClose: () => void;
   authLogin?: string;
+  collaboratorsFetchedAt?: string | null;
+  collaboratorsLoading?: boolean;
+  onRefreshCollaborators?: () => void;
   inbox?: InboxSidebarState;
 }
 
@@ -306,9 +312,12 @@ export function SidebarControls({
   onReset,
   onClose,
   authLogin,
+  collaboratorsFetchedAt,
+  collaboratorsLoading,
+  onRefreshCollaborators,
   inbox,
 }: SidebarControlsProps) {
-  const { t } = useI18n();
+  const { t, language } = useI18n();
   const inboxMode = tab === "inbox";
   const prMode = tab === "prs";
   const issueMode = tab === "issues" || tab === "kanban";
@@ -330,7 +339,12 @@ export function SidebarControls({
           <span className="reset" style={{ pointerEvents: "none" }}>
             {formatNumber(inbox.totalCount)}
           </span>
-          <button className="side-close" aria-label={t("common.closeFilters")} onClick={onClose}>
+          <button
+            type="button"
+            className="side-close"
+            aria-label={t("common.closeFilters")}
+            onClick={onClose}
+          >
             <CloseIcon />
           </button>
         </div>
@@ -379,6 +393,7 @@ export function SidebarControls({
           <LuListFilter size={16} />
         </h2>
         <button
+          type="button"
           className="reset tip"
           data-tip={t("common.clearAll")}
           aria-label={t("common.clearAll")}
@@ -387,7 +402,12 @@ export function SidebarControls({
         >
           <LuEraser size={16} />
         </button>
-        <button className="side-close" aria-label={t("common.closeFilters")} onClick={onClose}>
+        <button
+          type="button"
+          className="side-close"
+          aria-label={t("common.closeFilters")}
+          onClick={onClose}
+        >
           <CloseIcon />
         </button>
       </div>
@@ -536,6 +556,62 @@ export function SidebarControls({
             />
           </FilterSection>
           <FilterSection
+            title={t("sidebar.collaborators")}
+            icon={<LuUsers size={16} />}
+            activeCount={repoFilters.collaborators.size}
+            dataFor="repos-only"
+            onClear={() => onRepoFiltersChange({ ...repoFilters, collaborators: new Set() })}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "flex-start",
+                justifyContent: "space-between",
+                gap: 8,
+                padding: "2px 2px 6px",
+              }}
+            >
+              <span style={{ color: "var(--muted-2)", fontSize: 12, lineHeight: 1.4 }}>
+                {t("sidebar.collaboratorsNote")}
+                {collaboratorsFetchedAt ? (
+                  <>
+                    {" "}
+                    <span style={{ whiteSpace: "nowrap" }}>
+                      {t("sidebar.collaboratorsUpdated", {
+                        time: formatRelativeTime(collaboratorsFetchedAt, Date.now(), language),
+                      })}
+                    </span>
+                  </>
+                ) : null}
+              </span>
+              {onRefreshCollaborators ? (
+                <button
+                  type="button"
+                  className="reset tip"
+                  data-tip={t("common.refresh")}
+                  aria-label={t("common.refresh")}
+                  disabled={collaboratorsLoading}
+                  onClick={onRefreshCollaborators}
+                  style={{ flexShrink: 0 }}
+                >
+                  <RefreshIcon />
+                </button>
+              ) : null}
+            </div>
+            <FacetChips
+              entries={[...repoFacets.collaborators.entries()]}
+              selected={repoFilters.collaborators}
+              userLogin={authLogin || undefined}
+              renderIcon={(name) => <Avatar login={name} size={24} className="facet-chip-avatar" />}
+              onToggle={(value) =>
+                onRepoFiltersChange({
+                  ...repoFilters,
+                  collaborators: toggleSetValue(repoFilters.collaborators, value),
+                })
+              }
+            />
+          </FilterSection>
+          <FilterSection
             title={t("sidebar.visibility")}
             icon={<LuEye size={16} />}
             activeCount={repoFilters.visibility === "all" ? 0 : 1}
@@ -552,6 +628,7 @@ export function SidebarControls({
                 ] as const
               ).map(({ value, label, Icon }) => (
                 <button
+                  type="button"
                   key={value}
                   className={`tip ${repoFilters.visibility === value ? "active" : ""}`}
                   data-tip={label}
@@ -574,7 +651,7 @@ export function SidebarControls({
               onRepoFiltersChange({ ...repoFilters, includeForks: true, includeArchived: false })
             }
           >
-            <div className="opt-group" role="group">
+            <fieldset className="opt-group">
               <button
                 type="button"
                 className={`tip ${repoFilters.includeForks ? "active" : ""}`}
@@ -602,7 +679,7 @@ export function SidebarControls({
               >
                 <LuArchive size={15} />
               </button>
-            </div>
+            </fieldset>
           </FilterSection>
         </>
       )}

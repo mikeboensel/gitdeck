@@ -1,0 +1,230 @@
+import { execFile } from "node:child_process";
+import type { Dirent } from "node:fs";
+import { readdir } from "node:fs/promises";
+import { basename, join } from "node:path";
+import { promisify } from "node:util";
+import { logger } from "./logger";
+
+const execFileAsync = promisify(execFile);
+
+/** Local git facts for one repo, before any GitHub enrichment. */
+export interface ScannedRepo {
+  path: string;
+  name: string;
+  remoteUrl: string | null;
+  nameWithOwner: string | null;
+  host: string | null;
+  branch: string | null;
+  ahead: number;
+  behind: number;
+  dirty: boolean;
+  lastCommit: { sha: string; date: string; message: string } | null;
+}
+
+/**
+ * Directory names pruned before descending. These hold package-manager and
+ * tooling git repos (Homebrew taps live under Library/Taps, oh-my-zsh plugins,
+ * vendored submodules, etc.) that aren't the user's working repos.
+ */
+const DEFAULT_EXCLUDE_SEGMENTS = new Set([
+  "node_modules",
+  "vendor",
+  "bower_components",
+  ".cache",
+  ".Trash",
+  "Library",
+  "Applications",
+  "Cellar",
+  "Caskroom",
+  ".cargo",
+  ".rustup",
+  ".pyenv",
+  ".rbenv",
+  ".nvm",
+  ".gem",
+  ".npm",
+  ".pnpm-store",
+  ".bun",
+  ".venv",
+  "venv",
+  "site-packages",
+  ".terraform",
+  ".gradle",
+  ".m2",
+]);
+
+const MAX_DEPTH = 10;
+const GIT_TIMEOUT_MS = 8000;
+const GIT_CONCURRENCY = 8;
+
+/**
+ * Parse a git remote URL into host/owner/repo. Handles scp-style
+ * (`git@host:owner/repo.git`), `ssh://`, and `https://` forms.
+ */
+export function parseRemoteUrl(url: string): { host: string; owner: string; repo: string } | null {
+  const trimmed = url.trim();
+  if (!trimmed) return null;
+  // scp-style: git@github.com:owner/repo(.git)
+  const scp = /^[^@/]+@([^:/]+):(.+)$/.exec(trimmed);
+  let host: string;
+  let path: string;
+  if (scp?.[1] && scp[2]) {
+    host = scp[1];
+    path = scp[2];
+  } else {
+    try {
+      const parsed = new URL(trimmed);
+      host = parsed.hostname;
+      path = parsed.pathname.replace(/^\/+/, "");
+    } catch {
+      return null;
+    }
+  }
+  const segments = path
+    .replace(/\.git$/i, "")
+    .split("/")
+    .filter(Boolean);
+  if (segments.length < 2) return null;
+  const owner = segments[0];
+  const repo = segments[segments.length - 1];
+  if (!owner || !repo) return null;
+  return { host, owner, repo };
+}
+
+async function git(cwd: string, args: string[]): Promise<string | null> {
+  try {
+    const { stdout } = await execFileAsync("git", ["-C", cwd, ...args], {
+      timeout: GIT_TIMEOUT_MS,
+      maxBuffer: 1024 * 1024,
+    });
+    return stdout;
+  } catch {
+    return null;
+  }
+}
+
+async function readGitMeta(repoPath: string): Promise<ScannedRepo> {
+  const [remoteRaw, branchRaw, statusRaw, aheadBehindRaw, lastCommitRaw] = await Promise.all([
+    git(repoPath, ["remote", "get-url", "origin"]),
+    git(repoPath, ["rev-parse", "--abbrev-ref", "HEAD"]),
+    git(repoPath, ["status", "--porcelain"]),
+    git(repoPath, ["rev-list", "--left-right", "--count", "@{u}...HEAD"]),
+    git(repoPath, ["log", "-1", "--format=%H%n%cI%n%s"]),
+  ]);
+
+  const remoteUrl = remoteRaw?.trim() || null;
+  const parsed = remoteUrl ? parseRemoteUrl(remoteUrl) : null;
+  const branchValue = branchRaw?.trim();
+  const branch = branchValue ? branchValue : null;
+
+  // `--left-right ... @{u}...HEAD` prints "<behind>\t<ahead>"; absent upstream -> null output.
+  let ahead = 0;
+  let behind = 0;
+  if (aheadBehindRaw) {
+    const parts = aheadBehindRaw.trim().split(/\s+/);
+    const b = Number(parts[0]);
+    const a = Number(parts[1]);
+    if (Number.isFinite(b)) behind = b;
+    if (Number.isFinite(a)) ahead = a;
+  }
+
+  // `%H%n%cI%n%s` => sha / ISO date / subject on three lines (subject has no newline).
+  let lastCommit: ScannedRepo["lastCommit"] = null;
+  if (lastCommitRaw) {
+    const lines = lastCommitRaw.split("\n");
+    const sha = lines[0]?.trim();
+    const date = lines[1]?.trim();
+    if (sha && date) lastCommit = { sha, date, message: lines[2] ?? "" };
+  }
+
+  return {
+    path: repoPath,
+    name: parsed?.repo ?? basename(repoPath),
+    remoteUrl,
+    nameWithOwner: parsed ? `${parsed.owner}/${parsed.repo}` : null,
+    host: parsed?.host ?? null,
+    branch,
+    ahead,
+    behind,
+    dirty: Boolean(statusRaw && statusRaw.trim().length > 0),
+    lastCommit,
+  };
+}
+
+/** Recursively find git working directories under a root, pruning noise dirs. */
+async function findRepoPaths(
+  root: string,
+  excludeSegments: Set<string>,
+  denylist: Set<string>,
+  found: string[],
+  depth: number,
+): Promise<void> {
+  if (depth > MAX_DEPTH) return;
+  let entries: Dirent[];
+  try {
+    entries = await readdir(root, { withFileTypes: true });
+  } catch {
+    return; // unreadable (permissions, races) — skip silently
+  }
+
+  // A directory containing `.git` is a repo: record it and don't descend further.
+  if (entries.some((e) => e.name === ".git")) {
+    if (!denylist.has(root)) found.push(root);
+    return;
+  }
+
+  for (const entry of entries) {
+    if (!entry.isDirectory() || entry.isSymbolicLink()) continue;
+    if (excludeSegments.has(entry.name)) continue;
+    const child = join(root, entry.name);
+    if (denylist.has(child)) continue;
+    await findRepoPaths(child, excludeSegments, denylist, found, depth + 1);
+  }
+}
+
+/** Run an async mapper over items with a bounded concurrency pool. */
+export async function mapPool<T, R>(
+  items: T[],
+  limit: number,
+  fn: (item: T) => Promise<R>,
+): Promise<R[]> {
+  const results: R[] = new Array(items.length);
+  let cursor = 0;
+  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (cursor < items.length) {
+      const index = cursor++;
+      results[index] = await fn(items[index] as T);
+    }
+  });
+  await Promise.all(workers);
+  return results;
+}
+
+export interface ScanOptions {
+  roots: string[];
+  excludes?: string[];
+  denylist?: string[];
+}
+
+/** Scan the given roots and return local git facts for every repo found. */
+export async function scanLocalRepos(options: ScanOptions): Promise<ScannedRepo[]> {
+  const excludeSegments = new Set(DEFAULT_EXCLUDE_SEGMENTS);
+  for (const extra of options.excludes ?? []) excludeSegments.add(extra);
+  const denylist = new Set(options.denylist ?? []);
+
+  const repoPaths: string[] = [];
+  const seen = new Set<string>();
+  for (const root of options.roots) {
+    const found: string[] = [];
+    await findRepoPaths(root, excludeSegments, denylist, found, 0);
+    for (const p of found) {
+      if (!seen.has(p)) {
+        seen.add(p);
+        repoPaths.push(p);
+      }
+    }
+  }
+
+  logger.info({ roots: options.roots, count: repoPaths.length }, "local repo scan: paths found");
+  return mapPool(repoPaths, GIT_CONCURRENCY, readGitMeta);
+}

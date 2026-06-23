@@ -3,6 +3,7 @@ import type { OpenAPIHono } from "@hono/zod-openapi";
 import { errorMessage } from "../../utils/errors";
 import { getAuthMode } from "../authProvider";
 import { invalidateCIHealthCache } from "../ciHealth";
+import { invalidateCollaboratorsCache } from "../collaborators";
 import { invalidateDataCache } from "../dashboardData";
 import { invalidateNotificationsCache } from "../notifications";
 import {
@@ -78,6 +79,7 @@ export function registerAuth(app: App): void {
     invalidateDataCache();
     invalidateNotificationsCache();
     invalidateCIHealthCache();
+    invalidateCollaboratorsCache();
     return json(c, 200, { ok: true });
   });
 }

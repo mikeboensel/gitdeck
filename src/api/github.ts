@@ -5,6 +5,8 @@ import type {
   DependentItem,
   ForkNode,
   IssuesData,
+  LocalReposConfig,
+  LocalReposData,
   MentionCodeItem,
   MentionIssueItem,
   NotificationsData,
@@ -175,6 +177,28 @@ export function fetchRepos(fresh = false, signal?: AbortSignal): Promise<ReposDa
   );
 }
 
+export function fetchLocalRepos(fresh = false, signal?: AbortSignal): Promise<LocalReposData> {
+  return readJson<LocalReposData>(
+    `/api/local-repos${fresh ? "?fresh=1" : ""}`,
+    withSignal(signal),
+    "/api/local-repos",
+  );
+}
+
+export function fetchLocalReposConfig(): Promise<{ ok: true; config: LocalReposConfig }> {
+  return readJson("/api/local-repos/config");
+}
+
+export function updateLocalReposConfig(
+  updates: Partial<LocalReposConfig>,
+): Promise<{ ok: true; config: LocalReposConfig }> {
+  return readJson("/api/local-repos/config", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(updates),
+  });
+}
+
 export function fetchIssues(fresh = false, signal?: AbortSignal): Promise<IssuesData> {
   return readJson<IssuesData>(
     `/api/issues${fresh ? "?fresh=1" : ""}`,
@@ -277,6 +301,23 @@ export function fetchRepoInsights(fresh = false, signal?: AbortSignal): Promise<
     `/api/repo-insights${fresh ? "?fresh=1" : ""}`,
     withSignal(signal),
     "/api/repo-insights",
+  );
+}
+
+export interface CollaboratorsData {
+  ok: true;
+  byRepo: Record<string, string[]>;
+  fetchedAt: string;
+}
+
+export function fetchCollaborators(
+  fresh = false,
+  signal?: AbortSignal,
+): Promise<CollaboratorsData> {
+  return readJson<CollaboratorsData>(
+    `/api/collaborators${fresh ? "?fresh=1" : ""}`,
+    withSignal(signal),
+    "/api/collaborators",
   );
 }
 

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { fetchProject, fetchProjects, moveProjectItem } from "../../api/github";
 import type { ProjectDetails, ProjectItem, ProjectSummary } from "../../types/github";
 import { errorMessage } from "../../utils/errors";
@@ -32,7 +32,7 @@ export function KanbanView() {
   const [pending, setPending] = useState<Set<string>>(new Set());
   const [boardFullscreen, setBoardFullscreen] = useState(false);
 
-  async function loadProjects() {
+  const loadProjects = useCallback(async () => {
     setLoading(true);
     setError("");
     try {
@@ -43,7 +43,7 @@ export function KanbanView() {
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
 
   async function openProject(id: string) {
     setLoading(true);
@@ -60,7 +60,7 @@ export function KanbanView() {
 
   useEffect(() => {
     void loadProjects();
-  }, []);
+  }, [loadProjects]);
 
   useEffect(() => {
     document.body.classList.toggle("board-focus", boardFullscreen);
@@ -155,7 +155,7 @@ export function KanbanView() {
           </span>
           <div className="spacer" style={{ flex: 1 }} />
           {fullscreenButton}
-          <button className="btn" onClick={loadProjects}>
+          <button type="button" className="btn" onClick={loadProjects}>
             Reload
           </button>
         </div>
@@ -170,17 +170,18 @@ export function KanbanView() {
               <article
                 className="repo-card"
                 key={item.id}
+                // biome-ignore lint/a11y/noNoninteractiveTabindex: intentionally keyboard-focusable card (see .repo-card:focus-visible); kept as <article> to preserve card layout/styling
                 tabIndex={0}
                 onClick={() => openProject(item.id)}
                 onKeyDown={(event) => event.key === "Enter" && openProject(item.id)}
               >
                 <div className="rc-head">
                   <div className="rc-title">
-                    <a>
+                    <span className="rc-title-text">
                       {item.owner?.login || "Project"}
                       <span className="slash">/</span>
                       {item.title}
-                    </a>
+                    </span>
                   </div>
                   <div className="repo-badges">
                     <span className="rb fork">{item.items?.totalCount ?? 0} items</span>
@@ -202,7 +203,7 @@ export function KanbanView() {
     return (
       <div className="view-kanban" ref={boardRef} style={{ display: "block" }}>
         <div className="kanban-toolbar">
-          <button className="btn" onClick={() => setProject(null)}>
+          <button type="button" className="btn" onClick={() => setProject(null)}>
             All boards
           </button>
           <div className="spacer" style={{ flex: 1 }} />
@@ -225,7 +226,7 @@ export function KanbanView() {
   return (
     <div className="view-kanban" ref={boardRef} style={{ display: "block" }}>
       <div className="kanban-toolbar">
-        <button className="btn" onClick={() => setProject(null)}>
+        <button type="button" className="btn" onClick={() => setProject(null)}>
           All boards
         </button>
         <span className="kanban-meta">
@@ -242,6 +243,7 @@ export function KanbanView() {
       {error ? <div className="kanban-info-banner">{error}</div> : null}
       <div className="kanban-board">
         {columns.map(({ option, items }) => (
+          // biome-ignore lint/a11y/noStaticElementInteractions: drag-and-drop drop zone; drop/dragover are pointer-only with no semantic role or keyboard equivalent
           <section
             className="kcol"
             key={option.id || "none"}

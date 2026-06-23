@@ -5,6 +5,7 @@ import {
   AuthRequiredClientError,
   fetchAuthStatus,
   fetchCIHealth,
+  fetchCollaborators,
   fetchDailyDigests,
   fetchIssues,
   fetchNotifications,
@@ -45,6 +46,7 @@ import { InboxView } from "./components/views/InboxView";
 import { InsightsView } from "./components/views/InsightsView";
 import { IssueList } from "./components/views/IssueList";
 import { KanbanView } from "./components/views/KanbanView";
+import { LocalReposView } from "./components/views/LocalReposView";
 import { PullRequestList } from "./components/views/PullRequestList";
 import {
   REPO_DENSITY_OPTIONS,
@@ -71,6 +73,12 @@ import type {
   RepoInsightsData,
   ReposData,
 } from "./types/github";
+import {
+  type CachedCollaborators,
+  clearCollaboratorsCache,
+  readCollaboratorsCache,
+  writeCollaboratorsCache,
+} from "./utils/collaboratorsCache";
 import {
   buildIssueFacets,
   buildPullRequestFacets,
@@ -135,6 +143,15 @@ export function App() {
   const [repos, setRepos] = useState<GhRepo[]>([]);
   const [owners, setOwners] = useState<string[]>([]);
   const [repoInsights, setRepoInsights] = useState<RepoInsight[]>([]);
+  // Repo→collaborator-logins map, hydrated from localStorage for instant render.
+  const [collaboratorsByRepo, setCollaboratorsByRepo] = useState<Map<string, string[]>>(() => {
+    const cached = readCollaboratorsCache();
+    return cached ? new Map(Object.entries(cached.byRepo)) : new Map();
+  });
+  const [collaboratorsFetchedAt, setCollaboratorsFetchedAt] = useState<string | null>(
+    () => readCollaboratorsCache()?.fetchedAt ?? null,
+  );
+  const [collaboratorsLoading, setCollaboratorsLoading] = useState(false);
   const [dailyDigests, setDailyDigests] = useState<DailyDigestEntry[]>([]);
   const [digestPeriod, setDigestPeriod] = useState<DigestPeriod>(
     () => (localStorage.getItem("gh-dash.digestPeriod") as DigestPeriod) || "day",
@@ -301,6 +318,7 @@ export function App() {
       .catch(() => setAuthState("anonymous"));
   }, []);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: activeAccountId is an intentional re-run trigger so data is reset and refetched when the active account changes
   useEffect(() => {
     if (authState !== "authenticated") {
       initialLoadRef.current = false;
@@ -318,9 +336,12 @@ export function App() {
     setRepoInsights([]);
     setDailyDigests([]);
     setCiHealth([]);
+    setCollaboratorsByRepo(new Map());
+    setCollaboratorsFetchedAt(null);
     setNotifications([]);
     setFetchedAt("");
     clearStatsCache();
+    clearCollaboratorsCache();
     loadData(true);
   }, [authState, activeAccountId, loadData]);
 
@@ -338,6 +359,7 @@ export function App() {
     });
   }, [repos, owners, issues, pullRequests, fetchedAt]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: activeAccountId is an intentional re-run trigger so account-scoped insights are refetched when the active account changes
   useEffect(() => {
     if (authState !== "authenticated") return;
     if (tab !== "insights" && tab !== "alerts" && tab !== "repos") return;
@@ -354,6 +376,7 @@ export function App() {
     return () => controller.abort();
   }, [tab, authState, activeAccountId]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: activeAccountId is an intentional re-run trigger so account-scoped CI health is refetched when the active account changes
   useEffect(() => {
     if (authState !== "authenticated") return;
     if (tab !== "ci") return;
@@ -370,6 +393,42 @@ export function App() {
     return () => controller.abort();
   }, [tab, authState, activeAccountId]);
 
+  const applyCollaborators = useCallback((data: CachedCollaborators) => {
+    setCollaboratorsByRepo(new Map(Object.entries(data.byRepo)));
+    setCollaboratorsFetchedAt(data.fetchedAt);
+    writeCollaboratorsCache({ byRepo: data.byRepo, fetchedAt: data.fetchedAt });
+  }, []);
+
+  // Collaborators are expensive to fetch, so unlike other data we DON'T revalidate
+  // on every tab visit — we render the localStorage copy and only auto-fetch when
+  // nothing is cached. Explicit refresh (below) is the way to get fresh data.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: activeAccountId is an intentional re-run trigger so account-scoped collaborators are refetched when the active account changes
+  useEffect(() => {
+    if (authState !== "authenticated") return;
+    if (tab !== "repos") return;
+    if (collaboratorsFetchedAt) return;
+    const controller = new AbortController();
+    setCollaboratorsLoading(true);
+    fetchCollaborators(false, controller.signal)
+      .then((data) => {
+        if (!controller.signal.aborted) applyCollaborators(data);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!controller.signal.aborted) setCollaboratorsLoading(false);
+      });
+    return () => controller.abort();
+  }, [tab, authState, activeAccountId, collaboratorsFetchedAt, applyCollaborators]);
+
+  const refreshCollaborators = useCallback(() => {
+    setCollaboratorsLoading(true);
+    fetchCollaborators(true)
+      .then(applyCollaborators)
+      .catch(() => {})
+      .finally(() => setCollaboratorsLoading(false));
+  }, [applyCollaborators]);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: activeAccountId is an intentional re-run trigger so account-scoped digests are refetched when the active account changes
   useEffect(() => {
     if (authState !== "authenticated") return;
     if (tab !== "digests") return;
@@ -401,6 +460,7 @@ export function App() {
     }
     invalidateCache();
     clearStatsCache();
+    clearCollaboratorsCache();
     clearFiltersCache();
     setAuthState("anonymous");
     setAuthLogin(null);
@@ -411,6 +471,8 @@ export function App() {
     setRepoInsights([]);
     setDailyDigests([]);
     setCiHealth([]);
+    setCollaboratorsByRepo(new Map());
+    setCollaboratorsFetchedAt(null);
     setFetchedAt("");
   }
 
@@ -429,6 +491,7 @@ export function App() {
     document.body.classList.toggle("tab-issues", tab === "issues");
     document.body.classList.toggle("tab-prs", tab === "prs");
     document.body.classList.toggle("tab-repos", tab === "repos");
+    document.body.classList.toggle("tab-local", tab === "local");
     document.body.classList.toggle("tab-kanban", tab === "kanban");
     document.body.classList.toggle("tab-insights", tab === "insights");
     document.body.classList.toggle("tab-alerts", tab === "alerts");
@@ -445,9 +508,9 @@ export function App() {
     if (location.pathname === "/alert") {
       navigate(`${TAB_ROUTES.alerts}${location.search}`, { replace: true });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [location.pathname, location.search, navigate]);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: location.pathname is an intentional re-run trigger so the filters panel closes on every route change
   useEffect(() => setFiltersOpen(false), [location.pathname]);
 
   useEffect(() => {
@@ -495,6 +558,7 @@ export function App() {
     }
   }, []);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: activeAccountId is an intentional re-run trigger so notifications are refetched when the active account changes
   useEffect(() => {
     if (authState !== "authenticated") return;
     void refreshNotifications(true);
@@ -561,7 +625,7 @@ export function App() {
     } catch {
       setNotifications(previous);
     }
-  }, [inboxUnreadCount, notifications]);
+  }, [inboxUnreadCount, notifications, t]);
 
   const inboxSidebar: InboxSidebarState = {
     mailbox,
@@ -583,7 +647,10 @@ export function App() {
   const userLogin = userLoginValue;
   const issueFacets = useMemo(() => buildIssueFacets(issues), [issues]);
   const prFacets = useMemo(() => buildPullRequestFacets(pullRequests), [pullRequests]);
-  const repoFacets = useMemo(() => buildRepoFacets(repos), [repos]);
+  const repoFacets = useMemo(
+    () => buildRepoFacets(repos, collaboratorsByRepo),
+    [repos, collaboratorsByRepo],
+  );
   const insightsByRepo = useMemo(
     () => new Map(repoInsights.map((insight) => [insight.repo, insight])),
     [repoInsights],
@@ -597,8 +664,14 @@ export function App() {
     [pullRequests, prFilters, prSort, userLogin],
   );
   const filteredRepos = useMemo(
-    () => sortRepos(filterRepos(repos, issues, repoFilters), issues, repoSort, insightsByRepo),
-    [repos, issues, repoFilters, repoSort, insightsByRepo],
+    () =>
+      sortRepos(
+        filterRepos(repos, issues, repoFilters, collaboratorsByRepo),
+        issues,
+        repoSort,
+        insightsByRepo,
+      ),
+    [repos, issues, repoFilters, repoSort, insightsByRepo, collaboratorsByRepo],
   );
   const filteredInsights = useMemo(
     () =>
@@ -791,6 +864,7 @@ export function App() {
       count: repos.length,
       icon: <BookIcon />,
     },
+    { key: "local" as const, label: t("tabs.local"), count: "—", icon: <BookIcon /> },
     { key: "issues" as const, label: t("tabs.issues"), count: issues.length, icon: <IssueIcon /> },
     {
       key: "prs" as const,
@@ -846,6 +920,7 @@ export function App() {
             <button
               className={`tab ${tab === item.key ? "active" : ""}`}
               key={item.key}
+              type="button"
               role="tab"
               onClick={() => navigateTab(item.key)}
             >
@@ -855,7 +930,13 @@ export function App() {
           ))}
         </div>
       </div>
-      <div className="sidebar-backdrop" onClick={() => setFiltersOpen(false)} />
+      <button
+        type="button"
+        className="sidebar-backdrop"
+        style={{ border: "none", padding: 0 }}
+        aria-label={t("common.closeFilters")}
+        onClick={() => setFiltersOpen(false)}
+      />
       <div className="layout">
         <SidebarControls
           tab={tab}
@@ -882,6 +963,9 @@ export function App() {
           onReset={resetFilters}
           onClose={() => setFiltersOpen(false)}
           authLogin={authLogin || undefined}
+          collaboratorsFetchedAt={collaboratorsFetchedAt}
+          collaboratorsLoading={collaboratorsLoading}
+          onRefreshCollaborators={refreshCollaborators}
           inbox={inboxSidebar}
         />
         <main className={`main${dataStale ? " data-stale" : ""}`}>
@@ -951,8 +1035,9 @@ export function App() {
                   <span>{filteredIssues.length}</span> {t("common.shown")}
                 </span>
                 <div className="spacer" />
-                <label>{t("common.sort")}</label>
+                <label htmlFor="issues-sort">{t("common.sort")}</label>
                 <select
+                  id="issues-sort"
                   className="sort"
                   value={issueSort}
                   onChange={(event) => setIssueSort(event.target.value)}
@@ -1015,8 +1100,9 @@ export function App() {
                   <span>{filteredPullRequests.length}</span> {t("common.shown")}
                 </span>
                 <div className="spacer" />
-                <label>{t("common.preset")}</label>
+                <label htmlFor="prs-preset">{t("common.preset")}</label>
                 <select
+                  id="prs-preset"
                   className="sort"
                   value={prFilters.preset}
                   onChange={(event) => {
@@ -1034,8 +1120,9 @@ export function App() {
                   <option value="authored-me">{t("preset.authoredMe")}</option>
                   <option value="stale">{t("preset.stale")}</option>
                 </select>
-                <label>{t("common.sort")}</label>
+                <label htmlFor="prs-sort">{t("common.sort")}</label>
                 <select
+                  id="prs-sort"
                   className="sort"
                   value={prSort}
                   onChange={(event) => setPrSort(event.target.value)}
@@ -1108,8 +1195,9 @@ export function App() {
                   onLayoutChange={setRepoLayout}
                   onCycleDensity={cycleRepoDensity}
                 />
-                <label>{t("common.sort")}</label>
+                <label htmlFor="repos-sort">{t("common.sort")}</label>
                 <select
+                  id="repos-sort"
                   className="sort"
                   value={repoSort}
                   onChange={(event) => setRepoSort(event.target.value)}
@@ -1356,6 +1444,8 @@ export function App() {
               />
             </div>
           ) : null}
+
+          {tab === "local" ? <LocalReposView /> : null}
 
           {tab === "kanban" && projectsEnabled ? <KanbanView /> : null}
         </main>

@@ -113,6 +113,56 @@ export interface ReposData {
   fetchedAt: string;
 }
 
+/** A git repository discovered on the local filesystem. */
+export interface LocalRepo {
+  /** Absolute path to the repo's working directory. */
+  path: string;
+  /** Directory name (or remote repo name when known). */
+  name: string;
+  /** `origin` remote URL, or null when no remote is configured. */
+  remoteUrl: string | null;
+  /** Parsed `owner/repo` from the origin remote, or null. */
+  nameWithOwner: string | null;
+  /** Host parsed from the origin remote (e.g. "github.com"), or null. */
+  host: string | null;
+  /** Current branch name, or null when detached/unknown. */
+  branch: string | null;
+  /** Commits ahead of upstream (0 when no upstream). */
+  ahead: number;
+  /** Commits behind upstream (0 when no upstream). */
+  behind: number;
+  /** Whether the working tree has uncommitted changes. */
+  dirty: boolean;
+  /** Most recent commit, or null for an empty repo. */
+  lastCommit: { sha: string; date: string; message: string } | null;
+  /** GitHub metadata when the user's token could read the repo. */
+  enrichment: GhRepo | null;
+  /**
+   * Outcome of the GitHub enrichment attempt:
+   * - `enriched`    — fetched GitHub metadata successfully
+   * - `unreachable` — github.com remote but token got 403/404 (private/blocked)
+   * - `local-only`  — remote host isn't an enrichable GitHub host
+   * - `no-remote`   — repo has no origin remote
+   */
+  enrichmentStatus: "enriched" | "unreachable" | "local-only" | "no-remote";
+}
+
+export interface LocalReposData {
+  ok: true;
+  repos: LocalRepo[];
+  scannedAt: string;
+}
+
+/** User-tunable scan configuration, persisted at ~/.gitdeck/local-repos.json. */
+export interface LocalReposConfig {
+  /** Root directories to scan. Empty ⇒ server default (home directory). */
+  scanRoots: string[];
+  /** Extra path-segment names to prune, on top of the built-in defaults. */
+  excludes: string[];
+  /** Absolute repo paths to hide from results (triage). */
+  denylist: string[];
+}
+
 export interface IssuesData {
   ok: true;
   issues: GhIssue[];

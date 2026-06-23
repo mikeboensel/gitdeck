@@ -12,6 +12,7 @@ import {
   setActive as setActiveAccount,
 } from "../accountStore";
 import { invalidateCIHealthCache } from "../ciHealth";
+import { invalidateCollaboratorsCache } from "../collaborators";
 import { invalidateDataCache } from "../dashboardData";
 import { invalidateNotificationsCache } from "../notifications";
 import { json } from "../openapi/respond";
@@ -88,6 +89,7 @@ export function registerAccounts(app: App): void {
     invalidateDataCache();
     invalidateNotificationsCache();
     invalidateCIHealthCache();
+    invalidateCollaboratorsCache();
     return json(c, 200, { ok: true });
   });
 
@@ -106,6 +108,7 @@ export function registerAccounts(app: App): void {
     invalidateDataCache();
     invalidateNotificationsCache();
     invalidateCIHealthCache();
+    invalidateCollaboratorsCache();
     return json(c, 200, { ok: true, activeId: account.id });
   });
 
@@ -149,6 +152,7 @@ export function registerAccounts(app: App): void {
     invalidateDataCache();
     invalidateNotificationsCache();
     invalidateCIHealthCache();
+    invalidateCollaboratorsCache();
     return json(c, 200, { ok: true, accountId: account.id });
   });
 

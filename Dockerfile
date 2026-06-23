@@ -1,5 +1,6 @@
-ARG NODE_BUILDER_VERSION=22-slim
-ARG NODE_RUNTIME_VERSION=22-alpine
+# Base images pinned to digest (tag retained for readability). Dependabot keeps these current.
+ARG NODE_BUILDER_VERSION=22-slim@sha256:d9f850096136edbc402debdd8729579a288aac64574ada0ff4db26b6ae58b0b2
+ARG NODE_RUNTIME_VERSION=22-alpine@sha256:ab07539e0988b63558ff621f5fbe1077054c39d9809112974fb79993949d41cd
 
 FROM node:${NODE_BUILDER_VERSION} AS builder
 WORKDIR /app
@@ -10,7 +11,6 @@ COPY package.json pnpm-lock.yaml ./
 RUN pnpm install --frozen-lockfile
 
 COPY tsconfig.json vite.config.ts index.html ./
-COPY CHANGELOG.md ./
 COPY src ./src
 COPY public ./public
 

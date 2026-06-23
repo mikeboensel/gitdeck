@@ -354,6 +354,40 @@ export class GitHubProvider implements Provider {
     return collected;
   }
 
+  /**
+   * Fetch a single repo's metadata by `owner/name` via REST. Used to enrich
+   * locally-discovered repos. Returns null when the token cannot read the repo
+   * (404 missing / 403 blocked-or-forbidden) so callers can degrade gracefully.
+   */
+  async fetchRepoByName(account: Account, owner: string, repo: string): Promise<GhRepo | null> {
+    const result = await this.restGet<RestRepo>(
+      account,
+      `/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`,
+    );
+    if (!result.ok) {
+      if (result.status === 404 || result.status === 403 || result.status === 401) return null;
+      logger.warn({ owner, repo, status: result.status }, "fetchRepoByName failed");
+      return null;
+    }
+    const data = result.data;
+    return {
+      nameWithOwner: data.full_name,
+      name: data.name,
+      owner: { login: data.owner.login, avatarUrl: data.owner.avatar_url },
+      description: data.description ?? null,
+      stargazerCount: data.stargazers_count ?? 0,
+      forkCount: data.forks_count ?? 0,
+      primaryLanguage: data.language ? { name: data.language } : null,
+      updatedAt: data.updated_at ?? "",
+      pushedAt: data.pushed_at ?? "",
+      visibility: data.visibility ?? (data.private ? "private" : "public"),
+      isPrivate: Boolean(data.private),
+      isArchived: Boolean(data.archived),
+      isFork: Boolean(data.fork),
+      url: data.html_url ?? "",
+    };
+  }
+
   async listIssues(account: Account, owners: string[]): Promise<GhIssue[]> {
     if (!owners.length) return [];
     const q = `is:issue is:open ${owners.map((owner) => `user:${owner}`).join(" ")}`.trim();
@@ -669,6 +703,23 @@ interface PullRequestSearchResponse {
     pageInfo: { endCursor: string | null; hasNextPage: boolean };
     nodes: (PullRequestSearchNode | { __typename: string })[];
   };
+}
+
+interface RestRepo {
+  name: string;
+  full_name: string;
+  owner: { login: string; avatar_url?: string };
+  description: string | null;
+  stargazers_count: number;
+  forks_count: number;
+  language: string | null;
+  updated_at: string;
+  pushed_at: string;
+  visibility: string;
+  private: boolean;
+  archived: boolean;
+  fork: boolean;
+  html_url: string;
 }
 
 interface RepoNode {

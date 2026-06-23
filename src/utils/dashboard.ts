@@ -34,6 +34,7 @@ export interface RepoFilters {
   search: string;
   orgs: Set<string>;
   languages: Set<string>;
+  collaborators: Set<string>;
   visibility: "all" | "public" | "private";
   includeForks: boolean;
   includeArchived: boolean;
@@ -119,16 +120,21 @@ export function buildPullRequestFacets(prs: GhPullRequest[]) {
   return facets;
 }
 
-export function buildRepoFacets(repos: GhRepo[]) {
+export function buildRepoFacets(repos: GhRepo[], collaboratorsByRepo?: Map<string, string[]>) {
   const facets = {
     orgs: new Map<string, number>(),
     languages: new Map<string, number>(),
+    collaborators: new Map<string, number>(),
   };
 
   for (const repo of repos) {
     facets.orgs.set(repo.owner.login, (facets.orgs.get(repo.owner.login) || 0) + 1);
     const language = repo.primaryLanguage?.name || "—";
     facets.languages.set(language, (facets.languages.get(language) || 0) + 1);
+    // Count each collaborator once per repo they share with the user.
+    for (const login of collaboratorsByRepo?.get(repo.nameWithOwner) ?? []) {
+      facets.collaborators.set(login, (facets.collaborators.get(login) || 0) + 1);
+    }
   }
 
   return facets;
@@ -205,12 +211,21 @@ export function filterIssues(
   });
 }
 
-export function filterRepos(repos: GhRepo[], issues: GhIssue[], filters: RepoFilters): GhRepo[] {
+export function filterRepos(
+  repos: GhRepo[],
+  issues: GhIssue[],
+  filters: RepoFilters,
+  collaboratorsByRepo?: Map<string, string[]>,
+): GhRepo[] {
   const query = filters.search.trim().toLowerCase();
   return repos.filter((repo) => {
     if (filters.orgs.size && !filters.orgs.has(repo.owner.login)) return false;
     const language = repo.primaryLanguage?.name || "—";
     if (filters.languages.size && !filters.languages.has(language)) return false;
+    if (filters.collaborators.size) {
+      const logins = collaboratorsByRepo?.get(repo.nameWithOwner) ?? [];
+      if (!logins.some((login) => filters.collaborators.has(login))) return false;
+    }
     if (filters.visibility === "public" && repo.isPrivate) return false;
     if (filters.visibility === "private" && !repo.isPrivate) return false;
     if (!filters.includeForks && repo.isFork) return false;

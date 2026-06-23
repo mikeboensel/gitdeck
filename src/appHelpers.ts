@@ -5,6 +5,7 @@ import type { IssueFilters, PullRequestFilters, RepoFilters } from "./utils/dash
 export type Tab =
   | "inbox"
   | "repos"
+  | "local"
   | "issues"
   | "prs"
   | "kanban"
@@ -16,6 +17,7 @@ export type Tab =
 export const TAB_ROUTES: Record<Tab, string> = {
   inbox: "/inbox",
   repos: "/repositories",
+  local: "/local",
   issues: "/issues",
   prs: "/pull-requests",
   kanban: "/board",
@@ -58,11 +60,13 @@ export function metricKindFromParams(params: URLSearchParams): MetricKind | null
 
 export const CACHE_KEY = {
   repos: "/api/repos",
+  localRepos: "/api/local-repos",
   issues: "/api/issues",
   prs: "/api/prs",
   insights: "/api/repo-insights",
   digests: "/api/daily-digests",
   ciHealth: "/api/ci-health",
+  collaborators: "/api/collaborators",
 } as const;
 
 export const defaultIssueFilters = (): IssueFilters => ({
@@ -91,6 +95,7 @@ export const defaultRepoFilters = (): RepoFilters => ({
   search: "",
   orgs: new Set(),
   languages: new Set(),
+  collaborators: new Set(),
   visibility: "all",
   includeForks: true,
   includeArchived: false,

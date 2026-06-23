@@ -9,7 +9,9 @@ export default defineConfig({
   },
   server: {
     host: "127.0.0.1",
-    port: 5173,
+    // Non-default port (off the well-known 5173) so this can run alongside other
+    // Vite projects. Mirrors package.json `config.ports.web`.
+    port: 5180,
     proxy: {
       "/api": "http://127.0.0.1:8765",
     },

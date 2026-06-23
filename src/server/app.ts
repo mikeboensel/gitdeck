@@ -9,6 +9,7 @@ import { registerAuth } from "./routes/auth";
 import { registerDashboard } from "./routes/dashboard";
 import { registerDelegated } from "./routes/delegated";
 import { registerInsightsGraph } from "./routes/insightsGraph";
+import { registerLocalRepos } from "./routes/localRepos";
 import { registerMentions } from "./routes/mentions";
 import { registerNotifications } from "./routes/notifications";
 import { registerProjects } from "./routes/projects";
@@ -70,6 +71,7 @@ registerRepoAliases(app);
 registerMentions(app);
 registerProjects(app);
 registerDashboard(app);
+registerLocalRepos(app);
 registerNotifications(app);
 registerDelegated(app);
 

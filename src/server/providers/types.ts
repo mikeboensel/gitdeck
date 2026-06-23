@@ -126,6 +126,12 @@ export interface Provider {
 
   listOwners(account: Account): Promise<OwnersOutcome>;
   listRepos(account: Account, owners: string[]): Promise<import("../../types/github").GhRepo[]>;
+  /** Fetch one repo by owner/name; null when unreadable. Optional per provider. */
+  fetchRepoByName?(
+    account: Account,
+    owner: string,
+    repo: string,
+  ): Promise<import("../../types/github").GhRepo | null>;
   listIssues(account: Account, owners: string[]): Promise<import("../../types/github").GhIssue[]>;
   listPullRequests(
     account: Account,

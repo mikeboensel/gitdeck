@@ -13,6 +13,8 @@ export interface CachedFilters {
     search: string;
     orgs: string[];
     languages: string[];
+    // Optional so cached data from before this field existed still validates.
+    collaborators?: string[];
     visibility: string;
     includeForks: boolean;
     includeArchived: boolean;
@@ -76,6 +78,7 @@ function validateShape(parsed: unknown): parsed is CachedFilters {
   if (typeof repoF.search !== "string") return false;
   if (!isStringArray(repoF.orgs)) return false;
   if (!isStringArray(repoF.languages)) return false;
+  if (repoF.collaborators !== undefined && !isStringArray(repoF.collaborators)) return false;
   if (typeof repoF.visibility !== "string") return false;
   if (typeof repoF.includeForks !== "boolean") return false;
   if (typeof repoF.includeArchived !== "boolean") return false;
@@ -147,6 +150,7 @@ export function hydrateFilters(cached: CachedFilters): {
       search: cached.repoFilters.search,
       orgs: new Set(cached.repoFilters.orgs),
       languages: new Set(cached.repoFilters.languages),
+      collaborators: new Set(cached.repoFilters.collaborators ?? []),
       visibility,
       includeForks: cached.repoFilters.includeForks,
       includeArchived: cached.repoFilters.includeArchived,
@@ -190,6 +194,7 @@ export function writeFiltersCache(
         search: repoFilters.search,
         orgs: [...repoFilters.orgs],
         languages: [...repoFilters.languages],
+        collaborators: [...repoFilters.collaborators],
         visibility: repoFilters.visibility,
         includeForks: repoFilters.includeForks,
         includeArchived: repoFilters.includeArchived,

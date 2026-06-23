@@ -167,7 +167,7 @@ Starts the API server (with file-watch reload) and the Vite dev server in parall
 pnpm dev
 ```
 
-Then open <http://127.0.0.1:5173>. On first launch the UI will walk you through the GitHub Device Flow sign-in.
+Then open <http://127.0.0.1:5180>. On first launch the UI will walk you through the GitHub Device Flow sign-in.
 
 If you only want one of the two processes:
 

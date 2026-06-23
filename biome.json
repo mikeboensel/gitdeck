@@ -17,7 +17,13 @@
   "linter": {
     "enabled": true,
     "rules": {
-      "preset": "recommended"
+      "recommended": true,
+      "complexity": {
+        "noExcessiveCognitiveComplexity": {
+          "level": "warn",
+          "options": { "maxAllowedComplexity": 25 }
+        }
+      }
     }
   },
   "assist": {

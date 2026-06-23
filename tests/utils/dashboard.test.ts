@@ -170,6 +170,7 @@ describe("dashboard utilities", () => {
       search: "",
       orgs: new Set(["acme"]),
       languages: new Set(["Go"]),
+      collaborators: new Set(),
       visibility: "private",
       includeForks: true,
       includeArchived: false,
