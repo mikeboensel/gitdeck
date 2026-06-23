@@ -15,10 +15,11 @@
   .app-footer-inner {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: center;
     gap: 16px;
     flex-wrap: wrap;
   }
+  .app-footer-credit strong { color: var(--text); font-weight: 700; }
   .app-footer-credit a {
     color: var(--text);
     font-weight: 600;
@@ -57,6 +58,10 @@
     background: var(--panel-3);
     text-decoration: none;
   }
+  /* Icon-only footer links: square buttons, hover label appears ABOVE
+     (the footer sits at the bottom of the page). */
+  .app-footer-link { padding: 7px; }
+  .app-footer .tip::after { top: auto; bottom: calc(100% + 4px); }
   @media (max-width: 720px) {
     .app-footer-inner { justify-content: center; text-align: center; }
   }

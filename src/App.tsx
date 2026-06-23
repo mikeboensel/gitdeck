@@ -892,10 +892,7 @@ export function App() {
           {tab === "kanban" && projectsEnabled ? <KanbanView /> : null}
         </main>
       </div>
-      <Footer
-        onContributorsClick={() => setContributorsOpen(true)}
-        onChangelogClick={() => setChangelogOpen(true)}
-      />
+      <Footer />
       {paletteOpen ? (
         <CommandPalette
           repos={repos}
