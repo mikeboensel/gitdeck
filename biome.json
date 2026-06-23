@@ -7,11 +7,9 @@
   },
   "files": {
     "includes": [
-      "src/server/openapi/**",
-      "src/server/routes/**",
-      "src/server/app.ts",
-      "tests/server/api/**",
-      "biome.json"
+      "src/**",
+      "tests/**",
+      "*.json"
     ]
   },
   "formatter": {
