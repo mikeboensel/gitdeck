@@ -23,8 +23,8 @@ src/i18n/
 4. Run:
 
 ```bash
-npm run typecheck
-npm test
+pnpm typecheck
+pnpm test
 ```
 
 Example:
@@ -104,15 +104,15 @@ tests/utils/format.test.ts
 8. Run:
 
 ```bash
-npm run typecheck
-npm test
-npm run build
+pnpm typecheck
+pnpm test
+pnpm build
 ```
 
 ## Review Checklist
 
 - The new file is listed in `src/i18n/translations.ts`.
-- `npm run typecheck` passes.
+- `pnpm typecheck` passes.
 - All placeholders match the English source.
 - The language appears in the top-bar language switcher.
 - Browser language detection works for the language code.

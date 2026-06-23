@@ -4,15 +4,17 @@ ARG NODE_RUNTIME_VERSION=22-alpine
 FROM node:${NODE_BUILDER_VERSION} AS builder
 WORKDIR /app
 
-COPY package.json package-lock.json ./
-RUN npm ci
+RUN corepack enable
+
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
 
 COPY tsconfig.json vite.config.ts index.html ./
 COPY CHANGELOG.md ./
 COPY src ./src
 COPY public ./public
 
-RUN npm run build
+RUN pnpm build
 
 
 FROM node:${NODE_RUNTIME_VERSION} AS runtime
