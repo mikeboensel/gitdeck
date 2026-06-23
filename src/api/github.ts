@@ -20,7 +20,7 @@ import type {
   RepoTrafficDetails,
   StargazerNode,
 } from "../types/github";
-import { getEtag, peek, setEtag } from "./cache";
+import { getEtag, invalidate, peek, set, setEtag } from "./cache";
 
 export class AuthRequiredClientError extends Error {
   constructor(message = "authentication required") {
@@ -39,6 +39,11 @@ async function readJson<T>(url: string, init?: RequestInit, cacheKey?: string): 
   if (response.status === 304 && cacheKey) {
     const cached = peek<T>(cacheKey);
     if (cached) return cached;
+    // 304 but the body isn't cached (stale validator with no stored response).
+    // Drop the ETag and refetch so we get a full body instead of parsing the
+    // empty 304 payload (which throws "Unexpected end of JSON input").
+    invalidate(cacheKey);
+    return readJson<T>(url, init, cacheKey);
   }
   const json = (await response.json()) as T | (ApiError & { needsAuth?: boolean });
   const maybeError = json as Partial<ApiError> & { needsAuth?: boolean };
@@ -51,6 +56,9 @@ async function readJson<T>(url: string, init?: RequestInit, cacheKey?: string): 
   if (cacheKey) {
     const newEtag = response.headers.get("ETag");
     if (newEtag) setEtag(cacheKey, newEtag);
+    // Cache the body so a later 304 (validated by the ETag above) can be served
+    // from here. peek() ignores TTL, so this stays usable until invalidated.
+    set(cacheKey, json);
   }
   return json as T;
 }
