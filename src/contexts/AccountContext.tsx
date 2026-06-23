@@ -15,6 +15,7 @@ import {
   type AccountSummary,
 } from "../api/github";
 import { invalidate as invalidateClientCache } from "../api/cache";
+import { errorMessage } from "../utils/errors";
 
 interface AccountContextValue {
   accounts: AccountSummary[];
@@ -44,7 +45,7 @@ export function AccountProvider({ children }: { children: ReactNode }) {
       setError(null);
     } catch (err) {
       if (!mounted.current) return;
-      setError((err as Error).message);
+      setError(errorMessage(err));
     } finally {
       if (mounted.current) setLoading(false);
     }

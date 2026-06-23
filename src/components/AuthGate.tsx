@@ -11,6 +11,7 @@ import {
 } from "../api/github";
 import appLogo from "../assets/app-logo-mark.svg";
 import { useI18n } from "../i18n/I18nProvider";
+import { errorMessage } from "../utils/errors";
 
 interface AuthGateProps {
   onAuthenticated: (login: string) => void;
@@ -37,7 +38,7 @@ export function AuthGate({ onAuthenticated }: AuthGateProps) {
     void fetchAuthStatus().then(setStatus).catch(() => setStatus(null));
     void fetchProviderConfigs()
       .then((res) => setConfigs(res.configs))
-      .catch((err) => setError((err as Error).message));
+      .catch((err) => setError(errorMessage(err)));
   }, []);
 
   useEffect(() => () => {
@@ -81,7 +82,7 @@ export function AuthGate({ onAuthenticated }: AuthGateProps) {
     } catch (err) {
       stopPolling();
       setDevicePhase("error");
-      setError((err as Error).message);
+      setError(errorMessage(err));
     }
   }
 
@@ -99,7 +100,7 @@ export function AuthGate({ onAuthenticated }: AuthGateProps) {
         intervalRef.current = window.setInterval(() => void poll(), intervalMs);
       } catch (err) {
         setDevicePhase("error");
-        setError((err as Error).message);
+        setError(errorMessage(err));
       }
     } else {
       setStep("token");
@@ -137,7 +138,7 @@ export function AuthGate({ onAuthenticated }: AuthGateProps) {
         onAuthenticated(selected.label);
       }
     } catch (err) {
-      setError((err as Error).message);
+      setError(errorMessage(err));
     } finally {
       setSubmitting(false);
     }

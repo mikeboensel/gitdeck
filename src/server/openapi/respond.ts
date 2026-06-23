@@ -17,7 +17,7 @@ export function statusFor(payload: Envelope): 200 | 401 | 500 {
 
 /** True when a thrown error is the GitHub-client auth sentinel. */
 export function isAuthError(error: unknown): boolean {
-  return error instanceof AuthRequiredError || (error as Error)?.name === "AuthRequiredError";
+  return error instanceof AuthRequiredError || (error instanceof Error && error.name === "AuthRequiredError");
 }
 
 /**

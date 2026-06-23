@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { CloseIcon } from "../common/Icons";
 import { formatNumber } from "../../utils/format";
+import { errorMessage } from "../../utils/errors";
 
 interface ContributorsModalProps {
   onClose: () => void;
@@ -30,7 +31,7 @@ export function ContributorsModal({ onClose }: ContributorsModalProps) {
         const data = (await response.json()) as Contributor[];
         if (!cancelled) setContributors(data.filter((c) => c.type !== "Bot"));
       } catch (err) {
-        if (!cancelled) setError((err as Error).message);
+        if (!cancelled) setError(errorMessage(err));
       } finally {
         if (!cancelled) setLoading(false);
       }

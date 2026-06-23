@@ -3,6 +3,7 @@ import { fetchForks, fetchStargazers } from "../../api/github";
 import type { ForkNode, StargazerNode } from "../../types/github";
 import { formatExactNumber, formatNumber, formatRelativeTime } from "../../utils/format";
 import { CloseIcon, ForkIcon, StarIcon } from "../common/Icons";
+import { errorMessage } from "../../utils/errors";
 
 export type MetricKind = "stars" | "forks";
 
@@ -43,7 +44,7 @@ export function RepositoryMetricModal({ kind, repo, totalCount, onClose }: Repos
           }
         }
       } catch (err) {
-        if (!cancelled) setError((err as Error).message);
+        if (!cancelled) setError(errorMessage(err));
       } finally {
         if (!cancelled) setLoading(false);
       }

@@ -1,4 +1,5 @@
 import { getActiveToken } from "./authProvider";
+import { errorMessage } from "../utils/errors";
 
 const API_ROOT = "https://api.github.com";
 const GRAPHQL_URL = `${API_ROOT}/graphql`;
@@ -18,7 +19,7 @@ export async function getToken(): Promise<string> {
     return token;
   } catch (error) {
     if (error instanceof AuthRequiredError) throw error;
-    throw new AuthRequiredError((error as Error).message);
+    throw new AuthRequiredError(errorMessage(error));
   }
 }
 

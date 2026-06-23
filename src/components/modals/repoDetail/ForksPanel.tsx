@@ -6,6 +6,7 @@ import { clampPage } from "../../../utils/pagination";
 import { Pagination } from "../../common/Pagination";
 import { ForkIcon, StarIcon } from "../../common/Icons";
 import { MODAL_PAGE_SIZE } from "./helpers";
+import { errorMessage } from "../../../utils/errors";
 
 interface ForksPanelProps {
   repo: GhRepo;
@@ -33,7 +34,7 @@ export function ForksPanel({ repo }: ForksPanelProps) {
         setForksPage(1);
       })
       .catch((err) => {
-        if (!cancelled) setForksError((err as Error).message);
+        if (!cancelled) setForksError(errorMessage(err));
       })
       .finally(() => {
         if (!cancelled) setForksLoading(false);

@@ -11,6 +11,7 @@ import type {
   ReviewDecision,
 } from "../../types/github";
 import { logger } from "../logger";
+import { errorMessage } from "../../utils/errors";
 import type {
   Account,
   DeviceFlowPoll,
@@ -274,7 +275,7 @@ export class GitHubProvider implements Provider {
       return { ok: true, owners };
     } catch (error) {
       if (error instanceof GitHubAuthRequiredError) return { ok: false, error: "authentication required", needsAuth: true };
-      return { ok: false, error: (error as Error).message || String(error) };
+      return { ok: false, error: errorMessage(error) };
     }
   }
 
@@ -467,7 +468,7 @@ export class GitHubProvider implements Provider {
       }
       return { ok: true, status: response.status };
     } catch (error) {
-      return { ok: false, status: 500, error: (error as Error).message || String(error) };
+      return { ok: false, status: 500, error: errorMessage(error) };
     }
   }
 

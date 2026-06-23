@@ -3,6 +3,7 @@ import { fetchProject, fetchProjects, moveProjectItem } from "../../api/github";
 import { CompressIcon, ExpandIcon } from "../common/Icons";
 import type { ProjectDetails, ProjectItem, ProjectSummary } from "../../types/github";
 import { formatRelativeTime } from "../../utils/format";
+import { errorMessage } from "../../utils/errors";
 
 const OPTION_COLORS: Record<string, string> = {
   GRAY: "#8b949e",
@@ -35,7 +36,7 @@ export function KanbanView() {
       const result = await fetchProjects();
       setProjects(result.projects);
     } catch (err) {
-      setError((err as Error).message);
+      setError(errorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -48,7 +49,7 @@ export function KanbanView() {
       const result = await fetchProject(id);
       setProject(result.project);
     } catch (err) {
-      setError((err as Error).message);
+      setError(errorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -99,7 +100,7 @@ export function KanbanView() {
       const next = await fetchProject(project.id);
       setProject(next.project);
     } catch (err) {
-      setError((err as Error).message);
+      setError(errorMessage(err));
     } finally {
       setPending((items) => {
         const next = new Set(items);

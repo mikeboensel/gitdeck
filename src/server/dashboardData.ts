@@ -6,6 +6,7 @@ import { logger } from "./logger";
 import { getProviderForAccount } from "./providers/registry";
 import type { Account, OwnersOutcome, Provider } from "./providers/types";
 import { attachHistory, recordSnapshots } from "./snapshots";
+import { errorMessage } from "../utils/errors";
 
 export type ReposResult =
   | { ok: true; repos: GhRepo[]; owners: string[]; fetchedAt: string }
@@ -60,7 +61,7 @@ function authFail(): { ok: false; error: string; needsAuth: true } {
 
 function genericFail(error: unknown): { ok: false; error: string } {
   logger.error({ err: error }, "dashboard data fetch failed");
-  return { ok: false, error: (error as Error).message || String(error) };
+  return { ok: false, error: errorMessage(error) };
 }
 
 async function resolveActive(): Promise<{ account: Account; provider: Provider } | null> {

@@ -9,6 +9,7 @@ import {
 } from "../api/github";
 import { useI18n } from "../i18n/I18nProvider";
 import { useAccounts } from "../contexts/AccountContext";
+import { errorMessage } from "../utils/errors";
 
 interface AddAccountModalProps {
   open: boolean;
@@ -53,7 +54,7 @@ export function AddAccountModal({ open, onClose }: AddAccountModalProps) {
     }
     void fetchProviderConfigs()
       .then((res) => setConfigs(res.configs))
-      .catch((err) => setError((err as Error).message));
+      .catch((err) => setError(errorMessage(err)));
   }, [open]);
 
   useEffect(() => () => stopPolling(), []);
@@ -81,7 +82,7 @@ export function AddAccountModal({ open, onClose }: AddAccountModalProps) {
         intervalRef.current = window.setInterval(() => void poll(), intervalMs);
       } catch (err) {
         setDevicePhase("error");
-        setError((err as Error).message);
+        setError(errorMessage(err));
       }
     } else {
       setStep("token");
@@ -119,7 +120,7 @@ export function AddAccountModal({ open, onClose }: AddAccountModalProps) {
     } catch (err) {
       stopPolling();
       setDevicePhase("error");
-      setError((err as Error).message);
+      setError(errorMessage(err));
     }
   }
 
@@ -150,7 +151,7 @@ export function AddAccountModal({ open, onClose }: AddAccountModalProps) {
       await refresh();
       window.setTimeout(() => onClose(), 800);
     } catch (err) {
-      setError((err as Error).message);
+      setError(errorMessage(err));
     } finally {
       setSubmitting(false);
     }

@@ -3,6 +3,7 @@ import { createRoute, type OpenAPIHono, z } from "@hono/zod-openapi";
 import { gql } from "../githubClient";
 import { logger } from "../logger";
 import { errEnvelope, okEnvelope } from "../openapi/envelope";
+import { errorMessage } from "../../utils/errors";
 
 type App = OpenAPIHono<{ Bindings: HttpBindings }>;
 
@@ -324,7 +325,7 @@ export function registerProjects(app: App): void {
       });
       return c.json({ ok: true as const, projects: all }, 200);
     } catch (e: unknown) {
-      const msg = (e as Error).message || String(e);
+      const msg = errorMessage(e);
       const { needsScope, friendly } = classifyProjectsError(msg);
       if (needsScope) return c.json({ ok: false as const, needsScope, error: friendly }, 200);
       logger.error({ err: e }, "projects request failed");
@@ -378,7 +379,7 @@ export function registerProjects(app: App): void {
         200,
       );
     } catch (e: unknown) {
-      const msg = (e as Error).message || String(e);
+      const msg = errorMessage(e);
       const { needsScope, friendly } = classifyProjectsError(msg);
       if (needsScope) return c.json({ ok: false as const, needsScope, error: friendly }, 200);
       logger.error({ err: e }, "projects request failed");
@@ -400,7 +401,7 @@ export function registerProjects(app: App): void {
       }
       return c.json({ ok: true as const }, 200);
     } catch (e: unknown) {
-      const msg = (e as Error).message || String(e);
+      const msg = errorMessage(e);
       const { needsScope, friendly } = classifyProjectsError(msg);
       if (needsScope) return c.json({ ok: false as const, needsScope, error: friendly }, 200);
       logger.error({ err: e }, "projects request failed");

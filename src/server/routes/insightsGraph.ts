@@ -6,6 +6,7 @@ import { logger } from "../logger";
 import { errEnvelope, okEnvelope } from "../openapi/envelope";
 import { pageInfo, repoField, upperEnum } from "../openapi/params";
 import { isAuthError } from "../openapi/respond";
+import { errorMessage } from "../../utils/errors";
 
 type App = OpenAPIHono<{ Bindings: HttpBindings }>;
 
@@ -144,9 +145,9 @@ export function registerInsightsGraph(app: App): void {
     } catch (e) {
       logger.error({ err: e }, "insights graph request failed");
       if (isAuthError(e)) {
-        return c.json({ ok: false as const, error: (e as Error).message, needsAuth: true }, 401);
+        return c.json({ ok: false as const, error: errorMessage(e), needsAuth: true }, 401);
       }
-      return c.json({ ok: false as const, error: (e as Error).message }, 500);
+      return c.json({ ok: false as const, error: errorMessage(e) }, 500);
     }
   });
 
@@ -166,9 +167,9 @@ export function registerInsightsGraph(app: App): void {
     } catch (e) {
       logger.error({ err: e }, "insights graph request failed");
       if (isAuthError(e)) {
-        return c.json({ ok: false as const, error: (e as Error).message, needsAuth: true }, 401);
+        return c.json({ ok: false as const, error: errorMessage(e), needsAuth: true }, 401);
       }
-      return c.json({ ok: false as const, error: (e as Error).message }, 500);
+      return c.json({ ok: false as const, error: errorMessage(e) }, 500);
     }
   });
 }

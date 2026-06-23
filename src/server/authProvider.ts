@@ -3,6 +3,7 @@ import { promisify } from "node:util";
 import { getActive as getActiveAccountFromStore, init as initAccountStore } from "./accountStore";
 import { logger } from "./logger";
 import type { Account } from "./providers/types";
+import { errorMessage } from "../utils/errors";
 
 const execFileAsync = promisify(execFile);
 const USER_URL = "https://api.github.com/user";
@@ -122,7 +123,7 @@ export async function getProviderStatus(): Promise<ProviderStatus> {
       const cached = await loadGhCliToken();
       return { authenticated: true, login: cached.login, scope: cached.scope };
     } catch (error) {
-      return { authenticated: false, login: null, scope: null, detail: (error as Error).message };
+      return { authenticated: false, login: null, scope: null, detail: errorMessage(error) };
     }
   }
   if (mode === "token") {
@@ -130,7 +131,7 @@ export async function getProviderStatus(): Promise<ProviderStatus> {
       const cached = await loadEnvToken();
       return { authenticated: true, login: cached.login, scope: cached.scope };
     } catch (error) {
-      return { authenticated: false, login: null, scope: null, detail: (error as Error).message };
+      return { authenticated: false, login: null, scope: null, detail: errorMessage(error) };
     }
   }
   const account = await getActiveAccount();

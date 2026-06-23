@@ -23,6 +23,7 @@ import { DependentsPanel } from "./repoDetail/DependentsPanel";
 import { ForksPanel } from "./repoDetail/ForksPanel";
 import { IssuesPanel } from "./repoDetail/IssuesPanel";
 import { PullRequestsPanel } from "./repoDetail/PullRequestsPanel";
+import { errorMessage } from "../../utils/errors";
 
 interface RepositoryDetailsModalProps {
   repo: GhRepo;
@@ -73,7 +74,7 @@ export function RepositoryDetailsModal({ repo, issues, pullRequests, activeTab, 
           setTrafficDetails(trafficResult);
         }
       } catch (err) {
-        if (!cancelled) setError((err as Error).message);
+        if (!cancelled) setError(errorMessage(err));
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -103,7 +104,7 @@ export function RepositoryDetailsModal({ repo, issues, pullRequests, activeTab, 
       setAliasInput("");
       setMentionsRefreshKey((value) => value + 1);
     } catch (err) {
-      setAliasError((err as Error).message);
+      setAliasError(errorMessage(err));
     } finally {
       setAliasBusy(false);
     }
@@ -117,7 +118,7 @@ export function RepositoryDetailsModal({ repo, issues, pullRequests, activeTab, 
       setAliases(result.aliases);
       setMentionsRefreshKey((value) => value + 1);
     } catch (err) {
-      setAliasError((err as Error).message);
+      setAliasError(errorMessage(err));
     } finally {
       setAliasBusy(false);
     }

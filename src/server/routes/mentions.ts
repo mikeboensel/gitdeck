@@ -7,6 +7,7 @@ import { getToken, ghApiJson, restApi } from "../githubClient";
 import { logger } from "../logger";
 import { errEnvelope, okEnvelope } from "../openapi/envelope";
 import { repoField, upperEnum } from "../openapi/params";
+import { errorMessage } from "../../utils/errors";
 
 type App = OpenAPIHono<{ Bindings: HttpBindings }>;
 
@@ -358,7 +359,7 @@ export function registerMentions(app: App): void {
       return c.json({ ok: true as const, type, ...parsed }, 200);
     } catch (e: unknown) {
       logger.error({ err: e }, "mentions request failed");
-      return c.json({ ok: false as const, error: (e as Error).message || String(e) }, 500);
+      return c.json({ ok: false as const, error: errorMessage(e) }, 500);
     }
   });
 }

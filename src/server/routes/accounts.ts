@@ -16,6 +16,7 @@ import { invalidateNotificationsCache } from "../notifications";
 import { json } from "../openapi/respond";
 import { getProvider, getProviderForAccount } from "../providers/registry";
 import type { ProviderIdentity } from "../providers/types";
+import { errorMessage } from "../../utils/errors";
 
 type App = OpenAPIHono<{ Bindings: HttpBindings }>;
 
@@ -127,7 +128,7 @@ export function registerAccounts(app: App): void {
       const provider = await getProvider(providerConfigId);
       identity = await provider.fetchIdentity(token);
     } catch (error) {
-      return json(c, 400, { ok: false, error: (error as Error).message });
+      return json(c, 400, { ok: false, error: errorMessage(error) });
     }
     if (!identity.login)
       return json(c, 400, { ok: false, error: "provider did not return a login" });

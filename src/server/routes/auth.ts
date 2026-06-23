@@ -12,6 +12,7 @@ import {
   startDeviceFlow,
 } from "../oauth";
 import { json } from "../openapi/respond";
+import { errorMessage } from "../../utils/errors";
 
 type App = OpenAPIHono<{ Bindings: HttpBindings }>;
 
@@ -46,7 +47,7 @@ export function registerAuth(app: App): void {
       const flow = await startDeviceFlow();
       return json(c, 200, { ok: true, ...flow });
     } catch (error) {
-      return json(c, 500, { ok: false, error: (error as Error).message });
+      return json(c, 500, { ok: false, error: errorMessage(error) });
     }
   });
 
@@ -62,7 +63,7 @@ export function registerAuth(app: App): void {
       if (result.status === "ok") invalidateDataCache();
       return json(c, 200, { ok: true, ...result });
     } catch (error) {
-      return json(c, 500, { ok: false, error: (error as Error).message });
+      return json(c, 500, { ok: false, error: errorMessage(error) });
     }
   });
 
