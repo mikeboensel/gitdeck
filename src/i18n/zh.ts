@@ -149,6 +149,7 @@ export const zh: Record<keyof typeof en, string> = {
   "summary.securityAlerts": "{count} 个安全告警",
   "summary.loading": "加载中...",
   "stats.openIssues": "开放 Issues",
+  "stats.archivedHidden": "{count} 个已归档",
   "stats.matchingFilters": "匹配筛选",
   "stats.repositories": "仓库",
   "stats.withOpenIssues": "有开放 issues",

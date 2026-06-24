@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import {
   LuArchive,
   LuBook,
@@ -80,6 +81,8 @@ interface SidebarControlsProps {
   collaboratorsLoading?: boolean;
   onRefreshCollaborators?: () => void;
   inbox?: InboxSidebarState;
+  /** View-specific controls (layout / density / sort) shown atop the sidebar. */
+  viewControls?: ReactNode;
 }
 
 export function SidebarControls({
@@ -103,6 +106,7 @@ export function SidebarControls({
   collaboratorsLoading,
   onRefreshCollaborators,
   inbox,
+  viewControls,
 }: SidebarControlsProps) {
   const { t, language } = useI18n();
   const inboxMode = tab === "inbox";
@@ -175,6 +179,7 @@ export function SidebarControls({
 
   return (
     <SidebarShell onCollapse={onCollapse}>
+      {viewControls ? <div className="sidebar-view-controls">{viewControls}</div> : null}
       <div className="side-head">
         <button
           type="button"

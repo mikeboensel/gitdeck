@@ -57,7 +57,7 @@ import {
 } from "./components/common/Icons";
 import { Pagination } from "./components/common/Pagination";
 import { type SortOption, SortSelect } from "./components/common/SortSelect";
-import { Footer, type FooterSegment } from "./components/Footer";
+import { Footer, type FooterSegment, type FooterStat } from "./components/Footer";
 import { ChangelogModal } from "./components/modals/ChangelogModal";
 import { CommandPalette } from "./components/modals/CommandPalette";
 import { ContributorsModal } from "./components/modals/ContributorsModal";
@@ -1001,6 +1001,19 @@ export function App() {
     () => sortRepos(filterRepos(repos, issues, repoFilters, collaboratorsByRepo), issues, repoSort),
     [repos, issues, repoFilters, repoSort, collaboratorsByRepo],
   );
+  // Repos hidden solely because archived repos are excluded by default — i.e.
+  // how many more would show if "Include archived" were on. Surfaced in the
+  // footer so the shown/total gap is self-explanatory.
+  const archivedHiddenCount = useMemo(() => {
+    if (repoFilters.includeArchived) return 0;
+    const withArchived = filterRepos(
+      repos,
+      issues,
+      { ...repoFilters, includeArchived: true },
+      collaboratorsByRepo,
+    );
+    return withArchived.length - filteredRepos.length;
+  }, [repos, issues, repoFilters, collaboratorsByRepo, filteredRepos.length]);
   const filteredInsights = useMemo(
     () =>
       filteredRepos
@@ -1303,12 +1316,18 @@ export function App() {
       strong: true,
     });
   }
+  const countLabel =
+    fc.shown === fc.total
+      ? formatNumber(fc.total)
+      : `${formatNumber(fc.shown)} ${t("common.of")} ${formatNumber(fc.total)}`;
+  // On the repos tab, explain the shown/total gap left by hidden archived repos.
+  const archivedNote =
+    tab === "repos" && archivedHiddenCount > 0
+      ? ` · ${t("stats.archivedHidden", { count: formatNumber(archivedHiddenCount) })}`
+      : "";
   footerSegments.push({
     key: "count",
-    label:
-      fc.shown === fc.total
-        ? formatNumber(fc.total)
-        : `${formatNumber(fc.shown)} ${t("common.of")} ${formatNumber(fc.total)}`,
+    label: `${countLabel}${archivedNote}`,
   });
   if (fc.filters > 0) {
     footerSegments.push({
@@ -1324,6 +1343,38 @@ export function App() {
       label: `“${search}”`,
     });
   }
+
+  // Repos tab: summary stats pinned to the right of the status bar. Values
+  // reflect the currently shown (filtered) repositories.
+  const footerStatItems: FooterStat[] =
+    tab === "repos"
+      ? [
+          {
+            key: "repos",
+            label: t("stats.repositories"),
+            value: formatNumber(filteredRepos.length),
+            title: t("stats.matchingFilters"),
+          },
+          {
+            key: "stars",
+            label: t("stats.totalStars"),
+            value: formatNumber(filteredRepos.reduce((sum, repo) => sum + repo.stargazerCount, 0)),
+            title: t("stats.acrossShown"),
+          },
+          {
+            key: "forks",
+            label: t("stats.totalForks"),
+            value: formatNumber(filteredRepos.reduce((sum, repo) => sum + repo.forkCount, 0)),
+            title: t("stats.acrossShown"),
+          },
+          {
+            key: "issues",
+            label: t("stats.openIssues"),
+            value: formatNumber(totalOpenIssues),
+            title: t("tip.totalOpenIssues"),
+          },
+        ]
+      : [];
 
   return (
     <>
@@ -1428,6 +1479,26 @@ export function App() {
             collaboratorsLoading={collaboratorsLoading}
             onRefreshCollaborators={refreshCollaborators}
             inbox={inboxSidebar}
+            viewControls={
+              tab === "repos" ? (
+                <>
+                  <RepoViewControls
+                    layout={repoLayout}
+                    density={repoDensity}
+                    onLayoutChange={setRepoLayout}
+                    onCycleDensity={cycleRepoDensity}
+                  />
+                  <div className="sidebar-sort">
+                    <SortSelect
+                      id="repos-sort"
+                      value={repoSort}
+                      options={REPO_SORT_OPTIONS}
+                      onChange={setRepoSort}
+                    />
+                  </div>
+                </>
+              ) : undefined
+            }
           />
         )}
         <button
@@ -1597,21 +1668,6 @@ export function App() {
 
           {tab === "repos" ? (
             <div className="view-repos" style={{ display: "block" }}>
-              <div className="toolbar">
-                <div className="spacer" />
-                <RepoViewControls
-                  layout={repoLayout}
-                  density={repoDensity}
-                  onLayoutChange={setRepoLayout}
-                  onCycleDensity={cycleRepoDensity}
-                />
-                <SortSelect
-                  id="repos-sort"
-                  value={repoSort}
-                  options={REPO_SORT_OPTIONS}
-                  onChange={setRepoSort}
-                />
-              </div>
               <ReposView
                 layout={repoLayout}
                 density={repoDensity}
@@ -1640,30 +1696,6 @@ export function App() {
                   setRepoPage(1);
                 }}
               />
-              <section className="status-bar" aria-label={t("stats.repositories")}>
-                <div className="stat" title={t("stats.matchingFilters")}>
-                  <div className="k">{t("stats.repositories")}</div>
-                  <div className="v">{formatNumber(filteredRepos.length)}</div>
-                </div>
-                <div className="stat" title={t("stats.acrossShown")}>
-                  <div className="k">{t("stats.totalStars")}</div>
-                  <div className="v">
-                    {formatNumber(
-                      filteredRepos.reduce((sum, repo) => sum + repo.stargazerCount, 0),
-                    )}
-                  </div>
-                </div>
-                <div className="stat" title={t("stats.acrossShown")}>
-                  <div className="k">{t("stats.totalForks")}</div>
-                  <div className="v">
-                    {formatNumber(filteredRepos.reduce((sum, repo) => sum + repo.forkCount, 0))}
-                  </div>
-                </div>
-                <div className="stat" title={t("tip.totalOpenIssues")}>
-                  <div className="k">{t("stats.openIssues")}</div>
-                  <div className="v">{formatNumber(totalOpenIssues)}</div>
-                </div>
-              </section>
             </div>
           ) : null}
 
@@ -1899,7 +1931,7 @@ export function App() {
           ) : null}
         </main>
       </div>
-      <Footer segments={footerSegments} />
+      <Footer segments={footerSegments} stats={footerStatItems} />
       {paletteOpen ? (
         <CommandPalette
           repos={repos}

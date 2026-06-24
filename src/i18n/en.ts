@@ -148,6 +148,7 @@ export const en = {
   "summary.securityAlerts": "{count} security alerts",
   "summary.loading": "loading...",
   "stats.openIssues": "Open issues",
+  "stats.archivedHidden": "{count} archived",
   "stats.matchingFilters": "matching filters",
   "stats.repositories": "Repositories",
   "stats.withOpenIssues": "with open issues",

@@ -151,6 +151,7 @@ export const de: Record<keyof typeof en, string> = {
   "summary.securityAlerts": "{count} Sicherheitswarnungen",
   "summary.loading": "laden...",
   "stats.openIssues": "Offene Issues",
+  "stats.archivedHidden": "{count} archiviert",
   "stats.matchingFilters": "passend zu Filtern",
   "stats.repositories": "Repositories",
   "stats.withOpenIssues": "mit offenen Issues",

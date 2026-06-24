@@ -106,6 +106,26 @@
     margin-top: 44px;
   }
 }
+/* View-specific controls (layout / density / sort) hosted atop the sidebar,
+   stacked above the filter header so the main column starts at the cards. */
+.sidebar-view-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border-soft);
+}
+.sidebar-view-controls .repo-view-controls,
+.sidebar-view-controls .sidebar-sort {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+/* Let the sort dropdown fill the sidebar width on its own row. */
+.sidebar-view-controls .sidebar-sort select.sort {
+  flex: 1;
+}
+
 .side-head {
   display: flex;
   align-items: center;
