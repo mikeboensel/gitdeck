@@ -64,6 +64,7 @@ export const CACHE_KEY = {
   issues: "/api/issues",
   prs: "/api/prs",
   insights: "/api/repo-insights",
+  commitActivity: "/api/commit-activity",
   digests: "/api/daily-digests",
   ciHealth: "/api/ci-health",
   collaborators: "/api/collaborators",

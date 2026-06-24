@@ -394,6 +394,23 @@ export interface RepoInsightsData {
   insights: RepoInsight[];
 }
 
+/** One repo's commit count on one day (sparse — only days with commits). */
+export interface CommitActivityDay {
+  repo: string;
+  /** ISO calendar day, e.g. "2025-06-23". */
+  date: string;
+  count: number;
+}
+
+export interface CommitActivityData {
+  ok: true;
+  generatedAt: string;
+  /** Sparse per-repo, per-day commit counts for the authenticated user. */
+  days: CommitActivityDay[];
+  /** Repo keys present, for stable legend ordering. */
+  repos: string[];
+}
+
 export interface DailyRepoDigest {
   repo: string;
   date: string;

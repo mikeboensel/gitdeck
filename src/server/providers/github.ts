@@ -1,6 +1,7 @@
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import type {
+  CommitActivityDay,
   GhIssue,
   GhLabel,
   GhNotification,
@@ -464,6 +465,40 @@ export class GitHubProvider implements Provider {
     return collected;
   }
 
+  async listCommitActivity(
+    account: Account,
+    fromIso: string,
+    toIso: string,
+  ): Promise<CommitActivityDay[]> {
+    // contributionsCollection is capped at a 1-year span and each repo's
+    // `contributions(first: 100)` node list is capped at 100 days. Splitting the
+    // range into ~90-day chunks keeps every chunk's per-repo day list under that
+    // cap with no nested pagination, then we merge by repo+day.
+    const byRepoDay = new Map<string, number>(); // key: `${repo}\n${date}`
+    for (const range of chunkDateRange(fromIso, toIso, 90)) {
+      const data = await this.gqlCall<CommitActivityResponse>(account, COMMIT_ACTIVITY_QUERY, {
+        from: range.from,
+        to: range.to,
+      });
+      for (const entry of data.viewer.contributionsCollection.commitContributionsByRepository) {
+        const repo = entry.repository.nameWithOwner;
+        for (const node of entry.contributions.nodes) {
+          const date = node.occurredAt.slice(0, 10);
+          // A given day falls in exactly one chunk, so set (idempotent) — never
+          // add — to stay correct even if chunk boundaries touch.
+          byRepoDay.set(`${repo}\n${date}`, node.commitCount);
+        }
+      }
+    }
+    const days: CommitActivityDay[] = [];
+    for (const [key, count] of byRepoDay) {
+      if (count <= 0) continue;
+      const [repo, date] = key.split("\n");
+      days.push({ repo: repo as string, date: date as string, count });
+    }
+    return days;
+  }
+
   async fetchNotifications(
     account: Account,
     ifModifiedSince: string | null,
@@ -631,6 +666,49 @@ query($q: String!, $cursor: String) {
     }
   }
 }`;
+
+const COMMIT_ACTIVITY_QUERY = `
+query($from: DateTime!, $to: DateTime!) {
+  viewer {
+    contributionsCollection(from: $from, to: $to) {
+      commitContributionsByRepository(maxRepositories: 100) {
+        repository { nameWithOwner }
+        contributions(first: 100) { nodes { occurredAt commitCount } }
+      }
+    }
+  }
+}`;
+
+/** Split [fromIso, toIso] into contiguous, non-overlapping chunks of at most
+ *  `maxDays` each (used to stay under contributionsCollection's per-repo cap). */
+function chunkDateRange(
+  fromIso: string,
+  toIso: string,
+  maxDays: number,
+): Array<{ from: string; to: string }> {
+  const fromMs = new Date(fromIso).getTime();
+  const toMs = new Date(toIso).getTime();
+  const span = maxDays * 24 * 60 * 60 * 1000;
+  const chunks: Array<{ from: string; to: string }> = [];
+  let start = fromMs;
+  while (start < toMs) {
+    const end = Math.min(start + span, toMs);
+    chunks.push({ from: new Date(start).toISOString(), to: new Date(end).toISOString() });
+    start = end + 1000; // 1s gap keeps chunks non-overlapping (days are midnight-aligned)
+  }
+  return chunks;
+}
+
+interface CommitActivityResponse {
+  viewer: {
+    contributionsCollection: {
+      commitContributionsByRepository: Array<{
+        repository: { nameWithOwner: string };
+        contributions: { nodes: Array<{ occurredAt: string; commitCount: number }> };
+      }>;
+    };
+  };
+}
 
 const PR_SEARCH_QUERY = `
 query($q: String!, $cursor: String) {

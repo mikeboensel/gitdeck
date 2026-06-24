@@ -1,6 +1,7 @@
 import type {
   ApiError,
   CIHealthData,
+  CommitActivityData,
   DailyDigestsData,
   DependentItem,
   ForkNode,
@@ -353,6 +354,17 @@ export function fetchRepoInsights(fresh = false, signal?: AbortSignal): Promise<
     `/api/repo-insights${fresh ? "?fresh=1" : ""}`,
     withSignal(signal),
     "/api/repo-insights",
+  );
+}
+
+export function fetchCommitActivity(
+  fresh = false,
+  signal?: AbortSignal,
+): Promise<CommitActivityData> {
+  return readJson(
+    `/api/commit-activity${fresh ? "?fresh=1" : ""}`,
+    withSignal(signal),
+    "/api/commit-activity",
   );
 }
 

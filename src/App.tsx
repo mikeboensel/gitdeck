@@ -14,6 +14,7 @@ import {
   fetchAuthStatus,
   fetchCIHealth,
   fetchCollaborators,
+  fetchCommitActivity,
   fetchDailyDigests,
   fetchIssues,
   fetchLocalRepos,
@@ -67,6 +68,7 @@ import { type FacetGroup, FacetSidebar } from "./components/sidebar/FacetSidebar
 import { FilterSection, toggleSetValue } from "./components/sidebar/primitives";
 import { TopBar } from "./components/TopBar";
 import { CIHealthView } from "./components/views/CIHealthView";
+import { CommitActivityChart } from "./components/views/CommitActivityChart";
 import { DailyDigestView } from "./components/views/DailyDigestView";
 import { InboxView } from "./components/views/InboxView";
 import { InsightsView } from "./components/views/InsightsView";
@@ -85,6 +87,7 @@ import { useAccounts, useCapability } from "./contexts/AccountContext";
 import { useI18n } from "./i18n/I18nProvider";
 import type {
   CIHealthData,
+  CommitActivityData,
   DailyDigestEntry,
   DailyDigestsData,
   DigestPeriod,
@@ -216,6 +219,7 @@ export function App() {
   const [repos, setRepos] = useState<GhRepo[]>([]);
   const [owners, setOwners] = useState<string[]>([]);
   const [repoInsights, setRepoInsights] = useState<RepoInsight[]>([]);
+  const [commitActivity, setCommitActivity] = useState<CommitActivityData | null>(null);
   // Repo→collaborator-logins map, hydrated from localStorage for instant render.
   const [collaboratorsByRepo, setCollaboratorsByRepo] = useState<Map<string, string[]>>(() => {
     const cached = readCollaboratorsCache();
@@ -478,6 +482,25 @@ export function App() {
     })
       .promise.then((data) => {
         if (!controller.signal.aborted) setRepoInsights(data.insights);
+      })
+      .catch(() => {});
+    return () => controller.abort();
+  }, [tab, authState, activeAccountId]);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: activeAccountId is an intentional re-run trigger so account-scoped commit activity is refetched when the active account changes
+  useEffect(() => {
+    if (authState !== "authenticated") return;
+    if (tab !== "insights") return;
+    const cached = peek<CommitActivityData>(CACHE_KEY.commitActivity);
+    if (cached) setCommitActivity(cached);
+    const controller = new AbortController();
+    swr<CommitActivityData>(
+      CACHE_KEY.commitActivity,
+      (signal) => fetchCommitActivity(false, signal),
+      { signal: controller.signal },
+    )
+      .promise.then((data) => {
+        if (!controller.signal.aborted) setCommitActivity(data);
       })
       .catch(() => {});
     return () => controller.abort();
@@ -1638,6 +1661,7 @@ export function App() {
 
           {tab === "insights" ? (
             <div className="view-insights" style={{ display: "block" }}>
+              <CommitActivityChart data={commitActivity} />
               <section className="stats">
                 <div className="stat" title={t("tip.totalOpenIssues")}>
                   <div className="k">{t("stats.openIssues")}</div>

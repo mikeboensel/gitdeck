@@ -1,4 +1,4 @@
-import type { GhIssue, GhPullRequest, GhRepo } from "../../types/github";
+import type { CommitActivityDay, GhIssue, GhPullRequest, GhRepo } from "../../types/github";
 import {
   fetchForgejoIssues,
   fetchForgejoNotifications,
@@ -90,6 +90,15 @@ export class ForgejoProvider implements Provider {
 
   async listPullRequests(account: Account, owners: string[]): Promise<GhPullRequest[]> {
     return fetchForgejoPullRequests(account, owners);
+  }
+
+  async listCommitActivity(
+    _account: Account,
+    _fromIso: string,
+    _toIso: string,
+  ): Promise<CommitActivityDay[]> {
+    // Forgejo has no GraphQL contributionsCollection equivalent; unsupported.
+    return [];
   }
 
   async fetchNotifications(

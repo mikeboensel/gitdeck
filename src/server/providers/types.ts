@@ -137,6 +137,16 @@ export interface Provider {
     account: Account,
     owners: string[],
   ): Promise<import("../../types/github").GhPullRequest[]>;
+  /**
+   * The authenticated user's per-repo, per-day commit counts between two ISO
+   * datetimes. Sparse (only days with commits). Providers without contribution
+   * data (e.g. Forgejo, no GraphQL) return an empty array.
+   */
+  listCommitActivity(
+    account: Account,
+    fromIso: string,
+    toIso: string,
+  ): Promise<import("../../types/github").CommitActivityDay[]>;
 
   fetchNotifications(
     account: Account,
