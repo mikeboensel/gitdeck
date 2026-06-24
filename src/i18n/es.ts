@@ -54,6 +54,7 @@ export const es: Record<keyof typeof en, string> = {
   "accounts.tokenRequired": "El token es obligatorio",
   "accounts.tokenHelp":
     "Crea un token en {provider} con permisos de lectura para repos, issues y notificaciones.",
+  "orgs.title": "Organizaciones",
   "common.authenticated": "Autenticado",
   "common.authenticatedExternally": "Autenticado externamente",
   "common.export": "Exportar",

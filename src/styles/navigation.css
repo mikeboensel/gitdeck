@@ -39,49 +39,6 @@
   gap: 12px;
   min-width: 0;
 }
-.topbar-orgs {
-  grid-column: 1;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-  flex-wrap: wrap;
-}
-.topbar-org {
-  position: relative;
-  display: inline-flex;
-  text-decoration: none;
-  color: inherit;
-}
-a.topbar-org {
-  cursor: pointer;
-}
-.topbar-org-icon {
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  object-fit: cover;
-  flex-shrink: 0;
-  border: 1px solid var(--border-soft);
-  background: var(--panel-2);
-}
-a.topbar-org .topbar-org-icon {
-  transition: border-color 0.12s ease;
-}
-a.topbar-org:hover .topbar-org-icon {
-  border-color: var(--button-hover-border);
-}
-.topbar-org-overflow {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 11.5px;
-  font-weight: 700;
-  color: var(--muted);
-}
-/* Org-icon tooltips (these carry `data-tip`) are now handled by the portal
-   `TooltipLayer` along with every other tooltip — the local `::after` was
-   removed so org icons don't render two overlapping bubbles. */
 .logo {
   width: 40px;
   height: 40px;
@@ -150,6 +107,7 @@ a.topbar-org:hover .topbar-org-icon {
   margin-left: auto;
 }
 .topbar-actions {
+  grid-column: 2;
   justify-self: end;
   display: flex;
   align-items: center;
@@ -602,6 +560,51 @@ a.topbar-org:hover .topbar-org-icon {
 .profile-account-remove:hover {
   background: color-mix(in srgb, var(--danger, #f87171) 20%, transparent);
   color: var(--danger, #f87171);
+}
+.profile-orgs {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.profile-orgs-label {
+  padding: 4px 9px 2px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.profile-org-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 9px;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  text-decoration: none;
+}
+.profile-org-item:hover {
+  background: var(--panel-2);
+}
+.profile-org-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 1px solid var(--border-soft);
+}
+.profile-org-name {
+  min-width: 0;
+  flex: 1;
+  font-weight: 600;
+  font-size: 12.5px;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .profile-divider {
   height: 1px;

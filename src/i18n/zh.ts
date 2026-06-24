@@ -53,6 +53,7 @@ export const zh: Record<keyof typeof en, string> = {
   "accounts.tokenLabel": "个人访问令牌",
   "accounts.tokenRequired": "需要令牌",
   "accounts.tokenHelp": "在 {provider} 上创建一个对仓库、issue 和通知有读取权限的令牌。",
+  "orgs.title": "组织",
   "common.authenticated": "已认证",
   "common.authenticatedExternally": "外部认证",
   "common.export": "导出",

@@ -54,6 +54,7 @@ export const de: Record<keyof typeof en, string> = {
   "accounts.tokenRequired": "Token ist erforderlich",
   "accounts.tokenHelp":
     "Erstellen Sie einen Token auf {provider} mit Lesezugriff für Repos, Issues und Benachrichtigungen.",
+  "orgs.title": "Organisationen",
   "common.authenticated": "Authentifiziert",
   "common.authenticatedExternally": "Extern authentifiziert",
   "common.export": "Exportieren",

@@ -46,10 +46,9 @@ export function TopBar({
   const [prefsOpen, setPrefsOpen] = useState(false);
   const [addAccountOpen, setAddAccountOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement | null>(null);
-  // All owners (the user's own namespace + orgs) shown as avatars top-left.
-  const MAX_ORG_ICONS = 5;
-  const visibleOrgs = owners.slice(0, MAX_ORG_ICONS);
-  const overflowOrgs = owners.length - visibleOrgs.length;
+  // The orgs the active account belongs to — every owner except the user's own
+  // namespace (authLogin). Listed inside the account dropdown.
+  const orgs = owners.filter((owner) => owner.toLowerCase() !== authLogin?.toLowerCase());
 
   async function handleSwitchAccount(id: string) {
     setProfileOpen(false);
@@ -91,26 +90,6 @@ export function TopBar({
 
   return (
     <div className="topbar">
-      <div className="topbar-orgs">
-        {visibleOrgs.map((org) => (
-          <a
-            className="topbar-org"
-            data-tip={org}
-            key={org}
-            href={`https://github.com/${org}`}
-            target="_blank"
-            rel="noreferrer"
-            aria-label={org}
-          >
-            <img className="topbar-org-icon" src={`https://github.com/${org}.png?size=80`} alt="" />
-          </a>
-        ))}
-        {overflowOrgs > 0 ? (
-          <span className="topbar-org" data-tip={owners.slice(MAX_ORG_ICONS).join(", ")}>
-            <span className="topbar-org-icon topbar-org-overflow">+{overflowOrgs}</span>
-          </span>
-        ) : null}
-      </div>
       <div className="topbar-search">
         <button
           className="btn search-btn tip"
@@ -309,6 +288,28 @@ export function TopBar({
                 </div>
               ) : null}
               {accounts.length > 0 ? <div className="profile-divider" aria-hidden="true" /> : null}
+              {orgs.length > 0 ? (
+                <>
+                  {/* biome-ignore lint/a11y/useSemanticElements: role="group" is the correct ARIA grouping inside role="menu"; a fieldset would be semantically wrong and break the layout. */}
+                  <div className="profile-orgs" role="group" aria-label={t("orgs.title")}>
+                    <span className="profile-orgs-label">{t("orgs.title")}</span>
+                    {orgs.map((org) => (
+                      <a
+                        key={org}
+                        role="menuitem"
+                        className="profile-org-item"
+                        href={`https://github.com/${org}`}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        <Avatar login={org} size={24} className="profile-org-avatar" />
+                        <span className="profile-org-name">{org}</span>
+                      </a>
+                    ))}
+                  </div>
+                  <div className="profile-divider" aria-hidden="true" />
+                </>
+              ) : null}
               <button
                 type="button"
                 className="profile-menu-item profile-prefs-toggle"

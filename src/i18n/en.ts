@@ -52,6 +52,7 @@ export const en = {
   "accounts.tokenRequired": "Token is required",
   "accounts.tokenHelp":
     "Create a token on {provider} with read scopes for repos, issues and notifications.",
+  "orgs.title": "Organizations",
   "common.authenticated": "Authenticated",
   "common.authenticatedExternally": "Authenticated externally",
   "common.export": "Export",
