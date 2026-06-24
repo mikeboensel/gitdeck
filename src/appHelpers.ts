@@ -12,7 +12,8 @@ export type Tab =
   | "insights"
   | "alerts"
   | "ci"
-  | "digests";
+  | "digests"
+  | "lab";
 
 export const TAB_ROUTES: Record<Tab, string> = {
   inbox: "/inbox",
@@ -25,6 +26,7 @@ export const TAB_ROUTES: Record<Tab, string> = {
   alerts: "/alerts",
   ci: "/ci",
   digests: "/daily",
+  lab: "/lab",
 };
 
 const ROUTE_TABS = new Map<string, Tab>(

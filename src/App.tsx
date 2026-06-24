@@ -48,6 +48,7 @@ import {
   BookIcon,
   CalendarIcon,
   FolderIcon,
+  GridIcon,
   InboxIcon,
   IssueIcon,
   PullRequestIcon,
@@ -83,6 +84,7 @@ import {
   ReposView,
 } from "./components/views/ReposView";
 import { RepoViewControls } from "./components/views/RepoViewControls";
+import { WidgetHost } from "./components/widgets/WidgetHost";
 import { useAccounts, useCapability } from "./contexts/AccountContext";
 import { useI18n } from "./i18n/I18nProvider";
 import type {
@@ -1232,6 +1234,7 @@ export function App() {
     ...(projectsEnabled
       ? [{ key: "kanban" as const, label: t("tabs.board"), count: "—", icon: <BoardIcon /> }]
       : []),
+    { key: "lab" as const, label: "Lab", count: "—", icon: <GridIcon /> },
   ];
 
   // Footer status bar: reflect the current tab plus how many items are shown and
@@ -1283,6 +1286,11 @@ export function App() {
     ci: { shown: ciHealth.length, total: ciHealth.length, filters: 0 },
     digests: { shown: dailyDigests.length, total: dailyDigests.length, filters: 0 },
     kanban: { shown: filteredIssues.length, total: issues.length, filters: issueFilterCount },
+    lab: {
+      shown: filteredInsights.length,
+      total: filteredInsights.length,
+      filters: repoFilterCount,
+    },
   };
   const fc = footerStats[tab];
   const currentTabMeta = tabs.find((item) => item.key === tab);
@@ -1883,6 +1891,12 @@ export function App() {
           ) : null}
 
           {tab === "kanban" && projectsEnabled ? <KanbanView /> : null}
+
+          {tab === "lab" ? (
+            <WidgetHost
+              ctx={{ insights: filteredInsights, reposByName, onRepoClick: openRepoModal }}
+            />
+          ) : null}
         </main>
       </div>
       <Footer segments={footerSegments} />
