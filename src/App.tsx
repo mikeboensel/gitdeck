@@ -11,6 +11,7 @@ import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { invalidate as invalidateCache, peek, swr } from "./api/cache";
 import {
   AuthRequiredClientError,
+  deleteLocalRepo as apiDeleteLocalRepo,
   fetchAuthStatus,
   fetchCIHealth,
   fetchCollaborators,
@@ -634,6 +635,29 @@ export function App() {
     [localConfig, reloadLocalRepos],
   );
 
+  // Move a local repo to the Trash. The caller (disk-usage view) confirms first;
+  // we optimistically drop the whole worktree cluster, rolling back on failure.
+  // Re-throws so the caller can surface its own feedback. `force` deletes an
+  // unsafe repo (server re-validates regardless).
+  const deleteLocalRepo = useCallback(
+    async (path: string, memberPaths: string[], force: boolean) => {
+      const drop = new Set(memberPaths.length ? memberPaths : [path]);
+      let snapshot: LocalRepo[] = [];
+      setLocalRepos((prev) => {
+        snapshot = prev;
+        return prev.filter((r) => !drop.has(r.path));
+      });
+      try {
+        await apiDeleteLocalRepo(path, force);
+      } catch (err) {
+        setLocalRepos(snapshot);
+        setLocalError(err instanceof Error ? err.message : String(err));
+        throw err;
+      }
+    },
+    [],
+  );
+
   const refreshCollaborators = useCallback(() => {
     setCollaboratorsLoading(true);
     fetchCollaborators(true)
@@ -1247,7 +1271,7 @@ export function App() {
     ...(projectsEnabled
       ? [{ key: "kanban" as const, label: t("tabs.board"), count: "—", icon: <BoardIcon /> }]
       : []),
-    { key: "lab" as const, label: "Lab", count: "—", icon: <GridIcon /> },
+    { key: "lab" as const, label: "Viz Lab", count: "—", icon: <GridIcon /> },
   ];
 
   // Footer status bar: reflect the current tab plus how many items are shown and
@@ -1919,6 +1943,7 @@ export function App() {
               onSaveConfig={saveLocalConfig}
               onHide={hideLocalRepo}
               onUnhide={unhideLocalRepo}
+              onDelete={deleteLocalRepo}
             />
           ) : null}
 

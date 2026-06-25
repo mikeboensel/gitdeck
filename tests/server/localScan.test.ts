@@ -1,5 +1,44 @@
 import { describe, expect, it } from "vitest";
-import { parseStatusCounts } from "../../src/server/localScan";
+import { parseStatusCounts, parseWorktreePorcelain } from "../../src/server/localScan";
+
+describe("parseWorktreePorcelain", () => {
+  const raw = [
+    "worktree /repos/main",
+    "HEAD 1cb2172",
+    "branch refs/heads/main",
+    "",
+    "worktree /elsewhere/oslo",
+    "HEAD a8d8fb6",
+    "branch refs/heads/mikeboensel/oslo",
+    "prunable gitdir file points to non-existent location",
+    "",
+    "worktree /elsewhere/bordeaux",
+    "HEAD c809df2",
+    "branch refs/heads/mikeboensel/agent-loop",
+    "",
+  ].join("\n");
+
+  it("parses every entry including the primary, with branch and prunable flags", () => {
+    const entries = parseWorktreePorcelain(raw);
+    expect(entries).toHaveLength(3);
+    expect(entries[0]).toEqual({ path: "/repos/main", branch: "main", prunable: false });
+    expect(entries[1]).toEqual({
+      path: "/elsewhere/oslo",
+      branch: "mikeboensel/oslo",
+      prunable: true,
+    });
+    expect(entries[2]?.prunable).toBe(false);
+  });
+
+  it("leaves branch null for a detached worktree", () => {
+    const detached = ["worktree /repos/d", "HEAD abc123", "detached", ""].join("\n");
+    expect(parseWorktreePorcelain(detached)[0]).toEqual({
+      path: "/repos/d",
+      branch: null,
+      prunable: false,
+    });
+  });
+});
 
 describe("parseStatusCounts", () => {
   it("returns all-zero counts for empty output", () => {

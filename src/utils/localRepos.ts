@@ -1,4 +1,4 @@
-import type { LocalRepo } from "../types/github";
+import type { LocalRepo, WorktreeEntry } from "../types/github";
 import { getOwner } from "./repository";
 
 /**
@@ -130,6 +130,8 @@ export type LocalSort =
   | "name_asc"
   | "owner_asc"
   | "stars_desc"
+  | "size_desc"
+  | "size_asc"
   | "dirty_first"
   | "status_asc";
 
@@ -183,6 +185,14 @@ function compareUnits(a: LocalUnit, b: LocalUnit, sort: LocalSort): number {
         (y.enrichment?.stargazerCount ?? -1) - (x.enrichment?.stargazerCount ?? -1) ||
         tiebreak(x, y)
       );
+    // Unmeasured sizes (null) sort last in both directions.
+    case "size_desc":
+      return (y.sizeBytes ?? -1) - (x.sizeBytes ?? -1) || tiebreak(x, y);
+    case "size_asc":
+      return (
+        (x.sizeBytes ?? Number.POSITIVE_INFINITY) - (y.sizeBytes ?? Number.POSITIVE_INFINITY) ||
+        tiebreak(x, y)
+      );
     case "dirty_first":
       return Number(y.dirty) - Number(x.dirty) || yDate.localeCompare(xDate) || tiebreak(x, y);
     case "status_asc":
@@ -222,4 +232,45 @@ export function arrangeLocalRepos(repos: LocalRepo[], sort: LocalSort): LocalUni
     units.push({ key, primary, worktrees: members.filter((m) => m !== primary) });
   }
   return units.sort((a, b) => compareUnits(a, b, sort));
+}
+
+/**
+ * Reasons a local checkout is NOT safe to delete. Enum values (not formatted
+ * strings) so callers map each to an i18n key. Each corresponds to a way that
+ * deleting the folder could lose work that exists nowhere else.
+ */
+export type SafetyBlocker =
+  | "dirty" // uncommitted changes in the working tree
+  | "unpushed" // local commits ahead of upstream — exist only on disk
+  | "no-remote" // no remote to re-clone from — this is the only copy
+  | "linked-worktrees" // has linked worktrees; deleting the primary corrupts them
+  | "is-worktree"; // a linked worktree whose primary is outside the scan roots
+
+export interface RepoSafety {
+  /** True only when there are no blockers — deleting loses nothing recoverable. */
+  safe: boolean;
+  blockers: SafetyBlocker[];
+}
+
+/**
+ * Assess whether a worktree cluster is a "fully backed up" safe delete target.
+ * Strict: every blocker must be clear. Evaluated across the whole cluster (the
+ * primary plus any linked worktrees) so a dirty/unpushed worktree taints the unit.
+ */
+export function assessSafety(unit: LocalUnit): RepoSafety {
+  const members = [unit.primary, ...unit.worktrees];
+  const blockers: SafetyBlocker[] = [];
+  if (members.some((m) => m.dirty)) blockers.push("dirty");
+  if (members.some((m) => m.ahead > 0)) blockers.push("unpushed");
+  if (unit.primary.remotes.length === 0) blockers.push("no-remote");
+  // Authoritative (git worktree list), counting only live worktrees — prunable
+  // ones are already dead, so they don't block deleting the primary.
+  if (liveWorktrees(unit).length > 0) blockers.push("linked-worktrees");
+  if (unit.primary.isWorktree) blockers.push("is-worktree");
+  return { safe: blockers.length === 0, blockers };
+}
+
+/** A primary's git-registered worktrees that still exist on disk (non-prunable). */
+export function liveWorktrees(unit: LocalUnit): WorktreeEntry[] {
+  return unit.primary.linkedWorktrees.filter((w) => !w.prunable);
 }

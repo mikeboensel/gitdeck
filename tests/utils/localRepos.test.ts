@@ -53,6 +53,8 @@ function makeRepo(over: Partial<LocalRepo> = {}): LocalRepo {
     dirty: false,
     changes: { staged: 0, modified: 0, untracked: 0, conflicted: 0 },
     lastCommit: { sha: "a1", date: "2026-01-01T00:00:00Z", message: "init" },
+    sizeBytes: null,
+    linkedWorktrees: [],
     isWorktree: false,
     gitCommonDir: `${path}/.git`,
     enrichment: null,

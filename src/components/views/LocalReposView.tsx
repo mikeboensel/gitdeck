@@ -11,6 +11,7 @@ import {
   LuFolderGit2,
   LuGitBranch,
   LuGlobe,
+  LuHardDrive,
   LuLock,
   LuPickaxe,
   LuRefreshCw,
@@ -26,13 +27,17 @@ import type { TranslationKey } from "../../i18n/translations";
 import { buildLocalRepoMenu } from "../../menus/localRepoMenu";
 import type { GitChangeCounts, LocalRepo, LocalReposConfig } from "../../types/github";
 import { errorMessage } from "../../utils/errors";
-import { formatNumber, formatRelativeTime } from "../../utils/format";
+import { formatBytes, formatNumber, formatRelativeTime } from "../../utils/format";
 import { arrangeLocalRepos, type LocalSort } from "../../utils/localRepos";
 import { ForkIcon, StarIcon } from "../common/Icons";
 import { LanguageIcon } from "../common/LanguageIcon";
 import { SortSelect } from "../common/SortSelect";
+import { LocalDiskUsage } from "./LocalDiskUsage";
 import type { RepoDensity, RepoLayout } from "./ReposView";
 import { RepoViewControls } from "./RepoViewControls";
+
+/** Local tab offers a disk-usage chart in addition to the shared grid/list. */
+const LOCAL_LAYOUT_OPTIONS: RepoLayout[] = ["grid", "list", "disk"];
 
 /** Sort options offered in the Local-tab dropdown, in menu order. */
 const SORT_OPTIONS: ReadonlyArray<{ value: LocalSort; label: TranslationKey }> = [
@@ -41,6 +46,8 @@ const SORT_OPTIONS: ReadonlyArray<{ value: LocalSort; label: TranslationKey }> =
   { value: "name_asc", label: "local.sortName" },
   { value: "owner_asc", label: "local.sortOwner" },
   { value: "stars_desc", label: "local.sortMostStars" },
+  { value: "size_desc", label: "local.sortLargest" },
+  { value: "size_asc", label: "local.sortSmallest" },
   { value: "dirty_first", label: "local.sortDirtyFirst" },
   { value: "status_asc", label: "local.sortStatus" },
 ];
@@ -65,6 +72,9 @@ interface LocalReposViewProps {
   onSaveConfig: (updates: Partial<LocalReposConfig>) => void;
   onHide: (path: string) => void;
   onUnhide: (path: string) => void;
+  /** Move a repo cluster to the Trash. `memberPaths` are all checkout paths to drop
+   *  optimistically; `force` deletes an unsafe repo. Used by the disk-usage view. */
+  onDelete: (path: string, memberPaths: string[], force: boolean) => Promise<void>;
 }
 
 export function LocalReposView({
@@ -84,6 +94,7 @@ export function LocalReposView({
   onSaveConfig,
   onHide,
   onUnhide,
+  onDelete,
 }: LocalReposViewProps) {
   const { language, t } = useI18n();
   const [searchParams] = useSearchParams();
@@ -128,6 +139,7 @@ export function LocalReposView({
             density={density}
             onLayoutChange={onLayoutChange}
             onCycleDensity={onCycleDensity}
+            layoutOptions={LOCAL_LAYOUT_OPTIONS}
           />
           <SortSelect
             id="local-sort"
@@ -219,41 +231,49 @@ export function LocalReposView({
         </div>
       ) : null}
 
-      <div className="repos-view local-collection" data-layout={layout} data-density={density}>
-        {layout === "list" ? (
-          <div className="data-list repo-list local-list">
-            {units.map((unit) => (
-              // Linked worktrees no longer get their own rows — the primary row
-              // carries a worktree count + tooltip instead.
-              <LocalRepoRow
-                key={unit.key}
-                repo={unit.primary}
-                worktrees={unit.worktrees}
-                onHide={onHide}
-                highlighted={
-                  focusName != null && unit.primary.nameWithOwner?.toLowerCase() === focusName
-                }
-              />
-            ))}
-          </div>
-        ) : (
-          <div className="local-cards">
-            {units.map((unit) => (
-              // Linked worktrees no longer get their own cards — the primary card
-              // carries a worktree count + tooltip instead (see LocalRepoCard).
-              <LocalRepoCard
-                key={unit.key}
-                repo={unit.primary}
-                worktrees={unit.worktrees}
-                onHide={onHide}
-                highlighted={
-                  focusName != null && unit.primary.nameWithOwner?.toLowerCase() === focusName
-                }
-              />
-            ))}
-          </div>
-        )}
-      </div>
+      {layout === "disk" ? (
+        <LocalDiskUsage
+          repos={repos}
+          onReveal={(path) => void openLocalRepo(path, "finder")}
+          onDelete={onDelete}
+        />
+      ) : (
+        <div className="repos-view local-collection" data-layout={layout} data-density={density}>
+          {layout === "list" ? (
+            <div className="data-list repo-list local-list">
+              {units.map((unit) => (
+                // Linked worktrees no longer get their own rows — the primary row
+                // carries a worktree count + tooltip instead.
+                <LocalRepoRow
+                  key={unit.key}
+                  repo={unit.primary}
+                  worktrees={unit.worktrees}
+                  onHide={onHide}
+                  highlighted={
+                    focusName != null && unit.primary.nameWithOwner?.toLowerCase() === focusName
+                  }
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="local-cards">
+              {units.map((unit) => (
+                // Linked worktrees no longer get their own cards — the primary card
+                // carries a worktree count + tooltip instead (see LocalRepoCard).
+                <LocalRepoCard
+                  key={unit.key}
+                  repo={unit.primary}
+                  worktrees={unit.worktrees}
+                  onHide={onHide}
+                  highlighted={
+                    focusName != null && unit.primary.nameWithOwner?.toLowerCase() === focusName
+                  }
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -486,6 +506,11 @@ function LocalRepoCard({
             <LuTreePine size={13} /> {worktrees.length}
           </span>
         ) : null}
+        {repo.sizeBytes != null ? (
+          <span className="rc-stat local-size tip" data-tip={t("local.sizeOnDisk")}>
+            <LuHardDrive size={12} aria-hidden /> {formatBytes(repo.sizeBytes)}
+          </span>
+        ) : null}
         {primaryLanguage ? (
           <span className="rc-lang" role="img" aria-label={primaryLanguage} title={primaryLanguage}>
             <LanguageIcon name={primaryLanguage} />
@@ -645,6 +670,11 @@ function LocalRepoRow({
             data-tip={worktreeTooltip(worktrees, t)}
           >
             <LuTreePine size={13} /> {worktrees.length}
+          </span>
+        ) : null}
+        {repo.sizeBytes != null ? (
+          <span className="rc-stat local-size tip" data-tip={t("local.sizeOnDisk")}>
+            <LuHardDrive size={12} aria-hidden /> {formatBytes(repo.sizeBytes)}
           </span>
         ) : null}
         <span

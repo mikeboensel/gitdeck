@@ -6,6 +6,7 @@ import { promisify } from "node:util";
 import type { HttpBindings } from "@hono/node-server";
 import { createRoute, type OpenAPIHono, z } from "@hono/zod-openapi";
 import { errorMessage } from "../../utils/errors";
+import { arrangeLocalRepos, assessSafety } from "../../utils/localRepos";
 import { isWithinHome, listChildDirs, resolveCloneCommand } from "../localClone";
 import { getLocalReposCached, invalidateLocalReposCache } from "../localReposData";
 import { getConfig, getScanRoots, updateConfig } from "../localReposStore";
@@ -64,6 +65,29 @@ const CloneBody = z
   .object({ nameWithOwner: z.string(), url: z.string(), destDir: z.string() })
   .openapi("LocalRepoCloneBody");
 const CloneResponse = okEnvelope({ path: z.string() }).openapi("LocalRepoCloneResponse");
+
+const DeleteBody = z
+  .object({ path: z.string(), force: z.boolean().optional() })
+  .openapi("LocalRepoDeleteBody");
+/** 409 body when a repo isn't a safe delete target and `force` wasn't set. */
+const DeleteBlockedResponse = z
+  .object({ ok: z.literal(false), error: z.string(), blockers: z.array(z.string()) })
+  .openapi("LocalRepoDeleteBlocked");
+
+/**
+ * AppleScript that moves the folder named by argv[0] to the Trash via Finder
+ * (recoverable). The path is passed as an `argv` item — never interpolated into
+ * the script source — so it's always a single literal, same discipline as
+ * `OPEN_ARGS`. Run with `execFile("osascript", [...TRASH_SCRIPT, path])`.
+ */
+const TRASH_SCRIPT = [
+  "-e",
+  "on run argv",
+  "-e",
+  'tell application "Finder" to delete (POSIX file (item 1 of argv) as alias)',
+  "-e",
+  "end run",
+];
 
 /** True when `dir` would already be reached by scanning one of `roots` (it is a
  * root or nested under one), so cloning there needs no scan-root change. */
@@ -267,6 +291,72 @@ export function registerLocalRepos(app: App): void {
       invalidateLocalReposCache();
       logger.info({ nameWithOwner, target }, "cloned repository");
       return c.json({ ok: true as const, path: target }, 200);
+    },
+  );
+
+  app.openapi(
+    createRoute({
+      method: "post",
+      path: "/api/local-repos/delete",
+      tags: ["local"],
+      request: {
+        body: { content: { "application/json": { schema: DeleteBody } } },
+      },
+      responses: {
+        200: {
+          content: { "application/json": { schema: okEnvelope({}) } },
+          description: "Moved the repo to the Trash",
+        },
+        403: { ...errContent, description: "Path is not a scanned repo, or is a scan root" },
+        409: {
+          content: { "application/json": { schema: DeleteBlockedResponse } },
+          description: "Not a safe delete target and force was not set",
+        },
+        500: { ...errContent, description: "Trash command failed" },
+      },
+    }),
+    async (c) => {
+      const { path, force } = c.req.valid("json");
+      const scan = await getLocalReposCached(false);
+      if (!scan.ok) return c.json({ ok: false as const, error: scan.error }, 500);
+
+      // Guard 1 (security boundary): only ever act on an exact scanned-repo path.
+      if (!scan.repos.some((r) => r.path === path)) {
+        return c.json({ ok: false as const, error: "Path is not a scanned repository" }, 403);
+      }
+      // Guard 2: never delete a scan root — that would nuke a parent of many repos.
+      const roots = await getScanRoots();
+      if (roots.some((r) => resolve(r) === resolve(path))) {
+        return c.json({ ok: false as const, error: "Refusing to delete a scan root" }, 403);
+      }
+      // Guard 3: re-validate safety server-side (don't trust the client). Rebuild the
+      // worktree cluster this path belongs to and refuse unless safe or forced.
+      const unit = arrangeLocalRepos(scan.repos, "size_desc").find(
+        (u) => u.primary.path === path || u.worktrees.some((w) => w.path === path),
+      );
+      if (unit && !force) {
+        const safety = assessSafety(unit);
+        if (!safety.safe) {
+          return c.json(
+            {
+              ok: false as const,
+              error: "Repo is not a safe delete target",
+              blockers: safety.blockers,
+            },
+            409,
+          );
+        }
+      }
+
+      try {
+        await execFileAsync("osascript", [...TRASH_SCRIPT, path], { timeout: 10_000 });
+      } catch (err) {
+        logger.error({ err, path }, "failed to move local repo to Trash");
+        return c.json({ ok: false as const, error: errorMessage(err) }, 500);
+      }
+      invalidateLocalReposCache();
+      logger.info({ path, force: force ?? false }, "moved local repo to Trash");
+      return c.json({ ok: true as const }, 200);
     },
   );
 }

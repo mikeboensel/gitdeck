@@ -101,6 +101,13 @@ async function loadFromDisk(): Promise<LocalReposOk | null> {
       // Discard caches written before the granular `changes` field existed;
       // serving them would crash the frontend's per-category pill render.
       if (data.repos.length > 0 && !data.repos[0]?.changes) return null;
+      // Discard caches predating `sizeBytes` (absent key, not a null value) so a
+      // rescan repopulates disk sizes. `null` is a valid measured-but-unknown.
+      if (data.repos.length > 0 && data.repos[0] && !("sizeBytes" in data.repos[0])) return null;
+      // Discard caches predating authoritative `linkedWorktrees` enumeration.
+      if (data.repos.length > 0 && data.repos[0] && !("linkedWorktrees" in data.repos[0])) {
+        return null;
+      }
       return data;
     }
     return null;
