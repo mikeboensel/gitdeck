@@ -50,7 +50,6 @@ import {
   ShieldIcon,
 } from "./components/common/Icons";
 import { type SortOption, SortSelect } from "./components/common/SortSelect";
-import { StatCard } from "./components/common/StatCard";
 import { Footer, type FooterSegment, type FooterStat } from "./components/Footer";
 import { ChangelogModal } from "./components/modals/ChangelogModal";
 import { CommandPalette } from "./components/modals/CommandPalette";
@@ -62,11 +61,11 @@ import { type InboxSidebarState, SidebarControls } from "./components/SidebarCon
 import { type FacetGroup, FacetSidebar } from "./components/sidebar/FacetSidebar";
 import { FilterSection, toggleSetValue } from "./components/sidebar/primitives";
 import { TopBar } from "./components/TopBar";
-import { CIHealthView } from "./components/views/CIHealthView";
-import { CommitActivityChart } from "./components/views/CommitActivityChart";
-import { DailyDigestView } from "./components/views/DailyDigestView";
+import { AlertsPanel } from "./components/views/AlertsPanel";
+import { CiPanel } from "./components/views/CiPanel";
+import { DigestsPanel } from "./components/views/DigestsPanel";
 import { InboxView } from "./components/views/InboxView";
-import { InsightsView } from "./components/views/InsightsView";
+import { InsightsPanel } from "./components/views/InsightsPanel";
 import { IssuesPanel } from "./components/views/IssuesPanel";
 import { KanbanView } from "./components/views/KanbanView";
 import { LocalReposView } from "./components/views/LocalReposView";
@@ -129,6 +128,12 @@ import {
   readFiltersCache,
   writeFiltersCache,
 } from "./utils/filtersCache";
+import {
+  countIssueFilters,
+  countLocalFilters,
+  countPrFilters,
+  countRepoFilters,
+} from "./utils/footer";
 import { formatNumber } from "./utils/format";
 import type { InboxMailbox } from "./utils/inbox";
 import {
@@ -781,33 +786,15 @@ export function App() {
         .filter((insight) => insight.securityAlertsCount > 0),
     [filteredRepos, insightsByRepo],
   );
+  // Footer/tab-badge totals. The per-panel insight/alert stats live in their
+  // panels; these two stay because the footer and tab chrome need them too.
+  // Metrics whose fetch failed (`errors`) are excluded so a failed read never
+  // skews a sum.
   const totalOpenIssues = repoInsights.reduce((sum, insight) => sum + insight.issueCount, 0);
-  const reposWithIssuesCount = repoInsights.filter((insight) => insight.issueCount > 0).length;
-  // Unknown metrics are -1; exclude them from totals so a failed fetch never
-  // inflates or deflates a sum (and never reads as a confident 0).
-  // Metrics whose fetch failed carry an `errors` entry; exclude them from totals so
-  // a failed read never inflates or deflates a sum (nor reads as a confident 0).
-  const totalViews = repoInsights.reduce(
-    (sum, insight) => (insight.errors?.views ? sum : sum + insight.viewsCount),
-    0,
-  );
-  const totalReleaseDownloads = repoInsights.reduce(
-    (sum, insight) => (insight.errors?.downloads ? sum : sum + insight.totalDownloads),
-    0,
-  );
   const totalSecurityAlerts = repoInsights.reduce(
     (sum, insight) => (insight.errors?.security ? sum : sum + insight.securityAlertsCount),
     0,
   );
-  const viewsKnownCount = repoInsights.filter((insight) => !insight.errors?.views).length;
-  const downloadsKnownCount = repoInsights.filter((insight) => !insight.errors?.downloads).length;
-  const securityRepoCount = repoInsights.filter(
-    (insight) => insight.securityAlertsCount > 0,
-  ).length;
-  const securityUnavailableCount = repoInsights.filter(
-    (insight) => insight.errors?.security,
-  ).length;
-  const securityOpenIssues = securityInsights.reduce((sum, insight) => sum + insight.issueCount, 0);
   const reposByName = useMemo(
     () => new Map(repos.map((repo) => [repo.nameWithOwner, repo])),
     [repos],
@@ -974,30 +961,10 @@ export function App() {
 
   // Footer status bar: reflect the current tab plus how many items are shown and
   // how many filter selections are active for that tab.
-  const repoFilterCount =
-    repoFilters.orgs.size +
-    repoFilters.languages.size +
-    repoFilters.collaborators.size +
-    (repoFilters.visibility !== "all" ? 1 : 0) +
-    (repoFilters.includeForks ? 0 : 1) +
-    (repoFilters.includeArchived ? 1 : 0);
-  const issueFilterCount =
-    issueFilters.orgs.size +
-    issueFilters.repos.size +
-    issueFilters.labels.size +
-    issueFilters.authors.size +
-    issueFilters.assignees.size;
-  const prFilterCount =
-    prFilters.orgs.size +
-    prFilters.repos.size +
-    prFilters.labels.size +
-    prFilters.authors.size +
-    prFilters.assignees.size;
-  const localFilterCount =
-    localFilters.owners.size +
-    localFilters.hosts.size +
-    localFilters.remotes.size +
-    (localFilters.status !== "all" ? 1 : 0);
+  const repoFilterCount = countRepoFilters(repoFilters);
+  const issueFilterCount = countIssueFilters(issueFilters);
+  const prFilterCount = countPrFilters(prFilters);
+  const localFilterCount = countLocalFilters(localFilters);
   const footerStats: Record<Tab, { shown: number; total: number; filters: number }> = {
     inbox: { shown: mailboxItems.length, total: inboxItems.length, filters: 0 },
     repos: { shown: filteredRepos.length, total: repos.length, filters: repoFilterCount },
@@ -1288,194 +1255,34 @@ export function App() {
           ) : null}
 
           {tab === "insights" ? (
-            <div className="view-insights" style={{ display: "block" }}>
-              <CommitActivityChart data={commitActivity} />
-              <section className="stats">
-                <StatCard
-                  title={t("tip.totalOpenIssues")}
-                  label={t("stats.openIssues")}
-                  value={formatNumber(totalOpenIssues)}
-                  sub={t("stats.acrossShown")}
-                />
-                <StatCard
-                  title={t("tip.reposWithOpenIssues")}
-                  label={t("stats.reposWithOpenIssues")}
-                  value={formatNumber(reposWithIssuesCount)}
-                  sub={t("stats.withOpenIssues")}
-                />
-                <StatCard
-                  title={t("tip.totalViews")}
-                  label={t("stats.totalViews")}
-                  value={viewsKnownCount ? formatNumber(totalViews) : "—"}
-                  sub={t("stats.last14Days")}
-                />
-                <StatCard
-                  title={t("tip.totalDownloads")}
-                  label={t("stats.totalDownloads")}
-                  value={downloadsKnownCount ? formatNumber(totalReleaseDownloads) : "—"}
-                  sub={t("stats.acrossReleaseAssets")}
-                />
-              </section>
-              <InsightsView
-                insights={filteredInsights}
-                reposByName={reposByName}
-                onRepoClick={openRepoModal}
-              />
-            </div>
+            <InsightsPanel
+              repoInsights={repoInsights}
+              insights={filteredInsights}
+              commitActivity={commitActivity}
+              reposByName={reposByName}
+              onRepoClick={openRepoModal}
+            />
           ) : null}
 
           {tab === "alerts" ? (
-            <div className="view-alerts" style={{ display: "block" }}>
-              <section className="stats">
-                <StatCard
-                  title={t("tip.totalSecurityAlerts")}
-                  label={t("alerts.totalAlerts")}
-                  value={formatNumber(totalSecurityAlerts)}
-                  sub={t("alerts.affectedRepos", { count: formatNumber(securityRepoCount) })}
-                />
-                <StatCard
-                  title={t("tip.reposAffected")}
-                  label={t("alerts.reposWithAlerts")}
-                  value={formatNumber(securityRepoCount)}
-                  sub={t("alerts.securityFocusedView")}
-                />
-                <StatCard
-                  title={t("tip.alertsUnavailable")}
-                  label={t("stats.alertsUnavailable")}
-                  value={formatNumber(securityUnavailableCount)}
-                  sub={t("stats.couldNotLoad")}
-                />
-                <StatCard
-                  title={t("tip.affectedOpenIssues")}
-                  label={t("stats.openIssues")}
-                  value={formatNumber(securityOpenIssues)}
-                  sub={t("alerts.onAffectedRepos")}
-                />
-              </section>
-              <InsightsView
-                insights={securityInsights}
-                reposByName={reposByName}
-                onRepoClick={openRepoModal}
-                emptyTitleKey="alerts.emptyTitle"
-                emptyTextKey="alerts.emptyText"
-              />
-            </div>
+            <AlertsPanel
+              repoInsights={repoInsights}
+              securityInsights={securityInsights}
+              reposByName={reposByName}
+              onRepoClick={openRepoModal}
+            />
           ) : null}
 
-          {tab === "ci"
-            ? (() => {
-                const totalRuns = ciHealth.reduce((sum, entry) => sum + entry.totalRuns, 0);
-                const totalFailures = ciHealth.reduce((sum, entry) => sum + entry.failureCount, 0);
-                const failingRepos = ciHealth.filter((entry) => entry.failureCount > 0).length;
-                const decided = ciHealth.reduce(
-                  (sum, entry) => sum + entry.successCount + entry.failureCount,
-                  0,
-                );
-                const successes = ciHealth.reduce((sum, entry) => sum + entry.successCount, 0);
-                const avgSuccessPct = decided ? Math.round((successes / decided) * 100) : 0;
-                return (
-                  <div className="view-ci" style={{ display: "block" }}>
-                    <section className="stats">
-                      <StatCard
-                        label={t("stats.reposWithCi")}
-                        value={formatNumber(ciHealth.length)}
-                        sub={t("stats.recentWorkflowRuns")}
-                      />
-                      <StatCard
-                        label={t("stats.totalRuns")}
-                        value={formatNumber(totalRuns)}
-                        sub={t("stats.lastRunsPerRepo", { count: ciHealth[0]?.totalRuns ?? 30 })}
-                      />
-                      <StatCard
-                        label={t("stats.avgSuccess")}
-                        value={`${avgSuccessPct}%`}
-                        sub={t("stats.acrossDecidedRuns")}
-                      />
-                      <StatCard
-                        label={t("stats.failingRepos")}
-                        value={formatNumber(failingRepos)}
-                        sub={t("stats.failuresTotal", { count: formatNumber(totalFailures) })}
-                      />
-                    </section>
-                    <CIHealthView
-                      data={ciHealth}
-                      reposByName={reposByName}
-                      onRepoClick={openRepoModal}
-                    />
-                  </div>
-                );
-              })()
-            : null}
+          {tab === "ci" ? (
+            <CiPanel ciHealth={ciHealth} reposByName={reposByName} onRepoClick={openRepoModal} />
+          ) : null}
 
           {tab === "digests" ? (
-            <div className="view-digests" style={{ display: "block" }}>
-              <section className="stats">
-                <StatCard
-                  label={
-                    digestPeriod === "day"
-                      ? t("stats.digestDays")
-                      : digestPeriod === "week"
-                        ? t("stats.digestWeeks")
-                        : t("stats.digestMonths")
-                  }
-                  value={formatNumber(dailyDigests.length)}
-                  sub={
-                    digestPeriod === "day"
-                      ? t("stats.daysWithSavedSnapshots")
-                      : t("stats.periodsAggregated")
-                  }
-                />
-                <StatCard
-                  label={t("stats.latestIssueDelta")}
-                  value={
-                    dailyDigests[0]
-                      ? `${dailyDigests[0].issueDelta >= 0 ? "+" : ""}${formatNumber(dailyDigests[0].issueDelta)}`
-                      : "0"
-                  }
-                  sub={t("stats.vsPrevious", {
-                    period: digestPeriod === "day" ? t("period.day") : t(`period.${digestPeriod}`),
-                  })}
-                />
-                <StatCard
-                  label={t("stats.latestStarsDelta")}
-                  value={
-                    dailyDigests[0]
-                      ? `${dailyDigests[0].starsDelta >= 0 ? "+" : ""}${formatNumber(dailyDigests[0].starsDelta)}`
-                      : "0"
-                  }
-                  sub={t("stats.vsPrevious", {
-                    period: digestPeriod === "day" ? t("period.day") : t(`period.${digestPeriod}`),
-                  })}
-                />
-                <StatCard
-                  label={t("stats.latestStaleDelta")}
-                  value={
-                    dailyDigests[0]
-                      ? `${dailyDigests[0].staleIssueDelta >= 0 ? "+" : ""}${formatNumber(dailyDigests[0].staleIssueDelta)}`
-                      : "0"
-                  }
-                  sub={t("stats.vsPrevious", {
-                    period: digestPeriod === "day" ? t("period.day") : t(`period.${digestPeriod}`),
-                  })}
-                />
-                <StatCard
-                  label={t("alerts.totalAlerts")}
-                  value={dailyDigests[0] ? formatNumber(dailyDigests[0].securityAlertsCount) : "0"}
-                  sub={
-                    dailyDigests[0]
-                      ? t("digest.securityRepos", {
-                          count: formatNumber(dailyDigests[0].securityReposCount),
-                        })
-                      : t("digest.securityUnavailable")
-                  }
-                />
-              </section>
-              <DailyDigestView
-                digests={dailyDigests}
-                period={digestPeriod}
-                onPeriodChange={setDigestPeriod}
-              />
-            </div>
+            <DigestsPanel
+              digests={dailyDigests}
+              period={digestPeriod}
+              onPeriodChange={setDigestPeriod}
+            />
           ) : null}
 
           {tab === "local" ? (
