@@ -49,7 +49,6 @@ import {
   PulseIcon,
   ShieldIcon,
 } from "./components/common/Icons";
-import { Pagination } from "./components/common/Pagination";
 import { type SortOption, SortSelect } from "./components/common/SortSelect";
 import { StatCard } from "./components/common/StatCard";
 import { Footer, type FooterSegment, type FooterStat } from "./components/Footer";
@@ -68,15 +67,15 @@ import { CommitActivityChart } from "./components/views/CommitActivityChart";
 import { DailyDigestView } from "./components/views/DailyDigestView";
 import { InboxView } from "./components/views/InboxView";
 import { InsightsView } from "./components/views/InsightsView";
-import { IssueList } from "./components/views/IssueList";
+import { IssuesPanel } from "./components/views/IssuesPanel";
 import { KanbanView } from "./components/views/KanbanView";
 import { LocalReposView } from "./components/views/LocalReposView";
-import { PullRequestList } from "./components/views/PullRequestList";
+import { PrsPanel } from "./components/views/PrsPanel";
+import { ReposPanel } from "./components/views/ReposPanel";
 import {
   REPO_DENSITY_OPTIONS,
   type RepoDensity,
   type RepoLayout,
-  ReposView,
 } from "./components/views/ReposView";
 import { RepoViewControls } from "./components/views/RepoViewControls";
 import { WidgetHost } from "./components/widgets/WidgetHost";
@@ -141,31 +140,7 @@ import {
   type LocalSort,
   shortRemote,
 } from "./utils/localRepos";
-import { clampPage } from "./utils/pagination";
 import { clearStatsCache, readStatsCache, writeStatsCache } from "./utils/statsCache";
-
-const ISSUE_SORT_OPTIONS: SortOption[] = [
-  { value: "updated_desc", label: "sort.recentlyUpdated" },
-  { value: "updated_asc", label: "sort.leastRecentlyUpdated" },
-  { value: "created_desc", label: "sort.newest" },
-  { value: "created_asc", label: "sort.oldest" },
-  { value: "comments_desc", label: "sort.mostCommented" },
-  { value: "comments_asc", label: "sort.leastCommented" },
-  { value: "repo_asc", label: "sort.repositoryAZ" },
-];
-
-const PR_SORT_OPTIONS: SortOption[] = [
-  { value: "updated_desc", label: "sort.recentlyUpdated" },
-  { value: "updated_asc", label: "sort.leastRecentlyUpdated" },
-  { value: "created_desc", label: "sort.newest" },
-  { value: "created_asc", label: "sort.oldest" },
-  { value: "review_pending", label: "sort.awaitingReviewFirst" },
-  { value: "size_desc", label: "sort.largestDiff" },
-  { value: "size_asc", label: "sort.smallestDiff" },
-  { value: "files_desc", label: "sort.mostFilesChanged" },
-  { value: "comments_desc", label: "sort.mostCommented" },
-  { value: "repo_asc", label: "sort.repositoryAZ" },
-];
 
 const REPO_SORT_OPTIONS: SortOption[] = [
   { value: "stars_desc", label: "sort.mostStars" },
@@ -295,18 +270,6 @@ export function App() {
   );
   // Page numbers are intentionally NOT cached — they're ephemeral positions,
   // not preferences. After a refresh, page 1 is always the correct start.
-  const [issuePage, setIssuePage] = useState(1);
-  const [prPage, setPrPage] = useState(1);
-  const [repoPage, setRepoPage] = useState(1);
-  const [issuePageSize, setIssuePageSize] = useState(
-    Number(localStorage.getItem("gh-dash.issuesPageSize")) || 20,
-  );
-  const [prPageSize, setPrPageSize] = useState(
-    Number(localStorage.getItem("gh-dash.prsPageSize")) || 20,
-  );
-  const [repoPageSize, setRepoPageSize] = useState(
-    Number(localStorage.getItem("gh-dash.reposPageSize")) || 20,
-  );
   const [repoLayout, setRepoLayout] = useState<RepoLayout>(
     () => (localStorage.getItem("gh-dash.repoLayout") as RepoLayout) || "grid",
   );
@@ -654,15 +617,6 @@ export function App() {
     setFiltersOpen,
   });
 
-  useEffect(
-    () => localStorage.setItem("gh-dash.issuesPageSize", String(issuePageSize)),
-    [issuePageSize],
-  );
-  useEffect(() => localStorage.setItem("gh-dash.prsPageSize", String(prPageSize)), [prPageSize]);
-  useEffect(
-    () => localStorage.setItem("gh-dash.reposPageSize", String(repoPageSize)),
-    [repoPageSize],
-  );
   useEffect(() => localStorage.setItem("gh-dash.repoLayout", repoLayout), [repoLayout]);
   useEffect(() => localStorage.setItem("gh-dash.repoDensity", repoDensity), [repoDensity]);
   useEffect(() => localStorage.setItem("gh-dash.localLayout", localLayout), [localLayout]);
@@ -827,29 +781,6 @@ export function App() {
         .filter((insight) => insight.securityAlertsCount > 0),
     [filteredRepos, insightsByRepo],
   );
-  const issuePageSafe = clampPage(issuePage, filteredIssues.length, issuePageSize);
-  const prPageSafe = clampPage(prPage, filteredPullRequests.length, prPageSize);
-  const repoPageSafe = clampPage(repoPage, filteredRepos.length, repoPageSize);
-  const visibleIssues = filteredIssues.slice(
-    (issuePageSafe - 1) * issuePageSize,
-    issuePageSafe * issuePageSize,
-  );
-  const visiblePullRequests = filteredPullRequests.slice(
-    (prPageSafe - 1) * prPageSize,
-    prPageSafe * prPageSize,
-  );
-  const visibleRepos = filteredRepos.slice(
-    (repoPageSafe - 1) * repoPageSize,
-    repoPageSafe * repoPageSize,
-  );
-  const draftCount = pullRequests.filter((pr) => pr.isDraft).length;
-  const awaitingReviewCount = pullRequests.filter(
-    (pr) => !pr.isDraft && pr.reviewsCount === 0,
-  ).length;
-  const approvedCount = pullRequests.filter((pr) => pr.reviewDecision === "APPROVED").length;
-  const stalePrCount = pullRequests.filter(
-    (pr) => Date.now() - new Date(pr.updatedAt).getTime() > 14 * 86_400_000,
-  ).length;
   const totalOpenIssues = repoInsights.reduce((sum, insight) => sum + insight.issueCount, 0);
   const reposWithIssuesCount = repoInsights.filter((insight) => insight.issueCount > 0).length;
   // Unknown metrics are -1; exclude them from totals so a failed fetch never
@@ -942,14 +873,14 @@ export function App() {
       setInboxSearch(value);
       setInboxPage(1);
     } else if (tab === "repos" || tab === "insights" || tab === "alerts" || tab === "digests") {
+      // ReposPanel resets to page 1 itself when its filters change (repos tab).
       setRepoFilters({ ...repoFilters, search: value });
-      setRepoPage(1);
     } else if (tab === "prs") {
+      // PrsPanel resets to page 1 itself when its filters prop changes.
       setPrFilters({ ...prFilters, search: value });
-      setPrPage(1);
     } else {
+      // IssuesPanel resets to page 1 itself via its resetKey (the filter object).
       setIssueFilters({ ...issueFilters, search: value });
-      setIssuePage(1);
     }
   }
 
@@ -1250,18 +1181,9 @@ export function App() {
             prFacets={prFacets}
             repoFacets={repoFacets}
             onSearchChange={setSearch}
-            onIssueFiltersChange={(next) => {
-              setIssueFilters(next);
-              setIssuePage(1);
-            }}
-            onPrFiltersChange={(next) => {
-              setPrFilters(next);
-              setPrPage(1);
-            }}
-            onRepoFiltersChange={(next) => {
-              setRepoFilters(next);
-              setRepoPage(1);
-            }}
+            onIssueFiltersChange={(next) => setIssueFilters(next)}
+            onPrFiltersChange={(next) => setPrFilters(next)}
+            onRepoFiltersChange={(next) => setRepoFilters(next)}
             onReset={resetFilters}
             onClose={() => setFiltersOpen(false)}
             onCollapse={() => setSidebarCollapsed(true)}
@@ -1324,165 +1246,45 @@ export function App() {
           ) : null}
 
           {tab === "issues" ? (
-            <div className="view-issues" style={{ display: "block" }}>
-              <section className="stats">
-                <StatCard
-                  label={t("stats.openIssues")}
-                  value={formatNumber(filteredIssues.length)}
-                  sub={t("stats.matchingFilters")}
-                />
-                <StatCard
-                  label={t("stats.repositories")}
-                  value={
-                    new Set(filteredIssues.map((issue) => issue.repository.nameWithOwner)).size
-                  }
-                  sub={t("stats.withOpenIssues")}
-                />
-                <StatCard
-                  label={t("stats.organizations")}
-                  value={
-                    new Set(
-                      filteredIssues.map((issue) => issue.repository.nameWithOwner.split("/")[0]),
-                    ).size
-                  }
-                  sub={t("stats.includingPersonal")}
-                />
-                <StatCard
-                  label={t("stats.stale30")}
-                  value={
-                    filteredIssues.filter(
-                      (issue) => Date.now() - new Date(issue.updatedAt).getTime() > 30 * 86_400_000,
-                    ).length
-                  }
-                  sub={t("stats.noRecentActivity")}
-                />
-              </section>
-              <div className="toolbar">
-                <div className="spacer" />
-                <SortSelect
-                  id="issues-sort"
-                  value={issueSort}
-                  options={ISSUE_SORT_OPTIONS}
-                  onChange={setIssueSort}
-                />
-              </div>
-              <IssueList issues={visibleIssues} />
-              <Pagination
-                totalItems={filteredIssues.length}
-                page={issuePageSafe}
-                pageSize={issuePageSize}
-                onPageChange={setIssuePage}
-                onPageSizeChange={(size) => {
-                  setIssuePageSize(size);
-                  setIssuePage(1);
-                }}
-              />
-            </div>
+            <IssuesPanel
+              issues={filteredIssues}
+              sort={issueSort}
+              onSortChange={setIssueSort}
+              resetKey={issueFilters}
+            />
           ) : null}
 
           {tab === "prs" ? (
-            <div className="view-prs" style={{ display: "block" }}>
-              <section className="stats">
-                <StatCard
-                  label={t("stats.openPrs")}
-                  value={formatNumber(filteredPullRequests.length)}
-                  sub={t("stats.matchingFilters")}
-                />
-                <StatCard
-                  label={t("stats.drafts")}
-                  value={formatNumber(draftCount)}
-                  sub={t("stats.acrossAllPrs")}
-                />
-                <StatCard
-                  label={t("stats.awaitingReview")}
-                  value={formatNumber(awaitingReviewCount)}
-                  sub={t("stats.noReviewYet")}
-                />
-                <StatCard
-                  label={t("stats.approved")}
-                  value={formatNumber(approvedCount)}
-                  sub={t("stats.readyToMerge")}
-                />
-                <StatCard
-                  label={t("stats.stale14")}
-                  value={formatNumber(stalePrCount)}
-                  sub={t("stats.noRecentActivity")}
-                />
-              </section>
-              <div className="toolbar">
-                <div className="spacer" />
-                <label htmlFor="prs-preset">{t("common.preset")}</label>
-                <select
-                  id="prs-preset"
-                  className="sort"
-                  value={prFilters.preset}
-                  onChange={(event) => {
-                    setPrFilters({ ...prFilters, preset: event.target.value });
-                    setPrPage(1);
-                  }}
-                >
-                  <option value="">{t("common.all")}</option>
-                  <option value="ready">{t("preset.ready")}</option>
-                  <option value="draft">{t("preset.draft")}</option>
-                  <option value="awaiting-review">{t("preset.awaitingReview")}</option>
-                  <option value="approved">{t("preset.approved")}</option>
-                  <option value="changes-requested">{t("preset.changesRequested")}</option>
-                  <option value="assigned-me">{t("preset.assignedMe")}</option>
-                  <option value="authored-me">{t("preset.authoredMe")}</option>
-                  <option value="stale">{t("preset.stale")}</option>
-                </select>
-                <SortSelect
-                  id="prs-sort"
-                  value={prSort}
-                  options={PR_SORT_OPTIONS}
-                  onChange={setPrSort}
-                />
-              </div>
-              <PullRequestList pullRequests={visiblePullRequests} />
-              <Pagination
-                totalItems={filteredPullRequests.length}
-                page={prPageSafe}
-                pageSize={prPageSize}
-                onPageChange={setPrPage}
-                onPageSizeChange={(size) => {
-                  setPrPageSize(size);
-                  setPrPage(1);
-                }}
-              />
-            </div>
+            <PrsPanel
+              pullRequests={pullRequests}
+              filtered={filteredPullRequests}
+              filters={prFilters}
+              onFiltersChange={setPrFilters}
+              sort={prSort}
+              onSortChange={setPrSort}
+            />
           ) : null}
 
           {tab === "repos" ? (
-            <div className="view-repos" style={{ display: "block" }}>
-              <ReposView
-                layout={repoLayout}
-                density={repoDensity}
-                repos={visibleRepos}
-                issues={issues}
-                insightsByRepo={insightsByRepo}
-                localClonesByRepo={localClonesByRepo}
-                onLocalClick={(repo) =>
-                  navigate(`${TAB_ROUTES.local}?localFocus=${encodeURIComponent(repo)}`)
-                }
-                onRepoClick={openRepoModal}
-                onIssuesClick={(repo) => {
-                  setIssueFilters({ ...issueFilters, repos: new Set([repo]) });
-                  navigateTab("issues");
-                }}
-                onStarsClick={(repo) => openMetricModal(repo, "stars")}
-                onForksClick={(repo) => openMetricModal(repo, "forks")}
-              />
-              <Pagination
-                totalItems={filteredRepos.length}
-                page={repoPageSafe}
-                pageSize={repoPageSize}
-                onPageChange={setRepoPage}
-                onPageSizeChange={(size) => {
-                  setRepoPageSize(size);
-                  setRepoPage(1);
-                }}
-              />
-            </div>
+            <ReposPanel
+              layout={repoLayout}
+              density={repoDensity}
+              repos={filteredRepos}
+              resetKey={repoFilters}
+              issues={issues}
+              insightsByRepo={insightsByRepo}
+              localClonesByRepo={localClonesByRepo}
+              onLocalClick={(repo) =>
+                navigate(`${TAB_ROUTES.local}?localFocus=${encodeURIComponent(repo)}`)
+              }
+              onRepoClick={openRepoModal}
+              onIssuesClick={(repo) => {
+                setIssueFilters({ ...issueFilters, repos: new Set([repo]) });
+                navigateTab("issues");
+              }}
+              onStarsClick={(repo) => openMetricModal(repo, "stars")}
+              onForksClick={(repo) => openMetricModal(repo, "forks")}
+            />
           ) : null}
 
           {tab === "insights" ? (
