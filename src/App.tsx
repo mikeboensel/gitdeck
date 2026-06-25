@@ -11,20 +11,16 @@ import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { invalidate as invalidateCache, peek, swr } from "./api/cache";
 import {
   AuthRequiredClientError,
-  deleteLocalRepo as apiDeleteLocalRepo,
   fetchAuthStatus,
   fetchCIHealth,
   fetchCollaborators,
   fetchCommitActivity,
   fetchDailyDigests,
   fetchIssues,
-  fetchLocalRepos,
-  fetchLocalReposConfig,
   fetchPullRequests,
   fetchRepoInsights,
   fetchRepos,
   logoutAuth,
-  updateLocalReposConfig,
 } from "./api/github";
 import {
   CACHE_KEY,
@@ -55,6 +51,7 @@ import {
 } from "./components/common/Icons";
 import { Pagination } from "./components/common/Pagination";
 import { type SortOption, SortSelect } from "./components/common/SortSelect";
+import { StatCard } from "./components/common/StatCard";
 import { Footer, type FooterSegment, type FooterStat } from "./components/Footer";
 import { ChangelogModal } from "./components/modals/ChangelogModal";
 import { CommandPalette } from "./components/modals/CommandPalette";
@@ -87,6 +84,7 @@ import { useAccounts, useCapability } from "./contexts/AccountContext";
 import { useCommandPaletteHotkey } from "./hooks/useCommandPaletteHotkey";
 import { useEscapeToClose } from "./hooks/useEscapeToClose";
 import { useInbox } from "./hooks/useInbox";
+import { useLocalRepos } from "./hooks/useLocalRepos";
 import { useTabsCompact } from "./hooks/useTabsCompact";
 import { useI18n } from "./i18n/I18nProvider";
 import type {
@@ -99,9 +97,6 @@ import type {
   GhPullRequest,
   GhRepo,
   IssuesData,
-  LocalRepo,
-  LocalReposConfig,
-  LocalReposData,
   PullRequestsData,
   RepoCIHealth,
   RepoInsight,
@@ -226,19 +221,23 @@ export function App() {
     () => readCollaboratorsCache()?.fetchedAt ?? null,
   );
   const [collaboratorsLoading, setCollaboratorsLoading] = useState(false);
-  // Repo nameWithOwner (lowercased) → local clone paths on disk. Drives the
-  // clone-count badge on repo cards; not account-scoped (clones live on disk).
-  const [localClonesByRepo, setLocalClonesByRepo] = useState<Map<string, string[]>>(new Map());
-  // -1 = not yet scanned (uncertain); a real count once the scan resolves.
-  const [localReposCount, setLocalReposCount] = useState(-1);
-  const localReposFetchedRef = useRef(false);
-  // Full local-repo dataset + scan/config/filter state for the Local tab. App
-  // owns it (like GitHub repos) so the FacetSidebar and the view share one fetch.
-  const [localRepos, setLocalRepos] = useState<LocalRepo[]>([]);
-  const [localScannedAt, setLocalScannedAt] = useState<string | null>(null);
-  const [localLoading, setLocalLoading] = useState(false);
-  const [localError, setLocalError] = useState("");
-  const [localConfig, setLocalConfig] = useState<LocalReposConfig | null>(null);
+  // Local-repo dataset + mutations (disk state, not account-scoped); the data
+  // layer lives in the hook. Filtering and facets stay here (see below), driven
+  // by the locally-owned, persisted filter/sort state.
+  const {
+    localRepos,
+    localScannedAt,
+    localLoading,
+    localError,
+    localConfig,
+    localClonesByRepo,
+    localReposCount,
+    reloadLocalRepos,
+    saveLocalConfig,
+    hideLocalRepo,
+    unhideLocalRepo,
+    deleteLocalRepo,
+  } = useLocalRepos({ authenticated: authState === "authenticated", tab });
   const [localFilters, setLocalFilters] = useState<LocalRepoFilters>(
     () => cachedFiltersOnMount?.hydrated.localFilters ?? defaultLocalFilters(),
   );
@@ -543,111 +542,6 @@ export function App() {
       });
     return () => controller.abort();
   }, [tab, authState, activeAccountId, collaboratorsFetchedAt, applyCollaborators]);
-
-  // Apply a fresh local-repo dataset: store the repos + scan time, and derive
-  // the clone-count map (lowercased nameWithOwner → on-disk paths) used by the
-  // Repos-tab clone badge. Local data is disk state, not account-scoped.
-  const applyLocalRepos = useCallback((data: LocalReposData) => {
-    setLocalRepos(data.repos);
-    setLocalScannedAt(data.scannedAt);
-    const map = new Map<string, string[]>();
-    for (const local of data.repos) {
-      if (!local.nameWithOwner) continue;
-      const key = local.nameWithOwner.toLowerCase();
-      const paths = map.get(key) ?? [];
-      paths.push(local.path);
-      map.set(key, paths);
-    }
-    setLocalClonesByRepo(map);
-    setLocalReposCount(data.repos.length);
-  }, []);
-
-  const reloadLocalRepos = useCallback(
-    (fresh: boolean) => {
-      setLocalLoading(true);
-      setLocalError("");
-      fetchLocalRepos(fresh)
-        .then(applyLocalRepos)
-        .catch((err: unknown) => setLocalError(err instanceof Error ? err.message : String(err)))
-        .finally(() => setLocalLoading(false));
-    },
-    [applyLocalRepos],
-  );
-
-  // Scan once when the Repos or Local tab is first opened (the disk walk is
-  // expensive — explicit Rescan / config changes drive freshness afterwards).
-  useEffect(() => {
-    if (authState !== "authenticated") return;
-    if (tab !== "repos" && tab !== "local") return;
-    if (localReposFetchedRef.current) return;
-    localReposFetchedRef.current = true;
-    reloadLocalRepos(false);
-    fetchLocalReposConfig()
-      .then(({ config }) => setLocalConfig(config))
-      .catch(() => {});
-  }, [tab, authState, reloadLocalRepos]);
-
-  // Persist a scan-config change (roots/excludes), then rescan to reflect it.
-  const saveLocalConfig = useCallback(
-    (updates: Partial<LocalReposConfig>) => {
-      updateLocalReposConfig(updates)
-        .then(({ config }) => {
-          setLocalConfig(config);
-          reloadLocalRepos(true);
-        })
-        .catch((err: unknown) => setLocalError(err instanceof Error ? err.message : String(err)));
-    },
-    [reloadLocalRepos],
-  );
-
-  // Triage: add a repo path to the denylist (optimistically drop it from view).
-  const hideLocalRepo = useCallback(
-    (path: string) => {
-      setLocalRepos((prev) => prev.filter((r) => r.path !== path));
-      const denylist = [...(localConfig?.denylist ?? []), path];
-      updateLocalReposConfig({ denylist })
-        .then(({ config }) => setLocalConfig(config))
-        .catch((err: unknown) => setLocalError(err instanceof Error ? err.message : String(err)));
-    },
-    [localConfig],
-  );
-
-  // Un-triage: drop a path from the denylist, then rescan so it reappears.
-  const unhideLocalRepo = useCallback(
-    (path: string) => {
-      const denylist = (localConfig?.denylist ?? []).filter((p) => p !== path);
-      updateLocalReposConfig({ denylist })
-        .then(({ config }) => {
-          setLocalConfig(config);
-          reloadLocalRepos(true);
-        })
-        .catch((err: unknown) => setLocalError(err instanceof Error ? err.message : String(err)));
-    },
-    [localConfig, reloadLocalRepos],
-  );
-
-  // Move a local repo to the Trash. The caller (disk-usage view) confirms first;
-  // we optimistically drop the whole worktree cluster, rolling back on failure.
-  // Re-throws so the caller can surface its own feedback. `force` deletes an
-  // unsafe repo (server re-validates regardless).
-  const deleteLocalRepo = useCallback(
-    async (path: string, memberPaths: string[], force: boolean) => {
-      const drop = new Set(memberPaths.length ? memberPaths : [path]);
-      let snapshot: LocalRepo[] = [];
-      setLocalRepos((prev) => {
-        snapshot = prev;
-        return prev.filter((r) => !drop.has(r.path));
-      });
-      try {
-        await apiDeleteLocalRepo(path, force);
-      } catch (err) {
-        setLocalRepos(snapshot);
-        setLocalError(err instanceof Error ? err.message : String(err));
-        throw err;
-      }
-    },
-    [],
-  );
 
   const refreshCollaborators = useCallback(() => {
     setCollaboratorsLoading(true);
@@ -1432,41 +1326,36 @@ export function App() {
           {tab === "issues" ? (
             <div className="view-issues" style={{ display: "block" }}>
               <section className="stats">
-                <div className="stat">
-                  <div className="k">{t("stats.openIssues")}</div>
-                  <div className="v">{formatNumber(filteredIssues.length)}</div>
-                  <div className="sub">{t("stats.matchingFilters")}</div>
-                </div>
-                <div className="stat">
-                  <div className="k">{t("stats.repositories")}</div>
-                  <div className="v">
-                    {new Set(filteredIssues.map((issue) => issue.repository.nameWithOwner)).size}
-                  </div>
-                  <div className="sub">{t("stats.withOpenIssues")}</div>
-                </div>
-                <div className="stat">
-                  <div className="k">{t("stats.organizations")}</div>
-                  <div className="v">
-                    {
-                      new Set(
-                        filteredIssues.map((issue) => issue.repository.nameWithOwner.split("/")[0]),
-                      ).size
-                    }
-                  </div>
-                  <div className="sub">{t("stats.includingPersonal")}</div>
-                </div>
-                <div className="stat">
-                  <div className="k">{t("stats.stale30")}</div>
-                  <div className="v">
-                    {
-                      filteredIssues.filter(
-                        (issue) =>
-                          Date.now() - new Date(issue.updatedAt).getTime() > 30 * 86_400_000,
-                      ).length
-                    }
-                  </div>
-                  <div className="sub">{t("stats.noRecentActivity")}</div>
-                </div>
+                <StatCard
+                  label={t("stats.openIssues")}
+                  value={formatNumber(filteredIssues.length)}
+                  sub={t("stats.matchingFilters")}
+                />
+                <StatCard
+                  label={t("stats.repositories")}
+                  value={
+                    new Set(filteredIssues.map((issue) => issue.repository.nameWithOwner)).size
+                  }
+                  sub={t("stats.withOpenIssues")}
+                />
+                <StatCard
+                  label={t("stats.organizations")}
+                  value={
+                    new Set(
+                      filteredIssues.map((issue) => issue.repository.nameWithOwner.split("/")[0]),
+                    ).size
+                  }
+                  sub={t("stats.includingPersonal")}
+                />
+                <StatCard
+                  label={t("stats.stale30")}
+                  value={
+                    filteredIssues.filter(
+                      (issue) => Date.now() - new Date(issue.updatedAt).getTime() > 30 * 86_400_000,
+                    ).length
+                  }
+                  sub={t("stats.noRecentActivity")}
+                />
               </section>
               <div className="toolbar">
                 <div className="spacer" />
@@ -1494,31 +1383,31 @@ export function App() {
           {tab === "prs" ? (
             <div className="view-prs" style={{ display: "block" }}>
               <section className="stats">
-                <div className="stat">
-                  <div className="k">{t("stats.openPrs")}</div>
-                  <div className="v">{formatNumber(filteredPullRequests.length)}</div>
-                  <div className="sub">{t("stats.matchingFilters")}</div>
-                </div>
-                <div className="stat">
-                  <div className="k">{t("stats.drafts")}</div>
-                  <div className="v">{formatNumber(draftCount)}</div>
-                  <div className="sub">{t("stats.acrossAllPrs")}</div>
-                </div>
-                <div className="stat">
-                  <div className="k">{t("stats.awaitingReview")}</div>
-                  <div className="v">{formatNumber(awaitingReviewCount)}</div>
-                  <div className="sub">{t("stats.noReviewYet")}</div>
-                </div>
-                <div className="stat">
-                  <div className="k">{t("stats.approved")}</div>
-                  <div className="v">{formatNumber(approvedCount)}</div>
-                  <div className="sub">{t("stats.readyToMerge")}</div>
-                </div>
-                <div className="stat">
-                  <div className="k">{t("stats.stale14")}</div>
-                  <div className="v">{formatNumber(stalePrCount)}</div>
-                  <div className="sub">{t("stats.noRecentActivity")}</div>
-                </div>
+                <StatCard
+                  label={t("stats.openPrs")}
+                  value={formatNumber(filteredPullRequests.length)}
+                  sub={t("stats.matchingFilters")}
+                />
+                <StatCard
+                  label={t("stats.drafts")}
+                  value={formatNumber(draftCount)}
+                  sub={t("stats.acrossAllPrs")}
+                />
+                <StatCard
+                  label={t("stats.awaitingReview")}
+                  value={formatNumber(awaitingReviewCount)}
+                  sub={t("stats.noReviewYet")}
+                />
+                <StatCard
+                  label={t("stats.approved")}
+                  value={formatNumber(approvedCount)}
+                  sub={t("stats.readyToMerge")}
+                />
+                <StatCard
+                  label={t("stats.stale14")}
+                  value={formatNumber(stalePrCount)}
+                  sub={t("stats.noRecentActivity")}
+                />
               </section>
               <div className="toolbar">
                 <div className="spacer" />
@@ -1600,28 +1489,30 @@ export function App() {
             <div className="view-insights" style={{ display: "block" }}>
               <CommitActivityChart data={commitActivity} />
               <section className="stats">
-                <div className="stat" title={t("tip.totalOpenIssues")}>
-                  <div className="k">{t("stats.openIssues")}</div>
-                  <div className="v">{formatNumber(totalOpenIssues)}</div>
-                  <div className="sub">{t("stats.acrossShown")}</div>
-                </div>
-                <div className="stat" title={t("tip.reposWithOpenIssues")}>
-                  <div className="k">{t("stats.reposWithOpenIssues")}</div>
-                  <div className="v">{formatNumber(reposWithIssuesCount)}</div>
-                  <div className="sub">{t("stats.withOpenIssues")}</div>
-                </div>
-                <div className="stat" title={t("tip.totalViews")}>
-                  <div className="k">{t("stats.totalViews")}</div>
-                  <div className="v">{viewsKnownCount ? formatNumber(totalViews) : "—"}</div>
-                  <div className="sub">{t("stats.last14Days")}</div>
-                </div>
-                <div className="stat" title={t("tip.totalDownloads")}>
-                  <div className="k">{t("stats.totalDownloads")}</div>
-                  <div className="v">
-                    {downloadsKnownCount ? formatNumber(totalReleaseDownloads) : "—"}
-                  </div>
-                  <div className="sub">{t("stats.acrossReleaseAssets")}</div>
-                </div>
+                <StatCard
+                  title={t("tip.totalOpenIssues")}
+                  label={t("stats.openIssues")}
+                  value={formatNumber(totalOpenIssues)}
+                  sub={t("stats.acrossShown")}
+                />
+                <StatCard
+                  title={t("tip.reposWithOpenIssues")}
+                  label={t("stats.reposWithOpenIssues")}
+                  value={formatNumber(reposWithIssuesCount)}
+                  sub={t("stats.withOpenIssues")}
+                />
+                <StatCard
+                  title={t("tip.totalViews")}
+                  label={t("stats.totalViews")}
+                  value={viewsKnownCount ? formatNumber(totalViews) : "—"}
+                  sub={t("stats.last14Days")}
+                />
+                <StatCard
+                  title={t("tip.totalDownloads")}
+                  label={t("stats.totalDownloads")}
+                  value={downloadsKnownCount ? formatNumber(totalReleaseDownloads) : "—"}
+                  sub={t("stats.acrossReleaseAssets")}
+                />
               </section>
               <InsightsView
                 insights={filteredInsights}
@@ -1634,28 +1525,30 @@ export function App() {
           {tab === "alerts" ? (
             <div className="view-alerts" style={{ display: "block" }}>
               <section className="stats">
-                <div className="stat" title={t("tip.totalSecurityAlerts")}>
-                  <div className="k">{t("alerts.totalAlerts")}</div>
-                  <div className="v">{formatNumber(totalSecurityAlerts)}</div>
-                  <div className="sub">
-                    {t("alerts.affectedRepos", { count: formatNumber(securityRepoCount) })}
-                  </div>
-                </div>
-                <div className="stat" title={t("tip.reposAffected")}>
-                  <div className="k">{t("alerts.reposWithAlerts")}</div>
-                  <div className="v">{formatNumber(securityRepoCount)}</div>
-                  <div className="sub">{t("alerts.securityFocusedView")}</div>
-                </div>
-                <div className="stat" title={t("tip.alertsUnavailable")}>
-                  <div className="k">{t("stats.alertsUnavailable")}</div>
-                  <div className="v">{formatNumber(securityUnavailableCount)}</div>
-                  <div className="sub">{t("stats.couldNotLoad")}</div>
-                </div>
-                <div className="stat" title={t("tip.affectedOpenIssues")}>
-                  <div className="k">{t("stats.openIssues")}</div>
-                  <div className="v">{formatNumber(securityOpenIssues)}</div>
-                  <div className="sub">{t("alerts.onAffectedRepos")}</div>
-                </div>
+                <StatCard
+                  title={t("tip.totalSecurityAlerts")}
+                  label={t("alerts.totalAlerts")}
+                  value={formatNumber(totalSecurityAlerts)}
+                  sub={t("alerts.affectedRepos", { count: formatNumber(securityRepoCount) })}
+                />
+                <StatCard
+                  title={t("tip.reposAffected")}
+                  label={t("alerts.reposWithAlerts")}
+                  value={formatNumber(securityRepoCount)}
+                  sub={t("alerts.securityFocusedView")}
+                />
+                <StatCard
+                  title={t("tip.alertsUnavailable")}
+                  label={t("stats.alertsUnavailable")}
+                  value={formatNumber(securityUnavailableCount)}
+                  sub={t("stats.couldNotLoad")}
+                />
+                <StatCard
+                  title={t("tip.affectedOpenIssues")}
+                  label={t("stats.openIssues")}
+                  value={formatNumber(securityOpenIssues)}
+                  sub={t("alerts.onAffectedRepos")}
+                />
               </section>
               <InsightsView
                 insights={securityInsights}
@@ -1681,30 +1574,26 @@ export function App() {
                 return (
                   <div className="view-ci" style={{ display: "block" }}>
                     <section className="stats">
-                      <div className="stat">
-                        <div className="k">{t("stats.reposWithCi")}</div>
-                        <div className="v">{formatNumber(ciHealth.length)}</div>
-                        <div className="sub">{t("stats.recentWorkflowRuns")}</div>
-                      </div>
-                      <div className="stat">
-                        <div className="k">{t("stats.totalRuns")}</div>
-                        <div className="v">{formatNumber(totalRuns)}</div>
-                        <div className="sub">
-                          {t("stats.lastRunsPerRepo", { count: ciHealth[0]?.totalRuns ?? 30 })}
-                        </div>
-                      </div>
-                      <div className="stat">
-                        <div className="k">{t("stats.avgSuccess")}</div>
-                        <div className="v">{avgSuccessPct}%</div>
-                        <div className="sub">{t("stats.acrossDecidedRuns")}</div>
-                      </div>
-                      <div className="stat">
-                        <div className="k">{t("stats.failingRepos")}</div>
-                        <div className="v">{formatNumber(failingRepos)}</div>
-                        <div className="sub">
-                          {t("stats.failuresTotal", { count: formatNumber(totalFailures) })}
-                        </div>
-                      </div>
+                      <StatCard
+                        label={t("stats.reposWithCi")}
+                        value={formatNumber(ciHealth.length)}
+                        sub={t("stats.recentWorkflowRuns")}
+                      />
+                      <StatCard
+                        label={t("stats.totalRuns")}
+                        value={formatNumber(totalRuns)}
+                        sub={t("stats.lastRunsPerRepo", { count: ciHealth[0]?.totalRuns ?? 30 })}
+                      />
+                      <StatCard
+                        label={t("stats.avgSuccess")}
+                        value={`${avgSuccessPct}%`}
+                        sub={t("stats.acrossDecidedRuns")}
+                      />
+                      <StatCard
+                        label={t("stats.failingRepos")}
+                        value={formatNumber(failingRepos)}
+                        sub={t("stats.failuresTotal", { count: formatNumber(totalFailures) })}
+                      />
                     </section>
                     <CIHealthView
                       data={ciHealth}
@@ -1719,76 +1608,65 @@ export function App() {
           {tab === "digests" ? (
             <div className="view-digests" style={{ display: "block" }}>
               <section className="stats">
-                <div className="stat">
-                  <div className="k">
-                    {digestPeriod === "day"
+                <StatCard
+                  label={
+                    digestPeriod === "day"
                       ? t("stats.digestDays")
                       : digestPeriod === "week"
                         ? t("stats.digestWeeks")
-                        : t("stats.digestMonths")}
-                  </div>
-                  <div className="v">{formatNumber(dailyDigests.length)}</div>
-                  <div className="sub">
-                    {digestPeriod === "day"
+                        : t("stats.digestMonths")
+                  }
+                  value={formatNumber(dailyDigests.length)}
+                  sub={
+                    digestPeriod === "day"
                       ? t("stats.daysWithSavedSnapshots")
-                      : t("stats.periodsAggregated")}
-                  </div>
-                </div>
-                <div className="stat">
-                  <div className="k">{t("stats.latestIssueDelta")}</div>
-                  <div className="v">
-                    {dailyDigests[0]
+                      : t("stats.periodsAggregated")
+                  }
+                />
+                <StatCard
+                  label={t("stats.latestIssueDelta")}
+                  value={
+                    dailyDigests[0]
                       ? `${dailyDigests[0].issueDelta >= 0 ? "+" : ""}${formatNumber(dailyDigests[0].issueDelta)}`
-                      : "0"}
-                  </div>
-                  <div className="sub">
-                    {t("stats.vsPrevious", {
-                      period:
-                        digestPeriod === "day" ? t("period.day") : t(`period.${digestPeriod}`),
-                    })}
-                  </div>
-                </div>
-                <div className="stat">
-                  <div className="k">{t("stats.latestStarsDelta")}</div>
-                  <div className="v">
-                    {dailyDigests[0]
+                      : "0"
+                  }
+                  sub={t("stats.vsPrevious", {
+                    period: digestPeriod === "day" ? t("period.day") : t(`period.${digestPeriod}`),
+                  })}
+                />
+                <StatCard
+                  label={t("stats.latestStarsDelta")}
+                  value={
+                    dailyDigests[0]
                       ? `${dailyDigests[0].starsDelta >= 0 ? "+" : ""}${formatNumber(dailyDigests[0].starsDelta)}`
-                      : "0"}
-                  </div>
-                  <div className="sub">
-                    {t("stats.vsPrevious", {
-                      period:
-                        digestPeriod === "day" ? t("period.day") : t(`period.${digestPeriod}`),
-                    })}
-                  </div>
-                </div>
-                <div className="stat">
-                  <div className="k">{t("stats.latestStaleDelta")}</div>
-                  <div className="v">
-                    {dailyDigests[0]
+                      : "0"
+                  }
+                  sub={t("stats.vsPrevious", {
+                    period: digestPeriod === "day" ? t("period.day") : t(`period.${digestPeriod}`),
+                  })}
+                />
+                <StatCard
+                  label={t("stats.latestStaleDelta")}
+                  value={
+                    dailyDigests[0]
                       ? `${dailyDigests[0].staleIssueDelta >= 0 ? "+" : ""}${formatNumber(dailyDigests[0].staleIssueDelta)}`
-                      : "0"}
-                  </div>
-                  <div className="sub">
-                    {t("stats.vsPrevious", {
-                      period:
-                        digestPeriod === "day" ? t("period.day") : t(`period.${digestPeriod}`),
-                    })}
-                  </div>
-                </div>
-                <div className="stat">
-                  <div className="k">{t("alerts.totalAlerts")}</div>
-                  <div className="v">
-                    {dailyDigests[0] ? formatNumber(dailyDigests[0].securityAlertsCount) : "0"}
-                  </div>
-                  <div className="sub">
-                    {dailyDigests[0]
+                      : "0"
+                  }
+                  sub={t("stats.vsPrevious", {
+                    period: digestPeriod === "day" ? t("period.day") : t(`period.${digestPeriod}`),
+                  })}
+                />
+                <StatCard
+                  label={t("alerts.totalAlerts")}
+                  value={dailyDigests[0] ? formatNumber(dailyDigests[0].securityAlertsCount) : "0"}
+                  sub={
+                    dailyDigests[0]
                       ? t("digest.securityRepos", {
                           count: formatNumber(dailyDigests[0].securityReposCount),
                         })
-                      : t("digest.securityUnavailable")}
-                  </div>
-                </div>
+                      : t("digest.securityUnavailable")
+                  }
+                />
               </section>
               <DailyDigestView
                 digests={dailyDigests}
