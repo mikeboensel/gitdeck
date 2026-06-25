@@ -70,6 +70,17 @@
       "command": "pnpm format",
       "problemMatcher": [],
       "presentation": { "reveal": "always", "panel": "shared", "clear": true }
+    },
+    {
+      // Force-quit the packaged Electron app. macOS keeps the app alive with no
+      // window and `open` reactivates the existing instance, so kill it before
+      // relaunching a fresh build. `|| true` so the task succeeds even when
+      // nothing is running (pkill exits 1 on no match).
+      "label": "🛑 Electron: kill Gitdeck app",
+      "type": "shell",
+      "command": "pkill -9 -f 'Gitdeck.app/Contents/MacOS/Gitdeck' && echo '🛑 Gitdeck killed.' || echo 'ℹ️  No running Gitdeck instance.'",
+      "problemMatcher": [],
+      "presentation": { "reveal": "always", "panel": "shared", "clear": true }
     }
   ]
 }

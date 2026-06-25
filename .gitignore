@@ -3,8 +3,11 @@ node_modules/
 
 # Build output
 dist/
-build/
+out/
+release/
 *.tsbuildinfo
+# NOTE: `build/` is electron-builder's buildResources dir (entitlements, icons) —
+# it is SOURCE and must stay tracked, so it is intentionally NOT ignored here.
 
 # Logs
 npm-debug.log*
