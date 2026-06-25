@@ -20,13 +20,10 @@ import {
   fetchIssues,
   fetchLocalRepos,
   fetchLocalReposConfig,
-  fetchNotifications,
   fetchPullRequests,
   fetchRepoInsights,
   fetchRepos,
   logoutAuth,
-  markAllNotificationsRead,
-  markNotificationRead,
   updateLocalReposConfig,
 } from "./api/github";
 import {
@@ -87,6 +84,10 @@ import {
 import { RepoViewControls } from "./components/views/RepoViewControls";
 import { WidgetHost } from "./components/widgets/WidgetHost";
 import { useAccounts, useCapability } from "./contexts/AccountContext";
+import { useCommandPaletteHotkey } from "./hooks/useCommandPaletteHotkey";
+import { useEscapeToClose } from "./hooks/useEscapeToClose";
+import { useInbox } from "./hooks/useInbox";
+import { useTabsCompact } from "./hooks/useTabsCompact";
 import { useI18n } from "./i18n/I18nProvider";
 import type {
   CIHealthData,
@@ -95,7 +96,6 @@ import type {
   DailyDigestsData,
   DigestPeriod,
   GhIssue,
-  GhNotification,
   GhPullRequest,
   GhRepo,
   IssuesData,
@@ -136,13 +136,7 @@ import {
   writeFiltersCache,
 } from "./utils/filtersCache";
 import { formatNumber } from "./utils/format";
-import {
-  buildInboxItems,
-  INBOX_MAILBOXES,
-  type InboxMailbox,
-  matchesInboxMailbox,
-  mergeNotifications,
-} from "./utils/inbox";
+import type { InboxMailbox } from "./utils/inbox";
 import {
   buildLocalFacets,
   DEFAULT_LOCAL_SORT,
@@ -272,8 +266,6 @@ export function App() {
     () => !localStorage.getItem("gh-dash.welcomeSeen"),
   );
   const [paletteOpen, setPaletteOpen] = useState(false);
-  const [notifications, setNotifications] = useState<GhNotification[]>([]);
-  const [pollInterval, setPollInterval] = useState(60);
   const [mailbox, setMailbox] = useState<InboxMailbox>("inbox");
   const [inboxPage, setInboxPage] = useState(1);
   const [inboxPageSize, setInboxPageSize] = useState(
@@ -331,9 +323,8 @@ export function App() {
   );
   const abortRef = useRef<AbortController | null>(null);
   const initialLoadRef = useRef(false);
-  const tabsRef = useRef<HTMLDivElement>(null);
-  const tabsCompactRef = useRef(false);
-  const [tabsCompact, setTabsCompact] = useState(false);
+  // Collapse the tab bar to icon-only when the full labels would overflow.
+  const { tabsRef, tabsCompact } = useTabsCompact();
 
   const loadData = useCallback((fresh = false) => {
     abortRef.current?.abort();
@@ -452,7 +443,7 @@ export function App() {
     setCiHealth([]);
     setCollaboratorsByRepo(new Map());
     setCollaboratorsFetchedAt(null);
-    setNotifications([]);
+    clearNotifications();
     setFetchedAt("");
     clearStatsCache();
     clearCollaboratorsCache();
@@ -738,40 +729,6 @@ export function App() {
     document.body.classList.toggle("filters-open", filtersOpen);
   }, [tab, filtersOpen]);
 
-  // Collapse the tab bar to icon-only when the full labels would overflow.
-  // Overflow-driven (not a fixed breakpoint) so it adapts to label lengths,
-  // locale, font, and zoom. We measure available space from the full-width
-  // parent (.tabs-bar) — the .tabs pill itself shrinks to its content, so it
-  // can't be measured once collapsed — and remember the natural full-label
-  // width so we know when there's room to expand again. The +24px headroom on
-  // re-expand prevents flicker right at the boundary.
-  useEffect(() => {
-    const tabs = tabsRef.current;
-    const bar = tabs?.parentElement;
-    if (!tabs || !bar) return;
-    let naturalWidth = 0;
-    const measure = () => {
-      const style = getComputedStyle(bar);
-      const available =
-        bar.clientWidth -
-        Number.parseFloat(style.paddingLeft) -
-        Number.parseFloat(style.paddingRight);
-      // While expanded, the pill's scrollWidth is the true full-label width.
-      if (!tabsCompactRef.current) naturalWidth = tabs.scrollWidth;
-      const shouldCompact = tabsCompactRef.current
-        ? available < naturalWidth + 24
-        : naturalWidth > available;
-      if (shouldCompact !== tabsCompactRef.current) {
-        tabsCompactRef.current = shouldCompact;
-        setTabsCompact(shouldCompact);
-      }
-    };
-    const observer = new ResizeObserver(measure);
-    observer.observe(bar);
-    measure();
-    return () => observer.disconnect();
-  }, []);
-
   useEffect(() => {
     if (location.pathname === "/" || location.pathname === "/index.html") {
       navigate(`${TAB_ROUTES.repos}${location.search}`, { replace: true });
@@ -785,46 +742,23 @@ export function App() {
   // biome-ignore lint/correctness/useExhaustiveDependencies: location.pathname is an intentional re-run trigger so the filters panel closes on every route change
   useEffect(() => setFiltersOpen(false), [location.pathname]);
 
-  useEffect(() => {
-    function handler(event: KeyboardEvent) {
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
-        event.preventDefault();
-        setPaletteOpen((open) => !open);
-      }
-    }
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, []);
+  useCommandPaletteHotkey(setPaletteOpen);
 
-  // Escape closes the topmost open overlay. Modals can stack (e.g. the command
-  // palette opens via ⌘K over a repo modal), so close only the frontmost one in
-  // priority order rather than all at once.
-  useEffect(() => {
-    function handler(event: KeyboardEvent) {
-      if (event.key !== "Escape") return;
-      // routeRepoName covers both the repo-detail and metric modals (searchParams
-      // driven); both dismiss by navigating back to the current tab route.
-      if (paletteOpen) setPaletteOpen(false);
-      else if (routeRepoName) navigate(TAB_ROUTES[tab]);
-      else if (changelogOpen) setChangelogOpen(false);
-      else if (contributorsOpen) setContributorsOpen(false);
-      else if (welcomeOpen) setWelcomeOpen(false);
-      else if (filtersOpen) setFiltersOpen(false);
-      else return;
-      event.preventDefault();
-    }
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [
+  useEscapeToClose({
     paletteOpen,
     routeRepoName,
     changelogOpen,
     contributorsOpen,
     welcomeOpen,
     filtersOpen,
-    navigate,
     tab,
-  ]);
+    navigate,
+    setPaletteOpen,
+    setChangelogOpen,
+    setContributorsOpen,
+    setWelcomeOpen,
+    setFiltersOpen,
+  });
 
   useEffect(
     () => localStorage.setItem("gh-dash.issuesPageSize", String(issuePageSize)),
@@ -860,84 +794,24 @@ export function App() {
     [inboxPageSize],
   );
 
-  const refreshNotifications = useCallback(async (fresh = false) => {
-    try {
-      const data = await fetchNotifications(fresh);
-      setNotifications(data.notifications);
-      if (data.pollInterval) setPollInterval(data.pollInterval);
-    } catch {
-      // silent — Inbox still works without notifications
-    }
-  }, []);
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: activeAccountId is an intentional re-run trigger so notifications are refetched when the active account changes
-  useEffect(() => {
-    if (authState !== "authenticated") return;
-    void refreshNotifications(true);
-  }, [authState, activeAccountId, refreshNotifications]);
-
-  useEffect(() => {
-    if (authState !== "authenticated" || !pollInterval) return;
-    const id = window.setInterval(() => {
-      void refreshNotifications();
-    }, Math.max(30, pollInterval) * 1000);
-    return () => window.clearInterval(id);
-  }, [authState, pollInterval, refreshNotifications]);
-
-  const handleMarkRead = useCallback(
-    async (threadId: string) => {
-      setNotifications((prev) =>
-        prev.map((entry) => (entry.id === threadId ? { ...entry, unread: false } : entry)),
-      );
-      try {
-        await markNotificationRead(threadId);
-      } catch {
-        void refreshNotifications(true);
-      }
-    },
-    [refreshNotifications],
-  );
-
-  const userLoginValue = owners[0] || "";
-  const inboxItems = useMemo(() => {
-    const base = buildInboxItems({ issues, pullRequests, userLogin: userLoginValue });
-    return mergeNotifications(base, notifications);
-  }, [issues, pullRequests, userLoginValue, notifications]);
-  const mailboxItems = useMemo(
-    () => inboxItems.filter((item) => matchesInboxMailbox(item, mailbox)),
-    [inboxItems, mailbox],
-  );
-  const inboxCounts = useMemo(() => {
-    const counts: Record<InboxMailbox, number> = {} as Record<InboxMailbox, number>;
-    for (const entry of INBOX_MAILBOXES) {
-      counts[entry.key] = inboxItems.filter((item) => matchesInboxMailbox(item, entry.key)).length;
-    }
-    return counts;
-  }, [inboxItems]);
-  const inboxUnreadCount = useMemo(
-    () => inboxItems.filter((item) => item.unread).length,
-    [inboxItems],
-  );
-
-  const handleMarkAllRead = useCallback(async () => {
-    if (!inboxUnreadCount) return;
-    if (
-      !window.confirm(
-        t("confirm.markAllRead", {
-          count: inboxUnreadCount,
-          plural: inboxUnreadCount === 1 ? "" : "s",
-        }),
-      )
-    )
-      return;
-    const previous = notifications;
-    setNotifications((prev) => prev.map((entry) => ({ ...entry, unread: false })));
-    try {
-      await markAllNotificationsRead();
-    } catch {
-      setNotifications(previous);
-    }
-  }, [inboxUnreadCount, notifications, t]);
+  const userLogin = owners[0] || "";
+  const {
+    refreshNotifications,
+    clearNotifications,
+    handleMarkRead,
+    handleMarkAllRead,
+    inboxItems,
+    mailboxItems,
+    inboxCounts,
+    inboxUnreadCount,
+  } = useInbox({
+    authenticated: authState === "authenticated",
+    accountId: activeAccountId,
+    issues,
+    pullRequests,
+    userLogin,
+    mailbox,
+  });
 
   const inboxSidebar: InboxSidebarState = {
     mailbox,
@@ -962,7 +836,6 @@ export function App() {
     );
   }, [repoFilters, issueFilters, prFilters, issueSort, prSort, repoSort, localSort, localFilters]);
 
-  const userLogin = userLoginValue;
   const issueFacets = useMemo(() => buildIssueFacets(issues), [issues]);
   const prFacets = useMemo(() => buildPullRequestFacets(pullRequests), [pullRequests]);
   const repoFacets = useMemo(
