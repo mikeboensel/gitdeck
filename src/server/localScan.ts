@@ -3,7 +3,7 @@ import type { Dirent } from "node:fs";
 import { readdir } from "node:fs/promises";
 import { basename, join, resolve } from "node:path";
 import { promisify } from "node:util";
-import type { GitChangeCounts, LocalRemote } from "../types/github";
+import type { GitChangeCounts, LocalRemote, WorktreeEntry } from "../types/github";
 import { logger } from "./logger";
 
 const execFileAsync = promisify(execFile);
@@ -25,6 +25,8 @@ export interface ScannedRepo {
   lastCommit: { sha: string; date: string; message: string } | null;
   /** Total size on disk of this checkout (working tree + .git), in bytes; null if unmeasurable. */
   sizeBytes: number | null;
+  /** Linked worktrees registered with git, with sizes. Primary checkouts only; else []. */
+  linkedWorktrees: WorktreeEntry[];
   /** True when this checkout is a linked worktree (`git worktree add`), not the primary. */
   isWorktree: boolean;
   /**
@@ -185,6 +187,55 @@ async function diskSizeBytes(dir: string): Promise<number | null> {
   }
 }
 
+/** A linked worktree parsed from `git worktree list --porcelain`, before sizing. */
+interface ParsedWorktree {
+  path: string;
+  branch: string | null;
+  prunable: boolean;
+}
+
+/** Parse `git worktree list --porcelain` into per-worktree records (incl. the primary). */
+export function parseWorktreePorcelain(raw: string): ParsedWorktree[] {
+  const entries: ParsedWorktree[] = [];
+  let cur: ParsedWorktree | null = null;
+  for (const line of raw.split("\n")) {
+    if (line.startsWith("worktree ")) {
+      if (cur) entries.push(cur);
+      cur = { path: line.slice("worktree ".length).trim(), branch: null, prunable: false };
+    } else if (cur && line.startsWith("branch ")) {
+      cur.branch = line
+        .slice("branch ".length)
+        .trim()
+        .replace(/^refs\/heads\//, "");
+    } else if (cur && line.startsWith("prunable")) {
+      cur.prunable = true;
+    }
+  }
+  if (cur) entries.push(cur);
+  return entries;
+}
+
+/**
+ * Authoritative list of a primary's linked worktrees with on-disk sizes, via
+ * `git worktree list --porcelain`. Skips the primary's own entry. Prunable
+ * worktrees (directory gone) and any nested inside the primary path — whose
+ * bytes are already counted in the primary's `du` — get a null size.
+ */
+async function readLinkedWorktrees(repoPath: string): Promise<WorktreeEntry[]> {
+  const raw = await git(repoPath, ["worktree", "list", "--porcelain"]);
+  if (!raw) return [];
+  const selfResolved = resolve(repoPath);
+  const linked = parseWorktreePorcelain(raw).filter((w) => resolve(w.path) !== selfResolved);
+  return Promise.all(
+    linked.map(async (w): Promise<WorktreeEntry> => {
+      const resolved = resolve(w.path);
+      const nested = resolved === selfResolved || resolved.startsWith(`${selfResolved}/`);
+      const sizeBytes = w.prunable || nested ? null : await diskSizeBytes(w.path);
+      return { path: w.path, branch: w.branch, sizeBytes, prunable: w.prunable };
+    }),
+  );
+}
+
 async function readGitMeta(repoPath: string): Promise<ScannedRepo> {
   const [remotesRaw, branchRaw, statusRaw, aheadBehindRaw, lastCommitRaw, gitDirsRaw, sizeBytes] =
     await Promise.all([
@@ -245,6 +296,11 @@ async function readGitMeta(repoPath: string): Promise<ScannedRepo> {
     }
   }
 
+  // Enumerate linked worktrees authoritatively, but only from the primary — every
+  // checkout shares the same list, so doing it per-worktree would `du` each
+  // sibling N times.
+  const linkedWorktrees = isWorktree ? [] : await readLinkedWorktrees(repoPath);
+
   return {
     path: repoPath,
     name: parsed?.repo ?? basename(repoPath),
@@ -259,6 +315,7 @@ async function readGitMeta(repoPath: string): Promise<ScannedRepo> {
     changes,
     lastCommit,
     sizeBytes,
+    linkedWorktrees,
     isWorktree,
     gitCommonDir,
   };

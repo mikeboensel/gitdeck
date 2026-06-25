@@ -2,7 +2,9 @@ import type { GhIssue, GhRepo, RepoInsight } from "../../types/github";
 import { RepoGrid } from "./RepoGrid";
 import { RepoList } from "./RepoList";
 
-export type RepoLayout = "grid" | "list";
+// "disk" is Local-tab-only (a disk-usage chart); the Repositories tab offers
+// just grid/list via REPO_LAYOUT_OPTIONS.
+export type RepoLayout = "grid" | "list" | "disk";
 export type RepoDensity = "compact" | "cozy" | "comfortable";
 
 export const REPO_LAYOUT_OPTIONS: RepoLayout[] = ["grid", "list"];

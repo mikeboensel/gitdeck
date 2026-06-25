@@ -141,6 +141,22 @@ export interface GitChangeCounts {
   conflicted: number;
 }
 
+/**
+ * One linked worktree registered with git (`git worktree list`), attached to its
+ * primary checkout. Authoritative — independent of whether the filesystem scan
+ * happened to discover the worktree's directory.
+ */
+export interface WorktreeEntry {
+  /** Absolute path of the linked worktree's working directory. */
+  path: string;
+  /** Checked-out branch (short name), or null when detached. */
+  branch: string | null;
+  /** On-disk size in bytes; null when prunable, nested in the primary, or unmeasurable. */
+  sizeBytes: number | null;
+  /** True when git reports the worktree as prunable (its directory is gone). */
+  prunable: boolean;
+}
+
 /** A git repository discovered on the local filesystem. */
 export interface LocalRepo {
   /** Absolute path to the repo's working directory. */
@@ -169,6 +185,12 @@ export interface LocalRepo {
   lastCommit: { sha: string; date: string; message: string } | null;
   /** Total size on disk of this checkout (working tree + .git), in bytes; null if unmeasurable. */
   sizeBytes: number | null;
+  /**
+   * Linked worktrees registered with git, with their on-disk sizes. Authoritative
+   * (`git worktree list`), so it includes worktrees outside the scan roots and
+   * prunable ones. Populated on the primary checkout only; empty for worktrees.
+   */
+  linkedWorktrees: WorktreeEntry[];
   /** True when this checkout is a linked worktree rather than the primary clone. */
   isWorktree: boolean;
   /**

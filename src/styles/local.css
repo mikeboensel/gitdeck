@@ -368,3 +368,266 @@
 .repo-row-pushed.local-committed {
   justify-content: flex-end;
 }
+
+/* ── Disk-usage view (Local tab "Disk" layout) ─────────────────────────────
+   A donut of on-disk size beside a companion table; rows mirror chart slices. */
+.local-disk {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 4px 2px;
+}
+.local-disk-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.local-disk-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+}
+.local-disk-total {
+  font-size: 12px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.local-disk-body {
+  display: grid;
+  grid-template-columns: minmax(280px, 360px) 1fr;
+  gap: 18px;
+  align-items: start;
+}
+@media (max-width: 760px) {
+  .local-disk-body {
+    grid-template-columns: 1fr;
+  }
+}
+.local-disk-chart {
+  min-width: 0;
+}
+.local-disk-empty {
+  padding: 28px 12px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+}
+.local-disk-table {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.local-disk-row {
+  display: grid;
+  grid-template-columns: 12px minmax(0, 1fr) auto auto auto auto;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  border-radius: 7px;
+  font-size: 12.5px;
+}
+.local-disk-row.active {
+  background: var(--panel-2);
+}
+.local-disk-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+.local-disk-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+  color: var(--text);
+}
+.local-disk-size {
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  color: var(--text);
+}
+.local-disk-pct {
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+  min-width: 48px;
+  text-align: right;
+}
+.local-disk-status {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 2px 7px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.local-disk-status.safe {
+  color: var(--ok, #34d399);
+  background: color-mix(in srgb, var(--ok, #34d399) 16%, transparent);
+}
+.local-disk-status.unsafe {
+  color: var(--warn, #fbbf24);
+  background: color-mix(in srgb, var(--warn, #fbbf24) 16%, transparent);
+}
+.local-disk-actions {
+  display: inline-flex;
+  gap: 4px;
+}
+.local-disk-delete:hover {
+  color: var(--danger, #f87171);
+  border-color: var(--danger, #f87171);
+}
+
+/* Rich donut tooltip (rendered by the lazy inner chart). */
+.disk-tooltip {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 12px;
+  max-width: 280px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+}
+.disk-tooltip-name {
+  font-weight: 700;
+  color: var(--text);
+}
+.disk-tooltip-path {
+  color: var(--muted-2);
+  font-size: 11px;
+  word-break: break-all;
+  margin-top: 1px;
+}
+.disk-tooltip-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 4px;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+.disk-tooltip-status {
+  margin-top: 4px;
+  font-weight: 700;
+}
+.disk-tooltip-status.safe {
+  color: var(--ok, #34d399);
+}
+.disk-tooltip-status.unsafe {
+  color: var(--warn, #fbbf24);
+}
+.disk-tooltip-reason {
+  color: var(--muted);
+  font-size: 11px;
+}
+.disk-tooltip-committed {
+  color: var(--muted-2);
+  font-size: 11px;
+  margin-top: 4px;
+}
+.local-disk-footnote {
+  margin: 0;
+  font-size: 11.5px;
+  color: var(--muted-2);
+}
+
+/* Worktree breakdown: an expandable sub-list under a repo's disk row. */
+.local-disk-item {
+  display: flex;
+  flex-direction: column;
+}
+.local-disk-row {
+  grid-template-columns: 16px 12px minmax(0, 1fr) auto auto auto auto;
+}
+.local-disk-expand {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 0;
+}
+.local-disk-expand svg {
+  transition: transform 0.15s ease;
+}
+.local-disk-expand svg.open {
+  transform: rotate(90deg);
+}
+.local-disk-expand-spacer {
+  width: 16px;
+}
+.local-disk-wt-badge {
+  margin-left: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--muted-2);
+  background: var(--panel-3);
+  padding: 1px 5px;
+  border-radius: 999px;
+  vertical-align: middle;
+}
+.local-disk-breakdown {
+  list-style: none;
+  margin: 0 0 4px 0;
+  padding: 2px 8px 6px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.local-disk-sub {
+  display: grid;
+  grid-template-columns: 80px minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+}
+.local-disk-sub-bar {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--panel-3);
+  overflow: hidden;
+}
+.local-disk-sub-fill {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  opacity: 0.85;
+}
+.local-disk-sub-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--muted);
+}
+.local-disk-sub-name.primary {
+  color: var(--text);
+  font-weight: 600;
+}
+.local-disk-sub-size {
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+.local-disk-sub-prunable {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--muted-2);
+  background: var(--panel-3);
+  padding: 1px 6px;
+  border-radius: 999px;
+}
+.local-disk-sub-reveal {
+  padding: 3px;
+}

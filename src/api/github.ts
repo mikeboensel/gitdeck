@@ -218,6 +218,17 @@ export function openLocalRepo(path: string, target: "finder" | "cursor"): Promis
   });
 }
 
+/** Move a scanned local repo's folder to the system Trash. The server re-validates
+ * the path against the scanned-repo list and refuses unsafe repos unless `force`.
+ * Throws (with the server's message) on refusal or failure. */
+export function deleteLocalRepo(path: string, force = false): Promise<{ ok: true }> {
+  return readJson("/api/local-repos/delete", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ path, force }),
+  });
+}
+
 export interface BrowseDirEntry {
   name: string;
   path: string;

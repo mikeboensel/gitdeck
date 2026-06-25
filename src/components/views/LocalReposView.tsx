@@ -32,8 +32,12 @@ import { arrangeLocalRepos, type LocalSort } from "../../utils/localRepos";
 import { ForkIcon, StarIcon } from "../common/Icons";
 import { LanguageIcon } from "../common/LanguageIcon";
 import { SortSelect } from "../common/SortSelect";
+import { LocalDiskUsage } from "./LocalDiskUsage";
 import type { RepoDensity, RepoLayout } from "./ReposView";
 import { RepoViewControls } from "./RepoViewControls";
+
+/** Local tab offers a disk-usage chart in addition to the shared grid/list. */
+const LOCAL_LAYOUT_OPTIONS: RepoLayout[] = ["grid", "list", "disk"];
 
 /** Sort options offered in the Local-tab dropdown, in menu order. */
 const SORT_OPTIONS: ReadonlyArray<{ value: LocalSort; label: TranslationKey }> = [
@@ -68,6 +72,9 @@ interface LocalReposViewProps {
   onSaveConfig: (updates: Partial<LocalReposConfig>) => void;
   onHide: (path: string) => void;
   onUnhide: (path: string) => void;
+  /** Move a repo cluster to the Trash. `memberPaths` are all checkout paths to drop
+   *  optimistically; `force` deletes an unsafe repo. Used by the disk-usage view. */
+  onDelete: (path: string, memberPaths: string[], force: boolean) => Promise<void>;
 }
 
 export function LocalReposView({
@@ -87,6 +94,7 @@ export function LocalReposView({
   onSaveConfig,
   onHide,
   onUnhide,
+  onDelete,
 }: LocalReposViewProps) {
   const { language, t } = useI18n();
   const [searchParams] = useSearchParams();
@@ -131,6 +139,7 @@ export function LocalReposView({
             density={density}
             onLayoutChange={onLayoutChange}
             onCycleDensity={onCycleDensity}
+            layoutOptions={LOCAL_LAYOUT_OPTIONS}
           />
           <SortSelect
             id="local-sort"
@@ -222,41 +231,49 @@ export function LocalReposView({
         </div>
       ) : null}
 
-      <div className="repos-view local-collection" data-layout={layout} data-density={density}>
-        {layout === "list" ? (
-          <div className="data-list repo-list local-list">
-            {units.map((unit) => (
-              // Linked worktrees no longer get their own rows — the primary row
-              // carries a worktree count + tooltip instead.
-              <LocalRepoRow
-                key={unit.key}
-                repo={unit.primary}
-                worktrees={unit.worktrees}
-                onHide={onHide}
-                highlighted={
-                  focusName != null && unit.primary.nameWithOwner?.toLowerCase() === focusName
-                }
-              />
-            ))}
-          </div>
-        ) : (
-          <div className="local-cards">
-            {units.map((unit) => (
-              // Linked worktrees no longer get their own cards — the primary card
-              // carries a worktree count + tooltip instead (see LocalRepoCard).
-              <LocalRepoCard
-                key={unit.key}
-                repo={unit.primary}
-                worktrees={unit.worktrees}
-                onHide={onHide}
-                highlighted={
-                  focusName != null && unit.primary.nameWithOwner?.toLowerCase() === focusName
-                }
-              />
-            ))}
-          </div>
-        )}
-      </div>
+      {layout === "disk" ? (
+        <LocalDiskUsage
+          repos={repos}
+          onReveal={(path) => void openLocalRepo(path, "finder")}
+          onDelete={onDelete}
+        />
+      ) : (
+        <div className="repos-view local-collection" data-layout={layout} data-density={density}>
+          {layout === "list" ? (
+            <div className="data-list repo-list local-list">
+              {units.map((unit) => (
+                // Linked worktrees no longer get their own rows — the primary row
+                // carries a worktree count + tooltip instead.
+                <LocalRepoRow
+                  key={unit.key}
+                  repo={unit.primary}
+                  worktrees={unit.worktrees}
+                  onHide={onHide}
+                  highlighted={
+                    focusName != null && unit.primary.nameWithOwner?.toLowerCase() === focusName
+                  }
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="local-cards">
+              {units.map((unit) => (
+                // Linked worktrees no longer get their own cards — the primary card
+                // carries a worktree count + tooltip instead (see LocalRepoCard).
+                <LocalRepoCard
+                  key={unit.key}
+                  repo={unit.primary}
+                  worktrees={unit.worktrees}
+                  onHide={onHide}
+                  highlighted={
+                    focusName != null && unit.primary.nameWithOwner?.toLowerCase() === focusName
+                  }
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
