@@ -1,4 +1,5 @@
-const DEFAULT_TTL_MS = 5 * 60 * 1000;
+/** Default cache lifetime: 5 minutes (5 × 60s × 1000ms). */
+export const DEFAULT_TTL_MS = 5 * 60 * 1000;
 
 interface CacheEntry<T> {
   value: T;

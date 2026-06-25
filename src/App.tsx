@@ -1,3 +1,4 @@
+import { useQuery } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   LuBuilding2,
@@ -86,7 +87,6 @@ import { useLocalRepos } from "./hooks/useLocalRepos";
 import { useTabsCompact } from "./hooks/useTabsCompact";
 import { useI18n } from "./i18n/I18nProvider";
 import type {
-  CIHealthData,
   CommitActivityData,
   DailyDigestEntry,
   DailyDigestsData,
@@ -96,7 +96,6 @@ import type {
   GhRepo,
   IssuesData,
   PullRequestsData,
-  RepoCIHealth,
   RepoInsight,
   RepoInsightsData,
   ReposData,
@@ -228,7 +227,6 @@ export function App() {
   const [digestPeriod, setDigestPeriod] = useState<DigestPeriod>(
     () => (localStorage.getItem("gh-dash.digestPeriod") as DigestPeriod) || "day",
   );
-  const [ciHealth, setCiHealth] = useState<RepoCIHealth[]>([]);
   const [fetchedAt, setFetchedAt] = useState("");
   const [loading, setLoading] = useState(false);
   const [dataStale, setDataStale] = useState(false);
@@ -407,7 +405,6 @@ export function App() {
     setOwners([]);
     setRepoInsights([]);
     setDailyDigests([]);
-    setCiHealth([]);
     setCollaboratorsByRepo(new Map());
     setCollaboratorsFetchedAt(null);
     clearNotifications();
@@ -467,22 +464,15 @@ export function App() {
     return () => controller.abort();
   }, [tab, authState, activeAccountId]);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: activeAccountId is an intentional re-run trigger so account-scoped CI health is refetched when the active account changes
-  useEffect(() => {
-    if (authState !== "authenticated") return;
-    if (tab !== "ci") return;
-    const cached = peek<CIHealthData>(CACHE_KEY.ciHealth);
-    if (cached) setCiHealth(cached.repos);
-    const controller = new AbortController();
-    swr<CIHealthData>(CACHE_KEY.ciHealth, (signal) => fetchCIHealth(false, signal), {
-      signal: controller.signal,
-    })
-      .promise.then((data) => {
-        if (!controller.signal.aborted) setCiHealth(data.repos);
-      })
-      .catch(() => {});
-    return () => controller.abort();
-  }, [tab, authState, activeAccountId]);
+  // CI health (TanStack Query spike): the queryKey carries activeAccountId so an
+  // account switch swaps to that account's cache instead of a manual reset, and
+  // `enabled` gates the fetch to the ci tab. staleTime (set globally) keeps a
+  // revisited tab from refetching, matching the old in-memory TTL.
+  const { data: ciHealth = [] } = useQuery({
+    queryKey: ["ciHealth", activeAccountId],
+    queryFn: ({ signal }) => fetchCIHealth(false, signal).then((data) => data.repos),
+    enabled: authState === "authenticated" && tab === "ci",
+  });
 
   const applyCollaborators = useCallback((data: CachedCollaborators) => {
     setCollaboratorsByRepo(new Map(Object.entries(data.byRepo)));
@@ -561,7 +551,6 @@ export function App() {
     setOwners([]);
     setRepoInsights([]);
     setDailyDigests([]);
-    setCiHealth([]);
     setCollaboratorsByRepo(new Map());
     setCollaboratorsFetchedAt(null);
     setFetchedAt("");

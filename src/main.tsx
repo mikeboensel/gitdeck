@@ -1,6 +1,8 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import { App } from "./App";
+import { DEFAULT_TTL_MS } from "./api/cache";
 import { TooltipLayer } from "./components/common/TooltipLayer";
 import { AccountProvider } from "./contexts/AccountContext";
 import { CloneRepoProvider } from "./contexts/CloneRepoProvider";
@@ -8,19 +10,27 @@ import { RightClickMenuProvider } from "./contexts/RightClickMenuProvider";
 import { I18nProvider } from "./i18n/I18nProvider";
 import "./styles.css";
 
+// Reuse the legacy in-memory cache TTL so a revisited tab serves cached data
+// without refetching, matching prior behavior — one source of truth for both layers.
+const queryClient = new QueryClient({
+  defaultOptions: { queries: { staleTime: DEFAULT_TTL_MS } },
+});
+
 createRoot(document.getElementById("root")!).render(
-  <I18nProvider>
-    <AccountProvider>
-      <BrowserRouter>
-        <RightClickMenuProvider>
-          <CloneRepoProvider>
-            <App />
-            {/* Delegated tooltip layer: listens for [data-tip] hover/focus and
+  <QueryClientProvider client={queryClient}>
+    <I18nProvider>
+      <AccountProvider>
+        <BrowserRouter>
+          <RightClickMenuProvider>
+            <CloneRepoProvider>
+              <App />
+              {/* Delegated tooltip layer: listens for [data-tip] hover/focus and
                 self-portals to document.body, so it escapes card overflow clipping. */}
-            <TooltipLayer />
-          </CloneRepoProvider>
-        </RightClickMenuProvider>
-      </BrowserRouter>
-    </AccountProvider>
-  </I18nProvider>,
+              <TooltipLayer />
+            </CloneRepoProvider>
+          </RightClickMenuProvider>
+        </BrowserRouter>
+      </AccountProvider>
+    </I18nProvider>
+  </QueryClientProvider>,
 );
