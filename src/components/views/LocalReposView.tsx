@@ -11,6 +11,7 @@ import {
   LuFolderGit2,
   LuGitBranch,
   LuGlobe,
+  LuHardDrive,
   LuLock,
   LuPickaxe,
   LuRefreshCw,
@@ -26,7 +27,7 @@ import type { TranslationKey } from "../../i18n/translations";
 import { buildLocalRepoMenu } from "../../menus/localRepoMenu";
 import type { GitChangeCounts, LocalRepo, LocalReposConfig } from "../../types/github";
 import { errorMessage } from "../../utils/errors";
-import { formatNumber, formatRelativeTime } from "../../utils/format";
+import { formatBytes, formatNumber, formatRelativeTime } from "../../utils/format";
 import { arrangeLocalRepos, type LocalSort } from "../../utils/localRepos";
 import { ForkIcon, StarIcon } from "../common/Icons";
 import { LanguageIcon } from "../common/LanguageIcon";
@@ -41,6 +42,8 @@ const SORT_OPTIONS: ReadonlyArray<{ value: LocalSort; label: TranslationKey }> =
   { value: "name_asc", label: "local.sortName" },
   { value: "owner_asc", label: "local.sortOwner" },
   { value: "stars_desc", label: "local.sortMostStars" },
+  { value: "size_desc", label: "local.sortLargest" },
+  { value: "size_asc", label: "local.sortSmallest" },
   { value: "dirty_first", label: "local.sortDirtyFirst" },
   { value: "status_asc", label: "local.sortStatus" },
 ];
@@ -486,6 +489,11 @@ function LocalRepoCard({
             <LuTreePine size={13} /> {worktrees.length}
           </span>
         ) : null}
+        {repo.sizeBytes != null ? (
+          <span className="rc-stat local-size tip" data-tip={t("local.sizeOnDisk")}>
+            <LuHardDrive size={12} aria-hidden /> {formatBytes(repo.sizeBytes)}
+          </span>
+        ) : null}
         {primaryLanguage ? (
           <span className="rc-lang" role="img" aria-label={primaryLanguage} title={primaryLanguage}>
             <LanguageIcon name={primaryLanguage} />
@@ -645,6 +653,11 @@ function LocalRepoRow({
             data-tip={worktreeTooltip(worktrees, t)}
           >
             <LuTreePine size={13} /> {worktrees.length}
+          </span>
+        ) : null}
+        {repo.sizeBytes != null ? (
+          <span className="rc-stat local-size tip" data-tip={t("local.sizeOnDisk")}>
+            <LuHardDrive size={12} aria-hidden /> {formatBytes(repo.sizeBytes)}
           </span>
         ) : null}
         <span

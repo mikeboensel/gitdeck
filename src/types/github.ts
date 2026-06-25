@@ -167,6 +167,8 @@ export interface LocalRepo {
   changes: GitChangeCounts;
   /** Most recent commit, or null for an empty repo. */
   lastCommit: { sha: string; date: string; message: string } | null;
+  /** Total size on disk of this checkout (working tree + .git), in bytes; null if unmeasurable. */
+  sizeBytes: number | null;
   /** True when this checkout is a linked worktree rather than the primary clone. */
   isWorktree: boolean;
   /**

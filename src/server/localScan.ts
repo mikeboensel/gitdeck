@@ -23,6 +23,8 @@ export interface ScannedRepo {
   dirty: boolean;
   changes: GitChangeCounts;
   lastCommit: { sha: string; date: string; message: string } | null;
+  /** Total size on disk of this checkout (working tree + .git), in bytes; null if unmeasurable. */
+  sizeBytes: number | null;
   /** True when this checkout is a linked worktree (`git worktree add`), not the primary. */
   isWorktree: boolean;
   /**
@@ -164,8 +166,27 @@ async function git(cwd: string, args: string[]): Promise<string | null> {
   }
 }
 
+/**
+ * Total size on disk of a directory in bytes, via `du -sk` (1 KiB blocks on both
+ * BSD/macOS and GNU `du`). Returns null on failure/timeout. For a linked
+ * worktree this measures only that checkout's tree — its `.git` is just a small
+ * pointer file; the shared object store lives under the primary's common dir.
+ */
+async function diskSizeBytes(dir: string): Promise<number | null> {
+  try {
+    const { stdout } = await execFileAsync("du", ["-sk", dir], {
+      timeout: GIT_TIMEOUT_MS,
+      maxBuffer: 1024 * 1024,
+    });
+    const kib = Number(stdout.trim().split(/\s+/)[0]);
+    return Number.isFinite(kib) ? kib * 1024 : null;
+  } catch {
+    return null;
+  }
+}
+
 async function readGitMeta(repoPath: string): Promise<ScannedRepo> {
-  const [remotesRaw, branchRaw, statusRaw, aheadBehindRaw, lastCommitRaw, gitDirsRaw] =
+  const [remotesRaw, branchRaw, statusRaw, aheadBehindRaw, lastCommitRaw, gitDirsRaw, sizeBytes] =
     await Promise.all([
       git(repoPath, ["remote", "-v"]),
       git(repoPath, ["rev-parse", "--abbrev-ref", "HEAD"]),
@@ -173,6 +194,7 @@ async function readGitMeta(repoPath: string): Promise<ScannedRepo> {
       git(repoPath, ["rev-list", "--left-right", "--count", "@{u}...HEAD"]),
       git(repoPath, ["log", "-1", "--format=%H%n%cI%n%s"]),
       git(repoPath, ["rev-parse", "--git-dir", "--git-common-dir"]),
+      diskSizeBytes(repoPath),
     ]);
 
   // `origin` is the authoritative remote for owner/name; fall back to the first
@@ -236,6 +258,7 @@ async function readGitMeta(repoPath: string): Promise<ScannedRepo> {
     dirty: changes.staged + changes.modified + changes.untracked + changes.conflicted > 0,
     changes,
     lastCommit,
+    sizeBytes,
     isWorktree,
     gitCommonDir,
   };

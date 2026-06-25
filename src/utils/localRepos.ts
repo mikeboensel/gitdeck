@@ -130,6 +130,8 @@ export type LocalSort =
   | "name_asc"
   | "owner_asc"
   | "stars_desc"
+  | "size_desc"
+  | "size_asc"
   | "dirty_first"
   | "status_asc";
 
@@ -181,6 +183,14 @@ function compareUnits(a: LocalUnit, b: LocalUnit, sort: LocalSort): number {
     case "stars_desc":
       return (
         (y.enrichment?.stargazerCount ?? -1) - (x.enrichment?.stargazerCount ?? -1) ||
+        tiebreak(x, y)
+      );
+    // Unmeasured sizes (null) sort last in both directions.
+    case "size_desc":
+      return (y.sizeBytes ?? -1) - (x.sizeBytes ?? -1) || tiebreak(x, y);
+    case "size_asc":
+      return (
+        (x.sizeBytes ?? Number.POSITIVE_INFINITY) - (y.sizeBytes ?? Number.POSITIVE_INFINITY) ||
         tiebreak(x, y)
       );
     case "dirty_first":
