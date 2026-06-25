@@ -1,0 +1,48 @@
+appId: com.gitdeck.desktop
+productName: Gitdeck
+directories:
+  output: release
+  buildResources: build
+
+# Ship main/preload bundles (out/), the app's built SPA (dist/client), and
+# package.json. NOTE: the in-main Hono server resolves the SPA via
+# config.ts CLIENT_DIR = <projectRoot>/dist/client; for a packaged build that
+# path must resolve inside the app bundle — see the PoC findings. For unpacked
+# (`--dir`) builds it already works.
+files:
+  - out/**/*
+  - package.json
+  # The in-main Hono server resolves the SPA at <bundle>/out/dist/client
+  # (config.ts: PROJECT_ROOT = out/main/.. = out). Remap the app's `vite build`
+  # output there so the packaged server serves the UI without any server change.
+  - from: dist/client
+    to: out/dist/client
+
+mac:
+  category: public.app-category.developer-tools
+  target:
+    - dmg
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
+  notarize: true
+
+win:
+  target:
+    - nsis
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+
+linux:
+  target:
+    - AppImage
+    - deb
+  category: Development
+
+publish:
+  provider: github
+  owner: mikeboensel
+  repo: gitdeck
