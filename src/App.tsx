@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   LuBuilding2,
   LuChevronRight,
+  LuFileDiff,
   LuGitBranch,
   LuListFilter,
   LuSearch,
@@ -1104,6 +1105,7 @@ export function App() {
             extraSections={
               <FilterSection
                 title={t("local.facetGitStatus")}
+                icon={<LuFileDiff size={16} />}
                 activeCount={localFilters.status !== "all" ? 1 : 0}
                 onClear={() => setLocalFilters((f) => ({ ...f, status: "all" }))}
               >

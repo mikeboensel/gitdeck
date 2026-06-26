@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { LuEraser, LuListFilter } from "react-icons/lu";
+import { LuEraser } from "react-icons/lu";
 import { useI18n } from "../../i18n/I18nProvider";
 import type { FacetValue } from "../../utils/dashboard";
 import { CloseIcon, SearchIcon } from "../common/Icons";
@@ -60,9 +60,6 @@ export function FacetSidebar({
   return (
     <SidebarShell onCollapse={onCollapse}>
       <div className="side-head">
-        <h2 className="tip" data-tip={t("common.filters")} aria-label={t("common.filters")}>
-          <LuListFilter size={16} />
-        </h2>
         <button
           type="button"
           className="reset tip"
