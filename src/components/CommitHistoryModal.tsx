@@ -21,7 +21,8 @@ import {
 } from "../utils/commitGraphConfig";
 import { errorMessage } from "../utils/errors";
 import { formatRelativeTime } from "../utils/format";
-import { ChevronIcon, CloseIcon } from "./common/Icons";
+import { ChevronIcon } from "./common/Icons";
+import { Modal } from "./common/Modal";
 
 interface CommitHistoryModalProps {
   repo: LocalRepo;
@@ -305,18 +306,6 @@ export function CommitHistoryModal({ repo, onClose }: CommitHistoryModalProps) {
     return () => controller.abort();
   }, [loadHistory]);
 
-  // Esc closes the modal.
-  useEffect(() => {
-    function onKey(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        onClose();
-      }
-    }
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [onClose]);
-
   const graph = useMemo(() => layoutCommits(history?.commits ?? []), [history]);
   const head = history?.head ?? null;
 
@@ -374,103 +363,88 @@ export function CommitHistoryModal({ repo, onClose }: CommitHistoryModalProps) {
   );
 
   return (
-    <div className="modal-root">
-      {/* biome-ignore lint/a11y/noStaticElementInteractions: backdrop click-to-close; keyboard users close via the visible Close button / Esc */}
-      {/* biome-ignore lint/a11y/useKeyWithClickEvents: backdrop click-to-close; keyboard users close via the visible Close button / Esc */}
-      <div className="modal-backdrop" onClick={onClose} />
-      <div
-        className="modal history-modal"
-        role="dialog"
-        aria-modal="true"
-        aria-label={t("history.title")}
-      >
-        <header className="modal-head">
-          <div className="modal-title">
-            <span className="modal-icon repository">⎇</span>
-            <div style={{ minWidth: 0 }}>
-              <div className="kind">{t("history.title")}</div>
-              <h3>{repo.name}</h3>
-            </div>
+    <Modal
+      className="history-modal"
+      ariaLabel={t("history.title")}
+      onClose={onClose}
+      title={
+        <>
+          <span className="modal-icon repository">⎇</span>
+          <div style={{ minWidth: 0 }}>
+            <div className="kind">{t("history.title")}</div>
+            <h3>{repo.name}</h3>
           </div>
-          <button
-            type="button"
-            className="modal-close"
-            aria-label={t("common.close")}
-            onClick={onClose}
-          >
-            <CloseIcon />
-          </button>
-        </header>
-
-        <div className="history-body">
-          <div className="history-graph">
-            {loading ? (
-              <div className="history-status">{t("common.loading")}</div>
-            ) : loadError ? (
-              <div className="history-status error">{loadError}</div>
-            ) : graph.nodes.length === 0 ? (
-              <div className="history-status">{t("history.noCommits")}</div>
-            ) : (
-              <ReactFlow
-                nodes={rfNodes}
-                edges={rfEdges}
-                nodeTypes={nodeTypes}
-                onNodeClick={(_event, node) => setSelectedSha(node.id)}
-                nodesDraggable={false}
-                nodesConnectable={false}
-                fitView
-                fitViewOptions={{ maxZoom: FIT_MAX_ZOOM }}
-                // Allow zooming out far enough to take in a tall history at a glance.
-                minZoom={MIN_ZOOM}
-                // Cull off-screen nodes so tall histories stay responsive.
-                onlyRenderVisibleElements
-                // Theme the built-in Controls/Background for our dark UI.
-                colorMode="dark"
+        </>
+      }
+    >
+      <div className="history-body">
+        <div className="history-graph">
+          {loading ? (
+            <div className="history-status">{t("common.loading")}</div>
+          ) : loadError ? (
+            <div className="history-status error">{loadError}</div>
+          ) : graph.nodes.length === 0 ? (
+            <div className="history-status">{t("history.noCommits")}</div>
+          ) : (
+            <ReactFlow
+              nodes={rfNodes}
+              edges={rfEdges}
+              nodeTypes={nodeTypes}
+              onNodeClick={(_event, node) => setSelectedSha(node.id)}
+              nodesDraggable={false}
+              nodesConnectable={false}
+              fitView
+              fitViewOptions={{ maxZoom: FIT_MAX_ZOOM }}
+              // Allow zooming out far enough to take in a tall history at a glance.
+              minZoom={MIN_ZOOM}
+              // Cull off-screen nodes so tall histories stay responsive.
+              onlyRenderVisibleElements
+              // Theme the built-in Controls/Background for our dark UI.
+              colorMode="dark"
+            >
+              <Background gap={Math.min(COL_W, ROW_H)} />
+              <Controls showInteractive={false} />
+            </ReactFlow>
+          )}
+          {graph.nodes.length > 0 ? (
+            <div className="history-order">
+              {/* chrono vs topological ordering */}
+              <button
+                type="button"
+                className={`history-order-btn${order === "date" ? " active" : ""}`}
+                onClick={() => setOrder("date")}
               >
-                <Background gap={Math.min(COL_W, ROW_H)} />
-                <Controls showInteractive={false} />
-              </ReactFlow>
-            )}
-            {graph.nodes.length > 0 ? (
-              <div className="history-order">
-                {/* chrono vs topological ordering */}
-                <button
-                  type="button"
-                  className={`history-order-btn${order === "date" ? " active" : ""}`}
-                  onClick={() => setOrder("date")}
-                >
-                  {t("history.orderDate")}
-                </button>
-                <button
-                  type="button"
-                  className={`history-order-btn${order === "topo" ? " active" : ""}`}
-                  onClick={() => setOrder("topo")}
-                >
-                  {t("history.orderTopo")}
-                </button>
-              </div>
-            ) : null}
-            {graph.nodes.length > 0 ? (
-              <div className="history-graph-meta">
-                {t("history.commitCount", { count: graph.nodes.length })}
-                {history?.truncated ? ` · ${t("history.olderHidden")}` : ""}
-              </div>
-            ) : null}
-          </div>
-
-          <aside className="history-detail">
-            {selectedSha ? (
-              <CommitDetailPanel
-                repoPath={repo.path}
-                sha={selectedSha}
-                onBranchCreated={loadHistory}
-              />
-            ) : (
-              <div className="history-status">{t("history.selectPrompt")}</div>
-            )}
-          </aside>
+                {t("history.orderDate")}
+              </button>
+              <button
+                type="button"
+                className={`history-order-btn${order === "topo" ? " active" : ""}`}
+                onClick={() => setOrder("topo")}
+              >
+                {t("history.orderTopo")}
+              </button>
+            </div>
+          ) : null}
+          {graph.nodes.length > 0 ? (
+            <div className="history-graph-meta">
+              {t("history.commitCount", { count: graph.nodes.length })}
+              {history?.truncated ? ` · ${t("history.olderHidden")}` : ""}
+            </div>
+          ) : null}
         </div>
+
+        <aside className="history-detail">
+          {selectedSha ? (
+            <CommitDetailPanel
+              repoPath={repo.path}
+              sha={selectedSha}
+              onBranchCreated={loadHistory}
+            />
+          ) : (
+            <div className="history-status">{t("history.selectPrompt")}</div>
+          )}
+        </aside>
       </div>
-    </div>
+    </Modal>
   );
 }

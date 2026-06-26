@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { GhIssue, GhPullRequest, GhRepo } from "../../types/github";
+import { useModalEscape } from "../common/Modal";
 
 export type PaletteTab =
   | "inbox"
@@ -94,6 +95,10 @@ export function CommandPalette({
   const [activeIndex, setActiveIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+
+  // Join the shared modal Escape stack so the palette closes topmost-first when
+  // stacked over another modal (single authority — see useModalEscape).
+  useModalEscape(onClose);
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -230,8 +235,8 @@ export function CommandPalette({
   }, [activeIndex]);
 
   function handleKeyDown(event: React.KeyboardEvent) {
-    // Escape is handled globally in App (single authority for stacked modals);
-    // a local handler here would race the global one and close two layers at once.
+    // Escape is handled by the shared modal stack (useModalEscape above), the
+    // single authority for stacked modals; a local handler would race it.
     if (event.key === "ArrowDown") {
       event.preventDefault();
       setActiveIndex((idx) => Math.min(results.flat.length - 1, idx + 1));

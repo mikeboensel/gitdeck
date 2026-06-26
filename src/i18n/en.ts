@@ -63,6 +63,8 @@ export const en = {
   "common.clear": "Clear",
   "common.clearAll": "Clear all",
   "common.close": "Close",
+  "common.fullscreen": "Full screen",
+  "common.exitFullscreen": "Exit full screen",
   "common.noMatches": "No matches",
   "common.of": "of",
   "common.shown": "shown",

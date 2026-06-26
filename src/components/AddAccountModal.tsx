@@ -10,6 +10,7 @@ import {
 import { useAccounts } from "../contexts/AccountContext";
 import { useI18n } from "../i18n/I18nProvider";
 import { errorMessage } from "../utils/errors";
+import { useModalEscape } from "./common/Modal";
 
 interface AddAccountModalProps {
   open: boolean;
@@ -59,14 +60,9 @@ export function AddAccountModal({ open, onClose }: AddAccountModalProps) {
 
   useEffect(() => () => stopPolling(), [stopPolling]);
 
-  useEffect(() => {
-    if (!open) return;
-    function handleKey(event: KeyboardEvent) {
-      if (event.key === "Escape") onClose();
-    }
-    window.addEventListener("keydown", handleKey);
-    return () => window.removeEventListener("keydown", handleKey);
-  }, [open, onClose]);
+  // Escape closes via the shared modal stack, but only while open (this modal
+  // stays mounted and toggles on `open`).
+  useModalEscape(onClose, open);
 
   async function pickProvider(config: ProviderConfigSummary) {
     setError("");

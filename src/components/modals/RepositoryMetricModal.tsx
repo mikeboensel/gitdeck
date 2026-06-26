@@ -3,7 +3,8 @@ import { fetchForks, fetchStargazers } from "../../api/github";
 import type { ForkNode, StargazerNode } from "../../types/github";
 import { errorMessage } from "../../utils/errors";
 import { formatExactNumber, formatNumber, formatRelativeTime } from "../../utils/format";
-import { CloseIcon, ForkIcon, StarIcon } from "../common/Icons";
+import { ForkIcon, StarIcon } from "../common/Icons";
+import { Modal } from "../common/Modal";
 
 export type MetricKind = "stars" | "forks";
 
@@ -63,91 +64,86 @@ export function RepositoryMetricModal({
   const displayedTotal = total ?? totalCount;
 
   return (
-    <div className="modal-root">
-      {/* biome-ignore lint/a11y/noStaticElementInteractions: backdrop click-to-close; keyboard users close via the visible Close button */}
-      {/* biome-ignore lint/a11y/useKeyWithClickEvents: backdrop click-to-close; keyboard users close via the visible Close button */}
-      <div className="modal-backdrop" onClick={onClose} />
-      <div className="modal" role="dialog" aria-modal="true">
-        <header className="modal-head">
-          <div className="modal-title">
-            <span className={`modal-icon ${kind}`}>
-              {kind === "stars" ? <StarIcon /> : <ForkIcon />}
-            </span>
-            <div style={{ minWidth: 0 }}>
-              <div className="kind">{kind === "stars" ? "Stars" : "Forks"}</div>
-              <h3>{repo}</h3>
-            </div>
-          </div>
-          <button type="button" className="modal-close" aria-label="Close" onClick={onClose}>
-            <CloseIcon />
-          </button>
-        </header>
-        <div className="modal-toolbar">
-          <span className="modal-count">
-            <strong>
-              {displayedTotal === undefined ? "..." : formatExactNumber(displayedTotal)}
-            </strong>{" "}
-            total
+    <Modal
+      ariaLabel={kind === "stars" ? "Stars" : "Forks"}
+      onClose={onClose}
+      title={
+        <>
+          <span className={`modal-icon ${kind}`}>
+            {kind === "stars" ? <StarIcon /> : <ForkIcon />}
           </span>
-          <div className="spacer" style={{ flex: 1 }} />
-          {kind === "forks" ? (
-            <select value={forkField} onChange={(event) => setForkField(event.target.value)}>
-              <option value="PUSHED_AT">Recently pushed</option>
-              <option value="UPDATED_AT">Recently updated</option>
-              <option value="CREATED_AT">Newest</option>
-              <option value="STARGAZERS">Most stars</option>
-              <option value="NAME">Name</option>
-            </select>
-          ) : null}
-          <select
-            value={direction}
-            onChange={(event) => setDirection(event.target.value as "ASC" | "DESC")}
-          >
-            <option value="DESC">Descending</option>
-            <option value="ASC">Ascending</option>
+          <div style={{ minWidth: 0 }}>
+            <div className="kind">{kind === "stars" ? "Stars" : "Forks"}</div>
+            <h3>{repo}</h3>
+          </div>
+        </>
+      }
+    >
+      <div className="modal-toolbar">
+        <span className="modal-count">
+          <strong>
+            {displayedTotal === undefined ? "..." : formatExactNumber(displayedTotal)}
+          </strong>{" "}
+          total
+        </span>
+        <div className="spacer" style={{ flex: 1 }} />
+        {kind === "forks" ? (
+          <select value={forkField} onChange={(event) => setForkField(event.target.value)}>
+            <option value="PUSHED_AT">Recently pushed</option>
+            <option value="UPDATED_AT">Recently updated</option>
+            <option value="CREATED_AT">Newest</option>
+            <option value="STARGAZERS">Most stars</option>
+            <option value="NAME">Name</option>
           </select>
-        </div>
-        <div className={`modal-body ${loading ? "loading" : ""}`}>
-          {error ? <div className="modal-error">{error}</div> : null}
-          {!error &&
-            kind === "stars" &&
-            stargazers.map((edge) => (
-              <div className="sg-row" key={`${edge.node.login}-${edge.starredAt}`}>
-                <img src={edge.node.avatarUrl} alt="" />
-                <a className="login" href={edge.node.url} target="_blank" rel="noreferrer">
-                  {edge.node.login}
-                </a>
-                <span className="when" title={new Date(edge.starredAt).toLocaleString()}>
-                  {formatRelativeTime(edge.starredAt)}
-                </span>
-              </div>
-            ))}
-          {!error &&
-            kind === "forks" &&
-            forks.map((fork) => (
-              <div className="fork-row" key={fork.nameWithOwner}>
-                <img src={fork.owner.avatarUrl} alt="" />
-                <div>
-                  <div className="fr-title">
-                    <a href={fork.url} target="_blank" rel="noreferrer">
-                      {fork.nameWithOwner}
-                    </a>
-                  </div>
-                  <div className="fr-desc">{fork.description || "No description"}</div>
-                </div>
-                <div className="fr-meta">
-                  <span className="mini-stat">★ {formatNumber(fork.stargazerCount)}</span>
-                  <span>{formatRelativeTime(fork.pushedAt)}</span>
-                </div>
-              </div>
-            ))}
-          {!error &&
-          !loading &&
-          ((kind === "stars" && !stargazers.length) || (kind === "forks" && !forks.length)) ? (
-            <div className="modal-empty">No results to show.</div>
-          ) : null}
-        </div>
+        ) : null}
+        <select
+          value={direction}
+          onChange={(event) => setDirection(event.target.value as "ASC" | "DESC")}
+        >
+          <option value="DESC">Descending</option>
+          <option value="ASC">Ascending</option>
+        </select>
       </div>
-    </div>
+      <div className={`modal-body ${loading ? "loading" : ""}`}>
+        {error ? <div className="modal-error">{error}</div> : null}
+        {!error &&
+          kind === "stars" &&
+          stargazers.map((edge) => (
+            <div className="sg-row" key={`${edge.node.login}-${edge.starredAt}`}>
+              <img src={edge.node.avatarUrl} alt="" />
+              <a className="login" href={edge.node.url} target="_blank" rel="noreferrer">
+                {edge.node.login}
+              </a>
+              <span className="when" title={new Date(edge.starredAt).toLocaleString()}>
+                {formatRelativeTime(edge.starredAt)}
+              </span>
+            </div>
+          ))}
+        {!error &&
+          kind === "forks" &&
+          forks.map((fork) => (
+            <div className="fork-row" key={fork.nameWithOwner}>
+              <img src={fork.owner.avatarUrl} alt="" />
+              <div>
+                <div className="fr-title">
+                  <a href={fork.url} target="_blank" rel="noreferrer">
+                    {fork.nameWithOwner}
+                  </a>
+                </div>
+                <div className="fr-desc">{fork.description || "No description"}</div>
+              </div>
+              <div className="fr-meta">
+                <span className="mini-stat">★ {formatNumber(fork.stargazerCount)}</span>
+                <span>{formatRelativeTime(fork.pushedAt)}</span>
+              </div>
+            </div>
+          ))}
+        {!error &&
+        !loading &&
+        ((kind === "stars" && !stargazers.length) || (kind === "forks" && !forks.length)) ? (
+          <div className="modal-empty">No results to show.</div>
+        ) : null}
+      </div>
+    </Modal>
   );
 }

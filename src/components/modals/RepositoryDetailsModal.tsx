@@ -23,7 +23,8 @@ import { getLanguageColor } from "../../utils/colors";
 import { issueCountForRepo } from "../../utils/dashboard";
 import { errorMessage } from "../../utils/errors";
 import { formatNumber, formatRelativeTime } from "../../utils/format";
-import { CloseIcon, ForkIcon, IssueIcon, StarIcon } from "../common/Icons";
+import { ForkIcon, IssueIcon, StarIcon } from "../common/Icons";
+import { Modal } from "../common/Modal";
 import { ActionsPanel } from "./repoDetail/ActionsPanel";
 import { DependentsPanel } from "./repoDetail/DependentsPanel";
 import { ForksPanel } from "./repoDetail/ForksPanel";
@@ -189,184 +190,174 @@ export function RepositoryDetailsModal({
   ];
 
   return (
-    <div className="modal-root">
-      {/* biome-ignore lint/a11y/noStaticElementInteractions: backdrop click-to-close; keyboard users close via the visible Close button */}
-      {/* biome-ignore lint/a11y/useKeyWithClickEvents: backdrop click-to-close; keyboard users close via the visible Close button */}
-      <div className="modal-backdrop" onClick={onClose} />
-      <div className="modal repo-detail-modal" role="dialog" aria-modal="true">
-        <header className="modal-head">
-          <div className="modal-title">
-            <span className="modal-icon repository">R</span>
-            <div style={{ minWidth: 0 }}>
-              <div className="kind">Repository</div>
-              <h3>{repo.nameWithOwner}</h3>
+    <Modal
+      className="repo-detail-modal"
+      ariaLabel="Repository"
+      onClose={onClose}
+      title={
+        <>
+          <span className="modal-icon repository">R</span>
+          <div style={{ minWidth: 0 }}>
+            <div className="kind">Repository</div>
+            <h3>{repo.nameWithOwner}</h3>
+          </div>
+        </>
+      }
+    >
+      <div className="modal-body repo-detail-body">
+        {error ? <div className="modal-error">{error}</div> : null}
+        <section className="repo-detail-summary">
+          <div className="repo-detail-title-row">
+            <a className="repo-detail-title" href={repo.url} target="_blank" rel="noreferrer">
+              {repo.nameWithOwner}
+            </a>
+            <div className="repo-badges">
+              {repo.isPrivate ? (
+                <span className="rb private">Private</span>
+              ) : (
+                <span className="rb">Public</span>
+              )}
+              {repo.isArchived ? <span className="rb archived">Archived</span> : null}
+              {repo.isFork ? <span className="rb fork">Fork</span> : null}
             </div>
           </div>
-          <button type="button" className="modal-close" aria-label="Close" onClick={onClose}>
-            <CloseIcon />
+          <p>{description}</p>
+          {topics.length ? (
+            <div className="repo-detail-topics">
+              {topics.slice(0, 8).map((topic) => (
+                <span key={topic}>{topic}</span>
+              ))}
+            </div>
+          ) : null}
+        </section>
+
+        <section className="repo-detail-stats" aria-label="Repository stats">
+          <div className="repo-detail-stat">
+            <StarIcon />
+            <span>Stars</span>
+            <strong>{formatNumber(repo.stargazerCount)}</strong>
+          </div>
+          <div className="repo-detail-stat">
+            <ForkIcon />
+            <span>Forks</span>
+            <strong>{formatNumber(repo.forkCount)}</strong>
+          </div>
+          <button
+            type="button"
+            className="repo-detail-stat action"
+            onClick={() => onIssuesClick(repo.nameWithOwner)}
+          >
+            <IssueIcon />
+            <span>Open issues</span>
+            <strong>{formatNumber(issueCountForRepo(issues, repo.nameWithOwner))}</strong>
           </button>
-        </header>
+        </section>
 
-        <div className="modal-body repo-detail-body">
-          {error ? <div className="modal-error">{error}</div> : null}
-          <section className="repo-detail-summary">
-            <div className="repo-detail-title-row">
-              <a className="repo-detail-title" href={repo.url} target="_blank" rel="noreferrer">
-                {repo.nameWithOwner}
-              </a>
-              <div className="repo-badges">
-                {repo.isPrivate ? (
-                  <span className="rb private">Private</span>
-                ) : (
-                  <span className="rb">Public</span>
-                )}
-                {repo.isArchived ? <span className="rb archived">Archived</span> : null}
-                {repo.isFork ? <span className="rb fork">Fork</span> : null}
-              </div>
+        <section className="repo-detail-grid">
+          <div>
+            <div className="repo-detail-label">Owner</div>
+            <div className="repo-detail-value">{repo.owner.login}</div>
+          </div>
+          <div>
+            <div className="repo-detail-label">Language</div>
+            <div className="repo-detail-value">
+              {language ? (
+                <>
+                  <span className="lang-dot" style={{ background: getLanguageColor(language) }} />
+                  {language}
+                </>
+              ) : (
+                "None"
+              )}
             </div>
-            <p>{description}</p>
-            {topics.length ? (
-              <div className="repo-detail-topics">
-                {topics.slice(0, 8).map((topic) => (
-                  <span key={topic}>{topic}</span>
-                ))}
-              </div>
-            ) : null}
-          </section>
+          </div>
+          <div>
+            <div className="repo-detail-label">Last push</div>
+            <div className="repo-detail-value" title={new Date(repo.pushedAt).toLocaleString()}>
+              {formatRelativeTime(repo.pushedAt)}
+            </div>
+          </div>
+          <div>
+            <div className="repo-detail-label">Last update</div>
+            <div className="repo-detail-value" title={new Date(repo.updatedAt).toLocaleString()}>
+              {formatRelativeTime(repo.updatedAt)}
+            </div>
+          </div>
+          {details?.meta?.license?.name ? (
+            <div>
+              <div className="repo-detail-label">License</div>
+              <div className="repo-detail-value">{details.meta.license.name}</div>
+            </div>
+          ) : null}
+          {details?.meta?.default_branch ? (
+            <div>
+              <div className="repo-detail-label">Default branch</div>
+              <div className="repo-detail-value">{details.meta.default_branch}</div>
+            </div>
+          ) : null}
+        </section>
 
-          <section className="repo-detail-stats" aria-label="Repository stats">
-            <div className="repo-detail-stat">
-              <StarIcon />
-              <span>Stars</span>
-              <strong>{formatNumber(repo.stargazerCount)}</strong>
-            </div>
-            <div className="repo-detail-stat">
-              <ForkIcon />
-              <span>Forks</span>
-              <strong>{formatNumber(repo.forkCount)}</strong>
-            </div>
+        <nav className="repo-detail-tabs" aria-label="Repository detail sections">
+          {detailTabs.map((item) => (
             <button
               type="button"
-              className="repo-detail-stat action"
-              onClick={() => onIssuesClick(repo.nameWithOwner)}
+              key={item.key}
+              className={`repo-detail-tab ${activeTab === item.key ? "active" : ""}`}
+              aria-current={activeTab === item.key ? "page" : undefined}
+              onClick={() => onTabChange(item.key)}
             >
-              <IssueIcon />
-              <span>Open issues</span>
-              <strong>{formatNumber(issueCountForRepo(issues, repo.nameWithOwner))}</strong>
+              <span>{item.label}</span>
+              <strong>
+                {loading && item.key !== "overview" && item.count === 0
+                  ? "..."
+                  : formatNumber(item.count)}
+              </strong>
             </button>
-          </section>
+          ))}
+        </nav>
 
-          <section className="repo-detail-grid">
-            <div>
-              <div className="repo-detail-label">Owner</div>
-              <div className="repo-detail-value">{repo.owner.login}</div>
-            </div>
-            <div>
-              <div className="repo-detail-label">Language</div>
-              <div className="repo-detail-value">
-                {language ? (
-                  <>
-                    <span className="lang-dot" style={{ background: getLanguageColor(language) }} />
-                    {language}
-                  </>
-                ) : (
-                  "None"
-                )}
-              </div>
-            </div>
-            <div>
-              <div className="repo-detail-label">Last push</div>
-              <div className="repo-detail-value" title={new Date(repo.pushedAt).toLocaleString()}>
-                {formatRelativeTime(repo.pushedAt)}
-              </div>
-            </div>
-            <div>
-              <div className="repo-detail-label">Last update</div>
-              <div className="repo-detail-value" title={new Date(repo.updatedAt).toLocaleString()}>
-                {formatRelativeTime(repo.updatedAt)}
-              </div>
-            </div>
-            {details?.meta?.license?.name ? (
-              <div>
-                <div className="repo-detail-label">License</div>
-                <div className="repo-detail-value">{details.meta.license.name}</div>
-              </div>
-            ) : null}
-            {details?.meta?.default_branch ? (
-              <div>
-                <div className="repo-detail-label">Default branch</div>
-                <div className="repo-detail-value">{details.meta.default_branch}</div>
-              </div>
-            ) : null}
-          </section>
-
-          <nav className="repo-detail-tabs" aria-label="Repository detail sections">
-            {detailTabs.map((item) => (
-              <button
-                type="button"
-                key={item.key}
-                className={`repo-detail-tab ${activeTab === item.key ? "active" : ""}`}
-                aria-current={activeTab === item.key ? "page" : undefined}
-                onClick={() => onTabChange(item.key)}
-              >
-                <span>{item.label}</span>
-                <strong>
-                  {loading && item.key !== "overview" && item.count === 0
-                    ? "..."
-                    : formatNumber(item.count)}
-                </strong>
-              </button>
-            ))}
-          </nav>
-
-          {activeTab === "overview" ? (
-            <OverviewPanel
-              key={repo.nameWithOwner}
-              repo={repo}
-              details={details}
-              loading={loading}
-            />
-          ) : null}
-          {activeTab === "mentions" ? (
-            <MentionsPanel
-              key={repo.nameWithOwner}
-              mentionIssues={mentionIssues}
-              mentionCode={mentionCode}
-              aliases={aliases}
-              aliasInput={aliasInput}
-              aliasError={aliasError}
-              aliasBusy={aliasBusy}
-              loading={loading}
-              onAliasInputChange={setAliasInput}
-              onSubmitAlias={() => void submitAlias()}
-              onDeleteAlias={(alias) => void deleteAlias(alias)}
-            />
-          ) : null}
-          {activeTab === "actions" ? (
-            <ActionsPanel key={repo.nameWithOwner} details={details} loading={loading} />
-          ) : null}
-          {activeTab === "traffic" ? (
-            <TrafficPanel
-              key={repo.nameWithOwner}
-              details={details}
-              trafficDetails={trafficDetails}
-            />
-          ) : null}
-          {activeTab === "releases" ? (
-            <ReleasesPanel key={repo.nameWithOwner} details={details} loading={loading} />
-          ) : null}
-          {activeTab === "pull-requests" ? (
-            <PullRequestsPanel key={repo.nameWithOwner} repo={repo} pullRequests={pullRequests} />
-          ) : null}
-          {activeTab === "forks" ? <ForksPanel key={repo.nameWithOwner} repo={repo} /> : null}
-          {activeTab === "dependents" ? (
-            <DependentsPanel key={repo.nameWithOwner} dependents={dependents} loading={loading} />
-          ) : null}
-          {activeTab === "issues" ? (
-            <IssuesPanel key={repo.nameWithOwner} repo={repo} issues={issues} />
-          ) : null}
-        </div>
+        {activeTab === "overview" ? (
+          <OverviewPanel key={repo.nameWithOwner} repo={repo} details={details} loading={loading} />
+        ) : null}
+        {activeTab === "mentions" ? (
+          <MentionsPanel
+            key={repo.nameWithOwner}
+            mentionIssues={mentionIssues}
+            mentionCode={mentionCode}
+            aliases={aliases}
+            aliasInput={aliasInput}
+            aliasError={aliasError}
+            aliasBusy={aliasBusy}
+            loading={loading}
+            onAliasInputChange={setAliasInput}
+            onSubmitAlias={() => void submitAlias()}
+            onDeleteAlias={(alias) => void deleteAlias(alias)}
+          />
+        ) : null}
+        {activeTab === "actions" ? (
+          <ActionsPanel key={repo.nameWithOwner} details={details} loading={loading} />
+        ) : null}
+        {activeTab === "traffic" ? (
+          <TrafficPanel
+            key={repo.nameWithOwner}
+            details={details}
+            trafficDetails={trafficDetails}
+          />
+        ) : null}
+        {activeTab === "releases" ? (
+          <ReleasesPanel key={repo.nameWithOwner} details={details} loading={loading} />
+        ) : null}
+        {activeTab === "pull-requests" ? (
+          <PullRequestsPanel key={repo.nameWithOwner} repo={repo} pullRequests={pullRequests} />
+        ) : null}
+        {activeTab === "forks" ? <ForksPanel key={repo.nameWithOwner} repo={repo} /> : null}
+        {activeTab === "dependents" ? (
+          <DependentsPanel key={repo.nameWithOwner} dependents={dependents} loading={loading} />
+        ) : null}
+        {activeTab === "issues" ? (
+          <IssuesPanel key={repo.nameWithOwner} repo={repo} issues={issues} />
+        ) : null}
       </div>
-    </div>
+    </Modal>
   );
 }

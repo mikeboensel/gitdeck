@@ -65,6 +65,8 @@ export const fr: Record<keyof typeof en, string> = {
   "common.clear": "Effacer",
   "common.clearAll": "Tout effacer",
   "common.close": "Fermer",
+  "common.fullscreen": "Plein écran",
+  "common.exitFullscreen": "Quitter le plein écran",
   "common.noMatches": "Aucun résultat",
   "common.of": "sur",
   "common.shown": "affichés",

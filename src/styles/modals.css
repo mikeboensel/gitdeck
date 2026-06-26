@@ -103,7 +103,14 @@
   color: var(--muted);
   font-weight: 700;
 }
-.modal-close {
+.modal-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 0 0 auto;
+}
+.modal-close,
+.modal-action {
   background: none;
   border: none;
   color: var(--muted);
@@ -115,9 +122,85 @@
   align-items: center;
   justify-content: center;
 }
-.modal-close:hover {
+.modal-close:hover,
+.modal-action:hover {
   color: var(--text);
   background: var(--panel-3);
+}
+
+/* ── Fullscreen + resize ─────────────────────────────────────────────────── */
+.modal.fullscreen {
+  /* biome-ignore lint/complexity/noImportantStyles: must beat per-modal width/height size variants (.history-modal etc.) */
+  width: 100vw !important;
+  /* biome-ignore lint/complexity/noImportantStyles: must beat per-modal width/height size variants (.history-modal etc.) */
+  height: 100vh !important;
+  /* biome-ignore lint/complexity/noImportantStyles: must beat per-modal max-height size variants */
+  max-width: 100vw !important;
+  /* biome-ignore lint/complexity/noImportantStyles: must beat per-modal max-height size variants */
+  max-height: 100vh !important;
+  border-radius: 0;
+}
+/* Drag grips on every edge/corner. Edges are thin strips; corners sit on top. */
+.modal-resize {
+  position: absolute;
+  z-index: 2;
+  touch-action: none;
+}
+.modal-resize-n {
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 6px;
+  cursor: ns-resize;
+}
+.modal-resize-s {
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 6px;
+  cursor: ns-resize;
+}
+.modal-resize-e {
+  top: 0;
+  right: 0;
+  width: 6px;
+  height: 100%;
+  cursor: ew-resize;
+}
+.modal-resize-w {
+  top: 0;
+  left: 0;
+  width: 6px;
+  height: 100%;
+  cursor: ew-resize;
+}
+.modal-resize-ne,
+.modal-resize-nw,
+.modal-resize-se,
+.modal-resize-sw {
+  width: 14px;
+  height: 14px;
+  z-index: 3;
+}
+.modal-resize-ne {
+  top: 0;
+  right: 0;
+  cursor: nesw-resize;
+}
+.modal-resize-nw {
+  top: 0;
+  left: 0;
+  cursor: nwse-resize;
+}
+.modal-resize-se {
+  bottom: 0;
+  right: 0;
+  cursor: nwse-resize;
+}
+.modal-resize-sw {
+  bottom: 0;
+  left: 0;
+  cursor: nesw-resize;
 }
 
 .modal-toolbar {

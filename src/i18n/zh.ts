@@ -64,6 +64,8 @@ export const zh: Record<keyof typeof en, string> = {
   "common.clear": "清除",
   "common.clearAll": "全部清除",
   "common.close": "关闭",
+  "common.fullscreen": "全屏",
+  "common.exitFullscreen": "退出全屏",
   "common.noMatches": "无匹配",
   "common.of": "/",
   "common.shown": "已显示",

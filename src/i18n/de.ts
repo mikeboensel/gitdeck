@@ -65,6 +65,8 @@ export const de: Record<keyof typeof en, string> = {
   "common.clear": "Leeren",
   "common.clearAll": "Alles leeren",
   "common.close": "Schließen",
+  "common.fullscreen": "Vollbild",
+  "common.exitFullscreen": "Vollbild beenden",
   "common.noMatches": "Keine Treffer",
   "common.of": "von",
   "common.shown": "angezeigt",

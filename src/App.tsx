@@ -534,21 +534,7 @@ export function App() {
 
   useCommandPaletteHotkey(setPaletteOpen);
 
-  useEscapeToClose({
-    paletteOpen,
-    routeRepoName,
-    changelogOpen,
-    contributorsOpen,
-    welcomeOpen,
-    filtersOpen,
-    tab,
-    navigate,
-    setPaletteOpen,
-    setChangelogOpen,
-    setContributorsOpen,
-    setWelcomeOpen,
-    setFiltersOpen,
-  });
+  useEscapeToClose({ filtersOpen, setFiltersOpen });
 
   useEffect(() => localStorage.setItem("gh-dash.repoLayout", repoLayout), [repoLayout]);
   useEffect(() => localStorage.setItem("gh-dash.repoDensity", repoDensity), [repoDensity]);

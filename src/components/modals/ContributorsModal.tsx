@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { errorMessage } from "../../utils/errors";
 import { formatNumber } from "../../utils/format";
-import { CloseIcon } from "../common/Icons";
+import { Modal } from "../common/Modal";
 
 interface ContributorsModalProps {
   onClose: () => void;
@@ -45,54 +45,49 @@ export function ContributorsModal({ onClose }: ContributorsModalProps) {
   }, []);
 
   return (
-    <div className="modal-root">
-      {/* biome-ignore lint/a11y/noStaticElementInteractions: backdrop click-to-close; keyboard users close via the visible Close button */}
-      {/* biome-ignore lint/a11y/useKeyWithClickEvents: backdrop click-to-close; keyboard users close via the visible Close button */}
-      <div className="modal-backdrop" onClick={onClose} />
-      <div className="modal" role="dialog" aria-modal="true">
-        <header className="modal-head">
-          <div className="modal-title">
-            <span className="modal-icon repository">★</span>
-            <div style={{ minWidth: 0 }}>
-              <div className="kind">Contributors</div>
-              <h3>{REPO}</h3>
-            </div>
+    <Modal
+      ariaLabel="Contributors"
+      onClose={onClose}
+      title={
+        <>
+          <span className="modal-icon repository">★</span>
+          <div style={{ minWidth: 0 }}>
+            <div className="kind">Contributors</div>
+            <h3>{REPO}</h3>
           </div>
-          <button type="button" className="modal-close" aria-label="Close" onClick={onClose}>
-            <CloseIcon />
-          </button>
-        </header>
-        <div className="modal-toolbar">
-          <span className="modal-count">
-            <strong>{loading ? "..." : formatNumber(contributors.length)}</strong> people
-          </span>
-          <div className="spacer" style={{ flex: 1 }} />
-          <a
-            className="modal-count"
-            href={`https://github.com/${REPO}/graphs/contributors`}
-            target="_blank"
-            rel="noreferrer"
-          >
-            View on GitHub →
-          </a>
-        </div>
-        <div className={`modal-body ${loading ? "loading" : ""}`}>
-          {error ? <div className="modal-error">{error}</div> : null}
-          {!error &&
-            contributors.map((contributor) => (
-              <div className="sg-row" key={contributor.login}>
-                <img src={contributor.avatar_url} alt="" />
-                <a className="login" href={contributor.html_url} target="_blank" rel="noreferrer">
-                  {contributor.login}
-                </a>
-                <span className="when">{formatNumber(contributor.contributions)} commits</span>
-              </div>
-            ))}
-          {!error && !loading && !contributors.length ? (
-            <div className="modal-empty">No contributors found.</div>
-          ) : null}
-        </div>
+        </>
+      }
+    >
+      <div className="modal-toolbar">
+        <span className="modal-count">
+          <strong>{loading ? "..." : formatNumber(contributors.length)}</strong> people
+        </span>
+        <div className="spacer" style={{ flex: 1 }} />
+        <a
+          className="modal-count"
+          href={`https://github.com/${REPO}/graphs/contributors`}
+          target="_blank"
+          rel="noreferrer"
+        >
+          View on GitHub →
+        </a>
       </div>
-    </div>
+      <div className={`modal-body ${loading ? "loading" : ""}`}>
+        {error ? <div className="modal-error">{error}</div> : null}
+        {!error &&
+          contributors.map((contributor) => (
+            <div className="sg-row" key={contributor.login}>
+              <img src={contributor.avatar_url} alt="" />
+              <a className="login" href={contributor.html_url} target="_blank" rel="noreferrer">
+                {contributor.login}
+              </a>
+              <span className="when">{formatNumber(contributor.contributions)} commits</span>
+            </div>
+          ))}
+        {!error && !loading && !contributors.length ? (
+          <div className="modal-empty">No contributors found.</div>
+        ) : null}
+      </div>
+    </Modal>
   );
 }

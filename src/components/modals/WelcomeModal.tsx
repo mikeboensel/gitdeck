@@ -1,6 +1,6 @@
 import { useI18n } from "../../i18n/I18nProvider";
 import { APP_VERSION } from "../../version";
-import { CloseIcon } from "../common/Icons";
+import { Modal } from "../common/Modal";
 
 interface WelcomeModalProps {
   onClose: () => void;
@@ -10,55 +10,46 @@ interface WelcomeModalProps {
 export function WelcomeModal({ onClose, onViewChangelog }: WelcomeModalProps) {
   const { t } = useI18n();
   return (
-    <div className="modal-root">
-      {/* biome-ignore lint/a11y/noStaticElementInteractions: backdrop click-to-close; keyboard users close via the visible Close button */}
-      {/* biome-ignore lint/a11y/useKeyWithClickEvents: backdrop click-to-close; keyboard users close via the visible Close button */}
-      <div className="modal-backdrop" onClick={onClose} />
-      <div className="modal welcome-modal" role="dialog" aria-modal="true">
-        <header className="modal-head">
-          <div className="modal-title">
-            <span className="modal-icon welcome">✦</span>
-            <div style={{ minWidth: 0 }}>
-              <div className="kind">{t("welcome.kind")}</div>
-              <h3>gh-dashboard</h3>
-            </div>
+    <Modal
+      className="welcome-modal"
+      ariaLabel={t("welcome.kind")}
+      onClose={onClose}
+      title={
+        <>
+          <span className="modal-icon welcome">✦</span>
+          <div style={{ minWidth: 0 }}>
+            <div className="kind">{t("welcome.kind")}</div>
+            <h3>gh-dashboard</h3>
           </div>
-          <button
-            type="button"
-            className="modal-close"
-            aria-label={t("common.close")}
-            onClick={onClose}
-          >
-            <CloseIcon />
-          </button>
-        </header>
-        <div className="modal-body welcome-body">
-          <p className="welcome-lead">{t("welcome.lead")}</p>
-          <ul className="welcome-list">
-            <li>
-              <strong>{t("welcome.repositoriesTitle")}</strong> - {t("welcome.repositoriesText")}
-            </li>
-            <li>
-              <strong>{t("welcome.inboxTitle")}</strong> - {t("welcome.inboxText")}
-            </li>
-            <li>
-              <strong>{t("welcome.insightsTitle")}</strong> - {t("welcome.insightsText")}
-            </li>
-            <li>
-              <strong>{t("welcome.localTitle")}</strong> - {t("welcome.localText")}
-            </li>
-          </ul>
-          <div className="welcome-meta">{t("welcome.version", { version: APP_VERSION })}</div>
-        </div>
-        <footer className="welcome-foot">
-          <button type="button" className="btn ghost" onClick={onViewChangelog}>
-            {t("welcome.whatsNew")}
-          </button>
-          <button type="button" className="btn primary" onClick={onClose}>
-            {t("welcome.getStarted")}
-          </button>
-        </footer>
+        </>
+      }
+    >
+      <div className="modal-body welcome-body">
+        <p className="welcome-lead">{t("welcome.lead")}</p>
+        <ul className="welcome-list">
+          <li>
+            <strong>{t("welcome.repositoriesTitle")}</strong> - {t("welcome.repositoriesText")}
+          </li>
+          <li>
+            <strong>{t("welcome.inboxTitle")}</strong> - {t("welcome.inboxText")}
+          </li>
+          <li>
+            <strong>{t("welcome.insightsTitle")}</strong> - {t("welcome.insightsText")}
+          </li>
+          <li>
+            <strong>{t("welcome.localTitle")}</strong> - {t("welcome.localText")}
+          </li>
+        </ul>
+        <div className="welcome-meta">{t("welcome.version", { version: APP_VERSION })}</div>
       </div>
-    </div>
+      <footer className="welcome-foot">
+        <button type="button" className="btn ghost" onClick={onViewChangelog}>
+          {t("welcome.whatsNew")}
+        </button>
+        <button type="button" className="btn primary" onClick={onClose}>
+          {t("welcome.getStarted")}
+        </button>
+      </footer>
+    </Modal>
   );
 }
