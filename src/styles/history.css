@@ -1,0 +1,491 @@
+/* Commit-history graph modal (CommitHistoryModal) + the clickable commit line
+   that opens it from a local-repo card/row. */
+
+/* Reset the commit line back to looking like the inline stat it replaced, while
+   gaining button affordances (pointer, hover, focus ring). */
+.local-history-btn {
+  appearance: none;
+  border: none;
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+}
+.local-history-btn:hover {
+  color: var(--accent);
+}
+.local-history-btn:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* The history modal is much larger than the clone modal: it needs room for the
+   graph canvas + detail pane. */
+.history-modal {
+  width: min(1100px, 94vw);
+  height: min(760px, 90vh);
+  display: flex;
+  flex-direction: column;
+}
+
+.history-body {
+  flex: 1;
+  display: flex;
+  min-height: 0; /* let children scroll instead of overflowing the modal */
+}
+
+.history-graph {
+  flex: 1;
+  min-width: 0;
+  position: relative;
+  border-right: 1px solid var(--border);
+  background: var(--bg);
+}
+
+.history-detail {
+  width: 360px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  /* Panel itself doesn't scroll; the message and file-list regions scroll
+     independently so the commit message always keeps reserved space. */
+  overflow: hidden;
+  padding: 14px 16px;
+  gap: 12px;
+}
+
+/* Chrono/topo ordering toggle, pinned to the graph pane's top-left corner. */
+.history-order {
+  position: absolute;
+  top: 8px;
+  left: 12px;
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 7px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  z-index: 5;
+}
+.history-order-btn {
+  appearance: none;
+  border: none;
+  background: none;
+  cursor: pointer;
+  padding: 2px 8px;
+  border-radius: 5px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.history-order-btn:hover {
+  color: var(--text);
+}
+.history-order-btn.active {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+/* Commit count (+ truncation note) pinned to the graph pane corner. */
+.history-graph-meta {
+  position: absolute;
+  top: 8px;
+  right: 12px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 11px;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.history-status {
+  padding: 16px;
+  color: var(--muted);
+  font-size: 13px;
+}
+.history-status.error {
+  color: var(--danger);
+  white-space: pre-wrap;
+}
+
+/* ── Graph nodes ─────────────────────────────────────────────────────────── */
+/* Nodes declare a fixed box to React Flow (so it skips measurement); let the
+   visual content overflow that box so long ref badges aren't clipped. */
+.history-graph .react-flow__node {
+  overflow: visible;
+}
+.commit-node {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  width: max-content;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--panel);
+  font-size: 12px;
+  color: var(--text);
+  cursor: pointer;
+}
+.commit-node.selected {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+.commit-handle {
+  opacity: 0;
+}
+.commit-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--muted);
+  flex-shrink: 0;
+}
+/* HEAD keeps its lane color but gains a ring so it stands out. */
+.commit-dot.head {
+  box-shadow:
+    0 0 0 2px var(--bg),
+    0 0 0 3px var(--text);
+}
+.commit-sha {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+.commit-refs {
+  display: inline-flex;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.commit-ref {
+  padding: 0 5px;
+  border-radius: 999px;
+  font-size: 10px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  white-space: nowrap;
+}
+.commit-ref.head {
+  background: var(--accent);
+  color: var(--active-text, #fff);
+}
+
+/* ── Detail pane ─────────────────────────────────────────────────────────── */
+.history-detail-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+.history-sha {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  color: var(--muted);
+}
+.history-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  font-size: 11px;
+  color: var(--muted);
+}
+.history-author {
+  color: var(--text);
+}
+.history-message {
+  margin: 0;
+  padding: 10px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  /* Reserve a guaranteed slice for the message, capped so a long file list
+     can't crowd it out; it scrolls internally past the cap. */
+  flex: 0 1 auto;
+  min-height: 48px;
+  max-height: 45%;
+  overflow-y: auto;
+}
+/* Collapsible "N changed files" header (a toggle button). */
+.history-files-head {
+  appearance: none;
+  border: none;
+  background: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  flex: 0 0 auto;
+}
+.history-files-head:hover {
+  color: var(--text);
+}
+.history-files-chevron {
+  display: inline-flex;
+  transition: transform 0.15s ease;
+}
+.history-files-head.open .history-files-chevron {
+  transform: rotate(90deg);
+}
+.history-files {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  /* Take the remaining space and scroll internally so the branch action below
+     and the message above both stay visible. */
+  flex: 1 1 0;
+  min-height: 0;
+  overflow-y: auto;
+}
+.history-file {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  padding: 2px 0;
+}
+.history-file-status {
+  width: 14px;
+  text-align: center;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  flex-shrink: 0;
+  color: var(--muted);
+}
+.history-file-status.status-A {
+  color: var(--success);
+}
+.history-file-status.status-D {
+  color: var(--danger);
+}
+.history-file-status.status-M {
+  color: var(--warn);
+}
+.history-file-path {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.history-file-stat {
+  display: inline-flex;
+  gap: 6px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  flex-shrink: 0;
+}
+.history-file-stat .add {
+  color: var(--success);
+}
+.history-file-stat .del {
+  color: var(--danger);
+}
+.history-file-stat .bin {
+  color: var(--muted);
+}
+
+/* ── Stash viewer (StashViewerModal) ─────────────────────────────────────────
+   Reuses the history modal shell; the left rail is a selectable list of stash
+   entries and the right (wide) pane renders the selected stash's diff. */
+.stash-list-pane {
+  width: 300px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--border);
+  background: var(--bg);
+  overflow-y: auto;
+}
+.stash-list {
+  list-style: none;
+  margin: 0;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.stash-entry {
+  appearance: none;
+  border: 1px solid transparent;
+  background: none;
+  cursor: pointer;
+  font: inherit;
+  color: var(--text);
+  text-align: left;
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 7px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.stash-entry:hover {
+  background: var(--panel);
+}
+.stash-entry.selected {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+.stash-entry-top {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.stash-entry-ref {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+.stash-entry-branch {
+  font-size: 11px;
+  color: var(--accent);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.stash-entry-date {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--muted);
+  flex-shrink: 0;
+}
+.stash-entry-msg {
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Right pane: per-file diff with a split/unified toggle in a sticky header. */
+.stash-diff-pane {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.stash-diff-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border);
+  flex: 0 0 auto;
+}
+.stash-diff-meta {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+  font-size: 11px;
+  color: var(--muted);
+}
+.stash-diff-count {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+.stash-mode {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 7px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.stash-mode-btn {
+  appearance: none;
+  border: none;
+  background: none;
+  cursor: pointer;
+  padding: 2px 8px;
+  border-radius: 5px;
+  font-size: 11px;
+  color: var(--muted);
+}
+.stash-mode-btn:hover {
+  color: var(--text);
+}
+.stash-mode-btn.active {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.stash-diff-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 10px;
+}
+.diff-files {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.diff-file {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.diff-file-name {
+  padding: 6px 10px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  color: var(--text);
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.diff-file-binary {
+  padding: 10px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+/* ── Create-branch affordance ────────────────────────────────────────────── */
+.history-branch {
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.history-branch-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.history-branch-input {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+}
+.history-branch-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}

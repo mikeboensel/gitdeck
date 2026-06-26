@@ -5,7 +5,10 @@ import type {
   DailyDigestsData,
   DependentItem,
   ForkNode,
+  HistoryOrder,
   IssuesData,
+  LocalCommitDetail,
+  LocalRepoHistory,
   LocalReposConfig,
   LocalReposData,
   MentionCodeItem,
@@ -263,6 +266,42 @@ export function cloneRepository(params: {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(params),
+  });
+}
+
+/** Fetch a local repo's commit DAG across all refs. `order` selects chronological
+ * (`date`) vs topological (`topo`) ordering. The server validates `path` against
+ * the scanned-repo list and serves a ref-fingerprint-cached result. */
+export function fetchLocalRepoHistory(
+  path: string,
+  order: HistoryOrder = "date",
+  signal?: AbortSignal,
+): Promise<LocalRepoHistory> {
+  const query = new URLSearchParams({ path, order });
+  return readJson(`/api/local-repos/history?${query.toString()}`, withSignal(signal));
+}
+
+/** Fetch one commit's message + changed-file list for a scanned local repo. */
+export function fetchLocalCommit(
+  path: string,
+  sha: string,
+  signal?: AbortSignal,
+): Promise<LocalCommitDetail> {
+  const query = new URLSearchParams({ path, sha });
+  return readJson(`/api/local-repos/commit?${query.toString()}`, withSignal(signal));
+}
+
+/** Create a branch at `sha` and check it out. Throws (with the server's message)
+ * when the working tree is dirty (409) or git otherwise refuses. */
+export function createLocalBranch(
+  path: string,
+  sha: string,
+  name: string,
+): Promise<{ ok: true; branch: string }> {
+  return readJson("/api/local-repos/create-branch", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ path, sha, name }),
   });
 }
 

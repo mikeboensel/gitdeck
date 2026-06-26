@@ -6,6 +6,7 @@ import { DEFAULT_TTL_MS } from "./api/cache";
 import { TooltipLayer } from "./components/common/TooltipLayer";
 import { AccountProvider } from "./contexts/AccountContext";
 import { CloneRepoProvider } from "./contexts/CloneRepoProvider";
+import { CommitHistoryProvider } from "./contexts/CommitHistoryProvider";
 import { RightClickMenuProvider } from "./contexts/RightClickMenuProvider";
 import { I18nProvider } from "./i18n/I18nProvider";
 import "./styles.css";
@@ -23,10 +24,12 @@ createRoot(document.getElementById("root")!).render(
         <BrowserRouter>
           <RightClickMenuProvider>
             <CloneRepoProvider>
-              <App />
-              {/* Delegated tooltip layer: listens for [data-tip] hover/focus and
-                self-portals to document.body, so it escapes card overflow clipping. */}
-              <TooltipLayer />
+              <CommitHistoryProvider>
+                <App />
+                {/* Delegated tooltip layer: listens for [data-tip] hover/focus and
+                  self-portals to document.body, so it escapes card overflow clipping. */}
+                <TooltipLayer />
+              </CommitHistoryProvider>
             </CloneRepoProvider>
           </RightClickMenuProvider>
         </BrowserRouter>

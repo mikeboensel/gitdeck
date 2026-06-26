@@ -216,6 +216,63 @@ export interface LocalReposData {
   scannedAt: string;
 }
 
+/** Commit ordering for the history graph: chronological vs topological. */
+export type HistoryOrder = "date" | "topo";
+
+/** One commit node in a local repo's history DAG (`/api/local-repos/history`). */
+export interface LocalCommitNode {
+  /** Full 40-char commit SHA. */
+  sha: string;
+  /** Parent SHAs — empty for a root commit, more than one for a merge. */
+  parents: string[];
+  /** Author name. */
+  author: string;
+  /** Author date, ISO-8601. */
+  date: string;
+  /** Ref names pointing here (branch tips, tags, HEAD). */
+  refs: string[];
+  /** Commit subject line. */
+  subject: string;
+}
+
+export interface LocalRepoHistory {
+  ok: true;
+  /** Commits across all refs, newest first (`git log --all --date-order`). */
+  commits: LocalCommitNode[];
+  /** SHA at HEAD, or null (empty repo). */
+  head: string | null;
+  /** Currently checked-out branch, or null (detached/unknown). */
+  currentBranch: string | null;
+  /** True when more commits exist than were returned (history was capped). */
+  truncated: boolean;
+}
+
+/** A single file changed by a commit (`/api/local-repos/commit`). */
+export interface LocalChangedFile {
+  path: string;
+  /** Single-letter status: A(dded), M(odified), D(eleted), T(ype change). */
+  status: string;
+  /** Lines added; null for a binary file. */
+  additions: number | null;
+  /** Lines deleted; null for a binary file. */
+  deletions: number | null;
+}
+
+export interface LocalCommitDetail {
+  ok: true;
+  commit: {
+    sha: string;
+    author: string;
+    /** Author date, ISO-8601. */
+    authorDate: string;
+    /** Committer date, ISO-8601. */
+    commitDate: string;
+    /** Full commit message (subject + body). */
+    message: string;
+  };
+  files: LocalChangedFile[];
+}
+
 /** User-tunable scan configuration, persisted at ~/.gitdeck/local-repos.json. */
 export interface LocalReposConfig {
   /** Root directories to scan. Empty ⇒ server default (home directory). */
