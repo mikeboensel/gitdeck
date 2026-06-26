@@ -91,6 +91,127 @@ describe("GET /api/mentions/referrers", () => {
   });
 });
 
+describe("GET /api/mentions/code", () => {
+  it("maps items and excludes self-named repos (repo + aliases)", async () => {
+    aliasMock.mockResolvedValue(["o/alias"]);
+    restMock.mockResolvedValue({
+      ok: true,
+      data: {
+        items: [
+          { path: "a.ts", html_url: "h1", repository: { full_name: "other/repo" } },
+          { path: "b.ts", html_url: "h2", repository: { full_name: "o/r" } }, // self
+          { path: "c.ts", html_url: "h3", repository: { full_name: "o/alias" } }, // alias self
+        ],
+      },
+    });
+    const res = await app.request("/api/mentions/code?repo=o/r");
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.ok).toBe(true);
+    expect(body.totalCount).toBe(1);
+    expect(body.items[0].repository.nameWithOwner).toBe("other/repo");
+    expect(body.aliases).toEqual(["o/alias"]);
+  });
+
+  it("treats a missing items array as empty", async () => {
+    restMock.mockResolvedValue({ ok: true, data: {} });
+    const res = await app.request("/api/mentions/code?repo=o/r");
+    expect(res.status).toBe(200);
+    expect(await res.json()).toMatchObject({ ok: true, totalCount: 0, items: [] });
+  });
+
+  it("maps a 401 to needsAuth", async () => {
+    restMock.mockResolvedValue({ ok: false, error: "nope", status: 401 });
+    const res = await app.request("/api/mentions/code?repo=o/r");
+    expect(res.status).toBe(401);
+    expect(await res.json()).toMatchObject({ ok: false, needsAuth: true });
+  });
+
+  it("maps a non-401 failure to 500", async () => {
+    restMock.mockResolvedValue({ ok: false, error: "boom", status: 500 });
+    const res = await app.request("/api/mentions/code?repo=o/r");
+    expect(res.status).toBe(500);
+    expect(await res.json()).toMatchObject({ ok: false, error: "boom" });
+  });
+
+  it("rejects a malformed repo before calling the API", async () => {
+    const res = await app.request("/api/mentions/code?repo=bad");
+    expect(res.status).toBe(400);
+    expect(restMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("GET /api/mentions/referrers (mixed/success)", () => {
+  it("returns data with forbidden=false when all endpoints succeed", async () => {
+    ghMock
+      .mockResolvedValueOnce({ ok: true, data: [{ referrer: "x" }] }) // referrers
+      .mockResolvedValueOnce({ ok: true, data: [{ path: "/p" }] }) // paths
+      .mockResolvedValueOnce({ ok: true, data: { count: 5 } }) // views
+      .mockResolvedValueOnce({ ok: true, data: { count: 2 } }); // clones
+    const res = await app.request("/api/mentions/referrers?repo=o/r");
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body).toMatchObject({
+      ok: true,
+      forbidden: false,
+      referrers: [{ referrer: "x" }],
+      paths: [{ path: "/p" }],
+      views: { count: 5 },
+      clones: { count: 2 },
+    });
+  });
+
+  it("flags forbidden when only one endpoint is 403 (mixed)", async () => {
+    ghMock
+      .mockResolvedValueOnce({ ok: true, data: [{ referrer: "x" }] })
+      .mockResolvedValueOnce({ ok: false, error: "denied", status: 403 }) // paths forbidden
+      .mockResolvedValueOnce({ ok: true, data: { count: 5 } })
+      .mockResolvedValueOnce({ ok: true, data: { count: 2 } });
+    const res = await app.request("/api/mentions/referrers?repo=o/r");
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body.forbidden).toBe(true);
+    // forbidden endpoint falls back to its empty shape; others keep data.
+    expect(body.paths).toEqual([]);
+    expect(body.referrers).toEqual([{ referrer: "x" }]);
+  });
+
+  it("detects forbidden via the error message even without a 403 status", async () => {
+    ghMock
+      .mockResolvedValueOnce({ ok: false, error: "403 Forbidden", status: 0 })
+      .mockResolvedValueOnce({ ok: true, data: [] })
+      .mockResolvedValueOnce({ ok: true, data: {} })
+      .mockResolvedValueOnce({ ok: true, data: {} });
+    const res = await app.request("/api/mentions/referrers?repo=o/r");
+    expect((await res.json()).forbidden).toBe(true);
+  });
+
+  it("falls back to [] for list endpoints and null for views/clones on non-403 failures", async () => {
+    ghMock
+      .mockResolvedValueOnce({ ok: false, error: "not found", status: 404 })
+      .mockResolvedValueOnce({ ok: false, error: "not found", status: 404 })
+      .mockResolvedValueOnce({ ok: false, error: "not found", status: 404 })
+      .mockResolvedValueOnce({ ok: false, error: "not found", status: 404 });
+    const res = await app.request("/api/mentions/referrers?repo=o/r");
+    expect(res.status).toBe(200);
+    const body = await res.json();
+    expect(body).toMatchObject({
+      ok: true,
+      forbidden: false, // 404 is not forbidden
+      referrers: [],
+      paths: [],
+      views: null,
+      clones: null,
+    });
+  });
+
+  it("rejects a malformed repo before calling the API", async () => {
+    const res = await app.request("/api/mentions/referrers?repo=bad");
+    expect(res.status).toBe(400);
+    expect(ghMock).not.toHaveBeenCalled();
+  });
+});
+
 describe("GET /api/mentions/dependents", () => {
   afterEach(() => {
     vi.unstubAllGlobals();
