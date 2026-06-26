@@ -38,7 +38,7 @@ export type CIHealthResult =
   | { ok: true; repos: RepoCIHealth[]; fetchedAt: string }
   | { ok: false; error: string; needsAuth?: true };
 
-interface RawWorkflowRun {
+export interface RawWorkflowRun {
   id: number;
   name: string | null;
   status: string;
@@ -60,7 +60,7 @@ const RUNS_PER_REPO = 30;
 const CONCURRENCY = 6;
 const TTL_MS = 10 * 60 * 1000;
 
-function summarizeRun(run: RawWorkflowRun): CIRunSummary {
+export function summarizeRun(run: RawWorkflowRun): CIRunSummary {
   const start = run.run_started_at ?? run.created_at;
   const end = run.updated_at;
   const durationMs = end && start ? Date.parse(end) - Date.parse(start) : NaN;
@@ -78,7 +78,7 @@ function summarizeRun(run: RawWorkflowRun): CIRunSummary {
   };
 }
 
-function aggregate(repo: GhRepo, runs: RawWorkflowRun[]): RepoCIHealth | null {
+export function aggregate(repo: GhRepo, runs: RawWorkflowRun[]): RepoCIHealth | null {
   if (!runs.length) return null;
   let success = 0;
   let failure = 0;
