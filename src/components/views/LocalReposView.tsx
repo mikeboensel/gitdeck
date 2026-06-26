@@ -376,7 +376,7 @@ function useLocalRepoActions(repo: LocalRepo): {
     return () => clearTimeout(id);
   }, [actionError]);
 
-  const runOpen = (target: "finder" | "cursor") => {
+  const runOpen = (target: "finder" | "cursor" | "terminal") => {
     setActionError("");
     openLocalRepo(repo.path, target).catch((err: unknown) => {
       setActionError(`${t("local.openFailed")}: ${errorMessage(err)}`);
@@ -388,7 +388,11 @@ function useLocalRepoActions(repo: LocalRepo): {
       ariaLabel: repo.name,
       items: buildLocalRepoMenu(
         repo,
-        { onReveal: () => runOpen("finder"), onOpenInCursor: () => runOpen("cursor") },
+        {
+          onReveal: () => runOpen("finder"),
+          onOpenInCursor: () => runOpen("cursor"),
+          onOpenInTerminal: () => runOpen("terminal"),
+        },
         t,
       ),
     });

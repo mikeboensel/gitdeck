@@ -8,6 +8,7 @@ export const de: Record<keyof typeof en, string> = {
   "menu.copyUrl": "URL kopieren",
   "menu.revealInFinder": "Im Finder anzeigen",
   "menu.openInCursor": "In Cursor öffnen",
+  "menu.openInTerminal": "Im Terminal öffnen",
   "menu.copyPath": "Pfad kopieren",
   "menu.clone": "Klonen…",
   "clone.title": "Repository klonen",

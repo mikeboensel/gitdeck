@@ -8,6 +8,7 @@ export const zh: Record<keyof typeof en, string> = {
   "menu.copyUrl": "复制 URL",
   "menu.revealInFinder": "在访达中显示",
   "menu.openInCursor": "在 Cursor 中打开",
+  "menu.openInTerminal": "在终端中打开",
   "menu.copyPath": "复制路径",
   "menu.clone": "克隆…",
   "clone.title": "克隆仓库",

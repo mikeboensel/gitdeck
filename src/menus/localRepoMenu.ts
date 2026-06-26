@@ -12,6 +12,8 @@ export interface LocalRepoMenuActions {
   onReveal: (repo: LocalRepo) => void;
   /** Open the repo in Cursor. */
   onOpenInCursor: (repo: LocalRepo) => void;
+  /** Open the repo's folder in a new Terminal window. */
+  onOpenInTerminal: (repo: LocalRepo) => void;
 }
 
 /**
@@ -26,6 +28,11 @@ export function buildLocalRepoMenu(
   const items: ContextMenuItem[] = [
     { key: "finder", label: t("menu.revealInFinder"), onSelect: () => actions.onReveal(repo) },
     { key: "cursor", label: t("menu.openInCursor"), onSelect: () => actions.onOpenInCursor(repo) },
+    {
+      key: "terminal",
+      label: t("menu.openInTerminal"),
+      onSelect: () => actions.onOpenInTerminal(repo),
+    },
     {
       key: "copyPath",
       label: t("menu.copyPath"),

@@ -208,9 +208,12 @@ export function updateLocalReposConfig(
   });
 }
 
-/** Open a scanned local repo's folder natively: Finder or Cursor. The server
- * validates `path` against the scanned-repo list before running `open`. */
-export function openLocalRepo(path: string, target: "finder" | "cursor"): Promise<{ ok: true }> {
+/** Open a scanned local repo's folder natively: Finder, Cursor, or Terminal. The
+ * server validates `path` against the scanned-repo list before running `open`. */
+export function openLocalRepo(
+  path: string,
+  target: "finder" | "cursor" | "terminal",
+): Promise<{ ok: true }> {
   return readJson("/api/local-repos/open", {
     method: "POST",
     headers: { "Content-Type": "application/json" },

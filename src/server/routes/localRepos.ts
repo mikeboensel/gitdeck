@@ -22,15 +22,18 @@ const freshQuery = z.object({ fresh: z.string().optional() });
 const errContent = { content: { "application/json": { schema: errEnvelope } } };
 
 /** macOS `open` invocation per target. `open <path>` opens the folder in Finder;
- * `open -a Cursor <path>` launches Cursor at the repo. execFile (no shell) so the
- * path is always a single literal argument — never interpolated into a command. */
-const OPEN_ARGS: Record<"finder" | "cursor", (path: string) => string[]> = {
+ * `open -a Cursor <path>` launches Cursor at the repo; `open -a Terminal <path>`
+ * opens a Terminal window with its working directory set to the repo. execFile
+ * (no shell) so the path is always a single literal argument — never
+ * interpolated into a command. */
+const OPEN_ARGS: Record<"finder" | "cursor" | "terminal", (path: string) => string[]> = {
   finder: (path) => [path],
   cursor: (path) => ["-a", "Cursor", path],
+  terminal: (path) => ["-a", "Terminal", path],
 };
 
 const OpenBody = z
-  .object({ path: z.string(), target: z.enum(["finder", "cursor"]) })
+  .object({ path: z.string(), target: z.enum(["finder", "cursor", "terminal"]) })
   .openapi("LocalRepoOpenBody");
 
 const LocalReposResponse = okEnvelope({

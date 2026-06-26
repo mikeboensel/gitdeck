@@ -6,6 +6,7 @@ export const en = {
   "menu.copyUrl": "Copy URL",
   "menu.revealInFinder": "Reveal in Finder",
   "menu.openInCursor": "Open in Cursor",
+  "menu.openInTerminal": "Open in Terminal",
   "menu.copyPath": "Copy path",
   "menu.clone": "Clone…",
   "clone.title": "Clone repository",
