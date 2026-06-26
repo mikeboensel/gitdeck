@@ -2,13 +2,10 @@ import { useQuery } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   LuArchive,
-  LuBuilding2,
   LuChevronRight,
   LuFileDiff,
-  LuGitBranch,
   LuListFilter,
   LuSearch,
-  LuServer,
   LuTerminal,
 } from "react-icons/lu";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
@@ -39,7 +36,6 @@ import {
   tabFromPath,
 } from "./appHelpers";
 import { AuthGate } from "./components/AuthGate";
-import { Avatar } from "./components/common/Avatar";
 import {
   BarChartIcon,
   BoardIcon,
@@ -62,8 +58,8 @@ import { type DetailTab, RepositoryDetailsModal } from "./components/modals/Repo
 import { type MetricKind, RepositoryMetricModal } from "./components/modals/RepositoryMetricModal";
 import { WelcomeModal } from "./components/modals/WelcomeModal";
 import { type InboxSidebarState, SidebarControls } from "./components/SidebarControls";
-import { type FacetGroup, FacetSidebar } from "./components/sidebar/FacetSidebar";
-import { FilterSection, toggleSetValue } from "./components/sidebar/primitives";
+import { FacetSidebar } from "./components/sidebar/FacetSidebar";
+import { FilterSection } from "./components/sidebar/primitives";
 import { TopBar } from "./components/TopBar";
 import { AlertsPanel } from "./components/views/AlertsPanel";
 import { CiPanel } from "./components/views/CiPanel";
@@ -86,6 +82,7 @@ import { WidgetHost } from "./components/widgets/WidgetHost";
 import { useAccounts, useCapability } from "./contexts/AccountContext";
 import { useCommandPaletteHotkey } from "./hooks/useCommandPaletteHotkey";
 import { useEscapeToClose } from "./hooks/useEscapeToClose";
+import { useFilteredDashboard } from "./hooks/useFilteredDashboard";
 import { useInbox } from "./hooks/useInbox";
 import { useLocalRepos } from "./hooks/useLocalRepos";
 import { useTabsCompact } from "./hooks/useTabsCompact";
@@ -97,7 +94,6 @@ import type {
   GhRepo,
   IssuesData,
   PullRequestsData,
-  RepoInsight,
   ReposData,
 } from "./types/github";
 import {
@@ -106,20 +102,7 @@ import {
   readCollaboratorsCache,
   writeCollaboratorsCache,
 } from "./utils/collaboratorsCache";
-import {
-  buildIssueFacets,
-  buildPullRequestFacets,
-  buildRepoFacets,
-  filterIssues,
-  filterPullRequests,
-  filterRepos,
-  type IssueFilters,
-  type PullRequestFilters,
-  type RepoFilters,
-  sortIssues,
-  sortPullRequests,
-  sortRepos,
-} from "./utils/dashboard";
+import type { IssueFilters, PullRequestFilters, RepoFilters } from "./utils/dashboard";
 import { errorMessage } from "./utils/errors";
 import {
   clearFiltersCache,
@@ -136,13 +119,10 @@ import {
 import { formatNumber } from "./utils/format";
 import type { InboxMailbox } from "./utils/inbox";
 import {
-  buildLocalFacets,
   DEFAULT_LOCAL_SORT,
   defaultLocalFilters,
-  filterLocalRepos,
   type LocalRepoFilters,
   type LocalSort,
-  shortRemote,
 } from "./utils/localRepos";
 import { clearStatsCache, readStatsCache, writeStatsCache } from "./utils/statsCache";
 
@@ -637,103 +617,37 @@ export function App() {
     );
   }, [repoFilters, issueFilters, prFilters, issueSort, prSort, repoSort, localSort, localFilters]);
 
-  const issueFacets = useMemo(() => buildIssueFacets(issues), [issues]);
-  const prFacets = useMemo(() => buildPullRequestFacets(pullRequests), [pullRequests]);
-  const repoFacets = useMemo(
-    () => buildRepoFacets(repos, collaboratorsByRepo),
-    [repos, collaboratorsByRepo],
-  );
-  const localFacets = useMemo(() => buildLocalFacets(localRepos), [localRepos]);
-  const filteredLocalRepos = useMemo(
-    () => filterLocalRepos(localRepos, localFilters),
-    [localRepos, localFilters],
-  );
-  const localFacetGroups = useMemo<FacetGroup[]>(
-    () => [
-      {
-        key: "owners",
-        title: t("local.facetOwner"),
-        icon: <LuBuilding2 size={16} />,
-        entries: [...localFacets.owners.entries()],
-        selected: localFilters.owners,
-        onToggle: (v) => setLocalFilters((f) => ({ ...f, owners: toggleSetValue(f.owners, v) })),
-        onClear: () => setLocalFilters((f) => ({ ...f, owners: new Set() })),
-        render: "chips",
-        renderIcon: (name) => <Avatar login={name} size={40} className="facet-chip-avatar" />,
-      },
-      {
-        key: "hosts",
-        title: t("local.facetHost"),
-        icon: <LuServer size={16} />,
-        entries: [...localFacets.hosts.entries()],
-        selected: localFilters.hosts,
-        onToggle: (v) => setLocalFilters((f) => ({ ...f, hosts: toggleSetValue(f.hosts, v) })),
-        onClear: () => setLocalFilters((f) => ({ ...f, hosts: new Set() })),
-      },
-      {
-        key: "remotes",
-        title: t("local.facetRemote"),
-        icon: <LuGitBranch size={16} />,
-        entries: [...localFacets.remotes.entries()],
-        selected: localFilters.remotes,
-        labelFor: shortRemote,
-        onToggle: (v) => setLocalFilters((f) => ({ ...f, remotes: toggleSetValue(f.remotes, v) })),
-        onClear: () => setLocalFilters((f) => ({ ...f, remotes: new Set() })),
-      },
-    ],
-    [localFacets, localFilters, t],
-  );
-  const insightsByRepo = useMemo(
-    () => new Map(repoInsights.map((insight) => [insight.repo, insight])),
-    [repoInsights],
-  );
-  const filteredIssues = useMemo(
-    () => sortIssues(filterIssues(issues, issueFilters, userLogin), issueSort),
-    [issues, issueFilters, issueSort, userLogin],
-  );
-  const filteredPullRequests = useMemo(
-    () => sortPullRequests(filterPullRequests(pullRequests, prFilters, userLogin), prSort),
-    [pullRequests, prFilters, prSort, userLogin],
-  );
-  const filteredRepos = useMemo(
-    () => sortRepos(filterRepos(repos, issues, repoFilters, collaboratorsByRepo), issues, repoSort),
-    [repos, issues, repoFilters, repoSort, collaboratorsByRepo],
-  );
-  // Repos hidden solely because archived repos are excluded by default — i.e.
-  // how many more would show if "Include archived" were on. Surfaced in the
-  // footer so the shown/total gap is self-explanatory.
-  const archivedHiddenCount = useMemo(() => {
-    if (repoFilters.includeArchived) return 0;
-    const withArchived = filterRepos(
-      repos,
-      issues,
-      { ...repoFilters, includeArchived: true },
-      collaboratorsByRepo,
-    );
-    return withArchived.length - filteredRepos.length;
-  }, [repos, issues, repoFilters, collaboratorsByRepo, filteredRepos.length]);
-  const filteredInsights = useMemo(
-    () =>
-      filteredRepos
-        .map((repo) => insightsByRepo.get(repo.nameWithOwner))
-        .filter((value): value is RepoInsight => Boolean(value))
-        .filter(
-          (insight) =>
-            insight.issueCount > 0 ||
-            insight.securityAlertsCount > 0 ||
-            insight.viewsCount > 0 ||
-            insight.totalDownloads > 0,
-        ),
-    [filteredRepos, insightsByRepo],
-  );
-  const securityInsights = useMemo(
-    () =>
-      filteredRepos
-        .map((repo) => insightsByRepo.get(repo.nameWithOwner))
-        .filter((value): value is RepoInsight => Boolean(value))
-        .filter((insight) => insight.securityAlertsCount > 0),
-    [filteredRepos, insightsByRepo],
-  );
+  const {
+    issueFacets,
+    prFacets,
+    repoFacets,
+    filteredLocalRepos,
+    localFacetGroups,
+    insightsByRepo,
+    filteredIssues,
+    filteredPullRequests,
+    filteredRepos,
+    archivedHiddenCount,
+    filteredInsights,
+    securityInsights,
+  } = useFilteredDashboard({
+    issues,
+    pullRequests,
+    repos,
+    localRepos,
+    collaboratorsByRepo,
+    repoInsights,
+    userLogin,
+    issueFilters,
+    prFilters,
+    repoFilters,
+    localFilters,
+    issueSort,
+    prSort,
+    repoSort,
+    setLocalFilters,
+  });
+
   // Footer/tab-badge totals. The per-panel insight/alert stats live in their
   // panels; these two stay because the footer and tab chrome need them too.
   // Metrics whose fetch failed (`errors`) are excluded so a failed read never

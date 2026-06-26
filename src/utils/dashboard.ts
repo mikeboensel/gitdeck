@@ -158,6 +158,18 @@ export function matchesIssuePreset(
   return true;
 }
 
+/** A Set facet matches when it's empty (no filter active) or shares a value with `values`. */
+function matchesAnyFacet(selected: Set<string>, values: string[]): boolean {
+  return selected.size === 0 || values.some((value) => selected.has(value));
+}
+
+/** Inclusive numeric range check; null bounds are open-ended. */
+function withinDateRange(value: number, from: number | null, to: number | null): boolean {
+  if (from && value < from) return false;
+  if (to && value > to) return false;
+  return true;
+}
+
 export function filterIssues(
   issues: GhIssue[],
   filters: IssueFilters,
@@ -170,31 +182,28 @@ export function filterIssues(
   const updatedTo = filters.dates.ut ? new Date(`${filters.dates.ut}T23:59:59`).getTime() : null;
 
   return issues.filter((issue) => {
-    const owner = getOwner(issue.repository.nameWithOwner);
-    if (filters.orgs.size && !filters.orgs.has(owner)) return false;
-    if (filters.repos.size && !filters.repos.has(issue.repository.nameWithOwner)) return false;
+    if (!matchesAnyFacet(filters.orgs, [getOwner(issue.repository.nameWithOwner)])) return false;
+    if (!matchesAnyFacet(filters.repos, [issue.repository.nameWithOwner])) return false;
     if (
-      filters.labels.size &&
-      ![...(issue.labels || []).map((label) => label.name)].some((label) =>
-        filters.labels.has(label),
+      !matchesAnyFacet(
+        filters.labels,
+        (issue.labels || []).map((label) => label.name),
       )
     )
       return false;
-    if (filters.authors.size && !filters.authors.has(issue.author?.login || "")) return false;
+    if (!matchesAnyFacet(filters.authors, [issue.author?.login || ""])) return false;
     if (
-      filters.assignees.size &&
-      ![...(issue.assignees || []).map((assignee) => assignee.login)].some((login) =>
-        filters.assignees.has(login),
+      !matchesAnyFacet(
+        filters.assignees,
+        (issue.assignees || []).map((a) => a.login),
       )
     )
       return false;
 
     const created = new Date(issue.createdAt).getTime();
     const updated = new Date(issue.updatedAt).getTime();
-    if (createdFrom && created < createdFrom) return false;
-    if (createdTo && created > createdTo) return false;
-    if (updatedFrom && updated < updatedFrom) return false;
-    if (updatedTo && updated > updatedTo) return false;
+    if (!withinDateRange(created, createdFrom, createdTo)) return false;
+    if (!withinDateRange(updated, updatedFrom, updatedTo)) return false;
     if (!matchesIssuePreset(issue, filters.preset, userLogin)) return false;
 
     if (!query) return true;
@@ -219,13 +228,11 @@ export function filterRepos(
 ): GhRepo[] {
   const query = filters.search.trim().toLowerCase();
   return repos.filter((repo) => {
-    if (filters.orgs.size && !filters.orgs.has(repo.owner.login)) return false;
     const language = repo.primaryLanguage?.name || "—";
-    if (filters.languages.size && !filters.languages.has(language)) return false;
-    if (filters.collaborators.size) {
-      const logins = collaboratorsByRepo?.get(repo.nameWithOwner) ?? [];
-      if (!logins.some((login) => filters.collaborators.has(login))) return false;
-    }
+    if (!matchesAnyFacet(filters.orgs, [repo.owner.login])) return false;
+    if (!matchesAnyFacet(filters.languages, [language])) return false;
+    if (!matchesAnyFacet(filters.collaborators, collaboratorsByRepo?.get(repo.nameWithOwner) ?? []))
+      return false;
     if (filters.visibility === "public" && repo.isPrivate) return false;
     if (filters.visibility === "private" && !repo.isPrivate) return false;
     if (!filters.includeForks && repo.isFork) return false;
@@ -278,29 +285,28 @@ export function filterPullRequests(
   const updatedTo = filters.dates.ut ? new Date(`${filters.dates.ut}T23:59:59`).getTime() : null;
 
   return prs.filter((pr) => {
-    const owner = getOwner(pr.repository.nameWithOwner);
-    if (filters.orgs.size && !filters.orgs.has(owner)) return false;
-    if (filters.repos.size && !filters.repos.has(pr.repository.nameWithOwner)) return false;
+    if (!matchesAnyFacet(filters.orgs, [getOwner(pr.repository.nameWithOwner)])) return false;
+    if (!matchesAnyFacet(filters.repos, [pr.repository.nameWithOwner])) return false;
     if (
-      filters.labels.size &&
-      ![...(pr.labels || []).map((label) => label.name)].some((label) => filters.labels.has(label))
+      !matchesAnyFacet(
+        filters.labels,
+        (pr.labels || []).map((label) => label.name),
+      )
     )
       return false;
-    if (filters.authors.size && !filters.authors.has(pr.author?.login || "")) return false;
+    if (!matchesAnyFacet(filters.authors, [pr.author?.login || ""])) return false;
     if (
-      filters.assignees.size &&
-      ![...(pr.assignees || []).map((assignee) => assignee.login)].some((login) =>
-        filters.assignees.has(login),
+      !matchesAnyFacet(
+        filters.assignees,
+        (pr.assignees || []).map((a) => a.login),
       )
     )
       return false;
 
     const created = new Date(pr.createdAt).getTime();
     const updated = new Date(pr.updatedAt).getTime();
-    if (createdFrom && created < createdFrom) return false;
-    if (createdTo && created > createdTo) return false;
-    if (updatedFrom && updated < updatedFrom) return false;
-    if (updatedTo && updated > updatedTo) return false;
+    if (!withinDateRange(created, createdFrom, createdTo)) return false;
+    if (!withinDateRange(updated, updatedFrom, updatedTo)) return false;
     if (!matchesPullRequestPreset(pr, filters.preset, userLogin)) return false;
 
     if (!query) return true;
@@ -319,28 +325,32 @@ export function filterPullRequests(
   });
 }
 
+type PrComparator = (a: GhPullRequest, b: GhPullRequest) => number;
+
+const sortPullRequestsByUpdatedDesc: PrComparator = (a, b) =>
+  Date.parse(b.updatedAt) - Date.parse(a.updatedAt);
+
+/** Comparator per sort key. Unknown keys fall back to updated_desc. */
+const PR_COMPARATORS: Record<string, PrComparator> = {
+  updated_asc: (a, b) => Date.parse(a.updatedAt) - Date.parse(b.updatedAt),
+  created_desc: (a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt),
+  created_asc: (a, b) => Date.parse(a.createdAt) - Date.parse(b.createdAt),
+  comments_desc: (a, b) => b.commentsCount - a.commentsCount,
+  comments_asc: (a, b) => a.commentsCount - b.commentsCount,
+  size_desc: (a, b) => b.additions + b.deletions - (a.additions + a.deletions),
+  size_asc: (a, b) => a.additions + a.deletions - (b.additions + b.deletions),
+  files_desc: (a, b) => b.changedFiles - a.changedFiles,
+  review_pending: (a, b) => {
+    const aPending = a.reviewsCount === 0 && !a.isDraft ? 1 : 0;
+    const bPending = b.reviewsCount === 0 && !b.isDraft ? 1 : 0;
+    if (aPending !== bPending) return bPending - aPending;
+    return Date.parse(a.createdAt) - Date.parse(b.createdAt);
+  },
+  repo_asc: (a, b) => a.repository.nameWithOwner.localeCompare(b.repository.nameWithOwner),
+};
+
 export function sortPullRequests(prs: GhPullRequest[], sort: string): GhPullRequest[] {
-  const sorted = [...prs];
-  sorted.sort((a, b) => {
-    if (sort === "updated_asc") return Date.parse(a.updatedAt) - Date.parse(b.updatedAt);
-    if (sort === "created_desc") return Date.parse(b.createdAt) - Date.parse(a.createdAt);
-    if (sort === "created_asc") return Date.parse(a.createdAt) - Date.parse(b.createdAt);
-    if (sort === "comments_desc") return b.commentsCount - a.commentsCount;
-    if (sort === "comments_asc") return a.commentsCount - b.commentsCount;
-    if (sort === "size_desc") return b.additions + b.deletions - (a.additions + a.deletions);
-    if (sort === "size_asc") return a.additions + a.deletions - (b.additions + b.deletions);
-    if (sort === "files_desc") return b.changedFiles - a.changedFiles;
-    if (sort === "review_pending") {
-      const aPending = a.reviewsCount === 0 && !a.isDraft ? 1 : 0;
-      const bPending = b.reviewsCount === 0 && !b.isDraft ? 1 : 0;
-      if (aPending !== bPending) return bPending - aPending;
-      return Date.parse(a.createdAt) - Date.parse(b.createdAt);
-    }
-    if (sort === "repo_asc")
-      return a.repository.nameWithOwner.localeCompare(b.repository.nameWithOwner);
-    return Date.parse(b.updatedAt) - Date.parse(a.updatedAt);
-  });
-  return sorted;
+  return [...prs].sort(PR_COMPARATORS[sort] ?? sortPullRequestsByUpdatedDesc);
 }
 
 export function sortIssues(issues: GhIssue[], sort: string): GhIssue[] {
