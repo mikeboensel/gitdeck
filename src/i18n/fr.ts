@@ -455,4 +455,12 @@ export const fr: Record<keyof typeof en, string> = {
   "history.create": "Créer",
   "history.creating": "Création…",
   "history.cancel": "Annuler",
+  "menu.viewStashes": "Voir les remises",
+  "stash.title": "Remises",
+  "stash.viewStashes": "Voir les remises",
+  "stash.empty": "Aucune remise",
+  "stash.selectPrompt": "Sélectionnez une remise pour voir ses modifications",
+  "stash.onBranch": "sur {branch}",
+  "stash.unified": "Unifié",
+  "stash.split": "Côte à côte",
 };

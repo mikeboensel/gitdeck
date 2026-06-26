@@ -437,4 +437,12 @@ export const zh: Record<keyof typeof en, string> = {
   "history.create": "创建",
   "history.creating": "创建中…",
   "history.cancel": "取消",
+  "menu.viewStashes": "查看储藏",
+  "stash.title": "储藏",
+  "stash.viewStashes": "查看储藏",
+  "stash.empty": "没有储藏",
+  "stash.selectPrompt": "选择一个储藏以查看其更改",
+  "stash.onBranch": "在 {branch}",
+  "stash.unified": "统一",
+  "stash.split": "并排",
 };

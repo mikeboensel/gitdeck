@@ -11,6 +11,8 @@ import type {
   LocalRepoHistory,
   LocalReposConfig,
   LocalReposData,
+  LocalStashDetail,
+  LocalStashList,
   MentionCodeItem,
   MentionIssueItem,
   NotificationsData,
@@ -297,6 +299,22 @@ export function fetchLocalCommit(
 ): Promise<LocalCommitDetail> {
   const query = new URLSearchParams({ path, sha });
   return readJson(`/api/local-repos/commit?${query.toString()}`, withSignal(signal));
+}
+
+/** List a scanned local repo's stash stack (newest first). */
+export function fetchLocalStashes(path: string, signal?: AbortSignal): Promise<LocalStashList> {
+  const query = new URLSearchParams({ path });
+  return readJson(`/api/local-repos/stashes?${query.toString()}`, withSignal(signal));
+}
+
+/** Fetch the changed-file list for one stash entry (by stack index). */
+export function fetchLocalStash(
+  path: string,
+  index: number,
+  signal?: AbortSignal,
+): Promise<LocalStashDetail> {
+  const query = new URLSearchParams({ path, index: String(index) });
+  return readJson(`/api/local-repos/stash?${query.toString()}`, withSignal(signal));
 }
 
 /** Create a branch at `sha` and check it out. Throws (with the server's message)

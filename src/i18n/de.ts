@@ -454,4 +454,12 @@ export const de: Record<keyof typeof en, string> = {
   "history.create": "Erstellen",
   "history.creating": "Wird erstellt…",
   "history.cancel": "Abbrechen",
+  "menu.viewStashes": "Stashes anzeigen",
+  "stash.title": "Stashes",
+  "stash.viewStashes": "Stashes anzeigen",
+  "stash.empty": "Keine Stashes",
+  "stash.selectPrompt": "Wählen Sie einen Stash, um seine Änderungen zu sehen",
+  "stash.onBranch": "auf {branch}",
+  "stash.unified": "Einheitlich",
+  "stash.split": "Geteilt",
 };

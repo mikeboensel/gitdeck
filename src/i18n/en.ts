@@ -446,4 +446,12 @@ export const en = {
   "history.create": "Create",
   "history.creating": "Creating…",
   "history.cancel": "Cancel",
+  "menu.viewStashes": "View stashes",
+  "stash.title": "Stashes",
+  "stash.viewStashes": "View stashes",
+  "stash.empty": "No stashes",
+  "stash.selectPrompt": "Select a stash to see its changes",
+  "stash.onBranch": "on {branch}",
+  "stash.unified": "Unified",
+  "stash.split": "Split",
 } as const;

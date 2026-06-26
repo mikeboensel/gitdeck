@@ -8,6 +8,7 @@ import { AccountProvider } from "./contexts/AccountContext";
 import { CloneRepoProvider } from "./contexts/CloneRepoProvider";
 import { CommitHistoryProvider } from "./contexts/CommitHistoryProvider";
 import { RightClickMenuProvider } from "./contexts/RightClickMenuProvider";
+import { StashViewerProvider } from "./contexts/StashViewerProvider";
 import { I18nProvider } from "./i18n/I18nProvider";
 import "./styles.css";
 
@@ -25,10 +26,12 @@ createRoot(document.getElementById("root")!).render(
           <RightClickMenuProvider>
             <CloneRepoProvider>
               <CommitHistoryProvider>
-                <App />
-                {/* Delegated tooltip layer: listens for [data-tip] hover/focus and
-                  self-portals to document.body, so it escapes card overflow clipping. */}
-                <TooltipLayer />
+                <StashViewerProvider>
+                  <App />
+                  {/* Delegated tooltip layer: listens for [data-tip] hover/focus and
+                    self-portals to document.body, so it escapes card overflow clipping. */}
+                  <TooltipLayer />
+                </StashViewerProvider>
               </CommitHistoryProvider>
             </CloneRepoProvider>
           </RightClickMenuProvider>

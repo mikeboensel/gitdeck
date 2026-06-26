@@ -273,6 +273,37 @@ export interface LocalCommitDetail {
   files: LocalChangedFile[];
 }
 
+/** One entry on a repo's stash stack (`refs/stash`). */
+export interface LocalStashEntry {
+  /** Reflog selector, e.g. `stash@{0}`. */
+  ref: string;
+  /** Zero-based position on the stack (0 = most recent). */
+  index: number;
+  /** Full SHA of the stash commit. */
+  sha: string;
+  /** Author date, ISO-8601. */
+  date: string;
+  /** Branch the stash was made on, or null when unparseable. */
+  branch: string | null;
+  /** Human message with the `WIP on <branch>: ` prefix stripped. */
+  message: string;
+  /** Raw reflog subject, kept as a display fallback. */
+  subject: string;
+}
+
+export interface LocalStashList {
+  ok: true;
+  stashes: LocalStashEntry[];
+}
+
+export interface LocalStashDetail {
+  ok: true;
+  /** Files changed in this stash (tracked + untracked), with +/- line counts. */
+  files: LocalChangedFile[];
+  /** Full unified diff (`git stash show -p`), split per-file on the client. */
+  patch: string;
+}
+
 /** User-tunable scan configuration, persisted at ~/.gitdeck/local-repos.json. */
 export interface LocalReposConfig {
   /** Root directories to scan. Empty ⇒ server default (home directory). */
