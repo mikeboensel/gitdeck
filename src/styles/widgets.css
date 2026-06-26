@@ -153,16 +153,16 @@
   letter-spacing: 0.04em;
 }
 
-.health-matrix-row.is-archived .health-matrix-repo {
-  color: var(--muted);
-  font-style: italic;
-}
-
 .health-matrix-repo {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 12px;
+}
+
+.health-matrix-row.is-archived .health-matrix-repo {
+  color: var(--muted);
+  font-style: italic;
 }
 
 .health-matrix-col {
