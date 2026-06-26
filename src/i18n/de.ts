@@ -472,6 +472,9 @@ export const de: Record<keyof typeof en, string> = {
   "stash.empty": "Keine Stashes",
   "stash.selectPrompt": "Wählen Sie einen Stash, um seine Änderungen zu sehen",
   "stash.onBranch": "auf {branch}",
-  "stash.unified": "Einheitlich",
-  "stash.split": "Geteilt",
+  "diff.unified": "Einheitlich",
+  "diff.split": "Geteilt",
+  "menu.viewChanges": "Änderungen anzeigen",
+  "changes.title": "Nicht committete Änderungen",
+  "changes.empty": "Keine nicht committeten Änderungen",
 };

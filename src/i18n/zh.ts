@@ -455,6 +455,9 @@ export const zh: Record<keyof typeof en, string> = {
   "stash.empty": "没有储藏",
   "stash.selectPrompt": "选择一个储藏以查看其更改",
   "stash.onBranch": "在 {branch}",
-  "stash.unified": "统一",
-  "stash.split": "并排",
+  "diff.unified": "统一",
+  "diff.split": "并排",
+  "menu.viewChanges": "查看更改",
+  "changes.title": "未提交的更改",
+  "changes.empty": "没有未提交的更改",
 };

@@ -1,5 +1,5 @@
 import { createContext, type ReactNode, useCallback, useContext, useState } from "react";
-import { StashViewerModal } from "../components/StashViewerModal";
+import { StashViewerModal } from "../components/diff/StashViewerModal";
 import type { LocalRepo } from "../types/github";
 
 interface StashViewerContextValue {

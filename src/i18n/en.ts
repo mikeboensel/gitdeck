@@ -464,6 +464,9 @@ export const en = {
   "stash.empty": "No stashes",
   "stash.selectPrompt": "Select a stash to see its changes",
   "stash.onBranch": "on {branch}",
-  "stash.unified": "Unified",
-  "stash.split": "Split",
+  "diff.unified": "Unified",
+  "diff.split": "Split",
+  "menu.viewChanges": "View changes",
+  "changes.title": "Uncommitted changes",
+  "changes.empty": "No uncommitted changes",
 } as const;

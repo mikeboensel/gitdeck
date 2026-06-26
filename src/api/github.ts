@@ -7,6 +7,7 @@ import type {
   ForkNode,
   HistoryOrder,
   IssuesData,
+  LocalChangesDetail,
   LocalCommitDetail,
   LocalRepoHistory,
   LocalReposConfig,
@@ -315,6 +316,12 @@ export function fetchLocalStash(
 ): Promise<LocalStashDetail> {
   const query = new URLSearchParams({ path, index: String(index) });
   return readJson(`/api/local-repos/stash?${query.toString()}`, withSignal(signal));
+}
+
+/** Fetch a scanned local repo's uncommitted working-tree changes (vs HEAD). */
+export function fetchLocalChanges(path: string, signal?: AbortSignal): Promise<LocalChangesDetail> {
+  const query = new URLSearchParams({ path });
+  return readJson(`/api/local-repos/changes?${query.toString()}`, withSignal(signal));
 }
 
 /** Create a branch at `sha` and check it out. Throws (with the server's message)

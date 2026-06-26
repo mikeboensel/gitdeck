@@ -11,6 +11,7 @@ import { registerCommitActivity } from "./routes/commitActivity";
 import { registerDashboard } from "./routes/dashboard";
 import { registerDelegated } from "./routes/delegated";
 import { registerInsightsGraph } from "./routes/insightsGraph";
+import { registerLocalRepoChanges } from "./routes/localRepoChanges";
 import { registerLocalRepoHistory } from "./routes/localRepoHistory";
 import { registerLocalRepoStash } from "./routes/localRepoStash";
 import { registerLocalRepos } from "./routes/localRepos";
@@ -87,6 +88,7 @@ registerCommitActivity(app);
 registerLocalRepos(app);
 registerLocalRepoHistory(app);
 registerLocalRepoStash(app);
+registerLocalRepoChanges(app);
 registerNotifications(app);
 registerDelegated(app);
 

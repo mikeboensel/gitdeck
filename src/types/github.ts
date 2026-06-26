@@ -309,6 +309,15 @@ export interface LocalStashDetail {
   patch: string;
 }
 
+/** A repo's uncommitted working-tree changes (staged + unstaged + untracked). */
+export interface LocalChangesDetail {
+  ok: true;
+  /** Changed files relative to HEAD, with +/- line counts. */
+  files: LocalChangedFile[];
+  /** Full unified diff of the working tree vs HEAD, split per-file on the client. */
+  patch: string;
+}
+
 /** User-tunable scan configuration, persisted at ~/.gitdeck/local-repos.json. */
 export interface LocalReposConfig {
   /** Root directories to scan. Empty ⇒ server default (home directory). */

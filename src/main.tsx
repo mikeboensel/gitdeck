@@ -5,6 +5,7 @@ import { App } from "./App";
 import { DEFAULT_TTL_MS } from "./api/cache";
 import { TooltipLayer } from "./components/common/TooltipLayer";
 import { AccountProvider } from "./contexts/AccountContext";
+import { ChangesViewerProvider } from "./contexts/ChangesViewerProvider";
 import { CloneRepoProvider } from "./contexts/CloneRepoProvider";
 import { CommitHistoryProvider } from "./contexts/CommitHistoryProvider";
 import { RightClickMenuProvider } from "./contexts/RightClickMenuProvider";
@@ -27,10 +28,12 @@ createRoot(document.getElementById("root")!).render(
             <CloneRepoProvider>
               <CommitHistoryProvider>
                 <StashViewerProvider>
-                  <App />
-                  {/* Delegated tooltip layer: listens for [data-tip] hover/focus and
-                    self-portals to document.body, so it escapes card overflow clipping. */}
-                  <TooltipLayer />
+                  <ChangesViewerProvider>
+                    <App />
+                    {/* Delegated tooltip layer: listens for [data-tip] hover/focus and
+                      self-portals to document.body, so it escapes card overflow clipping. */}
+                    <TooltipLayer />
+                  </ChangesViewerProvider>
                 </StashViewerProvider>
               </CommitHistoryProvider>
             </CloneRepoProvider>

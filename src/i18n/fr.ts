@@ -473,6 +473,9 @@ export const fr: Record<keyof typeof en, string> = {
   "stash.empty": "Aucune remise",
   "stash.selectPrompt": "Sélectionnez une remise pour voir ses modifications",
   "stash.onBranch": "sur {branch}",
-  "stash.unified": "Unifié",
-  "stash.split": "Côte à côte",
+  "diff.unified": "Unifié",
+  "diff.split": "Côte à côte",
+  "menu.viewChanges": "Voir les modifications",
+  "changes.title": "Modifications non validées",
+  "changes.empty": "Aucune modification non validée",
 };
