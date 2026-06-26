@@ -1,13 +1,11 @@
 import type { ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { GhRepo } from "../../types/github";
-import { getLabelCssVars } from "../../utils/colors";
 import { formatNumber, formatRelativeTime } from "../../utils/format";
 import { type InboxItem, searchInboxItems } from "../../utils/inbox";
 import { clampPage } from "../../utils/pagination";
 import { Avatar } from "../common/Avatar";
 import {
-  BookIcon,
   CheckIcon,
   DensityIcon,
   IssueIcon,
@@ -17,19 +15,19 @@ import {
   SearchIcon,
 } from "../common/Icons";
 import { Pagination } from "../common/Pagination";
+import { InboxPreview } from "./InboxPreview";
+import { InboxProperties } from "./InboxProperties";
+import {
+  DENSITY_KEY,
+  DENSITY_OPTIONS,
+  type Density,
+  kindLabel,
+  primaryReason,
+  readStoredDensity,
+  scoreTone,
+} from "./inboxReaderHelpers";
 
-type Density = "compact" | "cozy" | "comfortable";
-
-const DENSITY_KEY = "gh-dash.inboxDensity";
-const DENSITY_OPTIONS: Density[] = ["compact", "cozy", "comfortable"];
-
-function readStoredDensity(): Density {
-  if (typeof window === "undefined") return "cozy";
-  const raw = window.localStorage.getItem(DENSITY_KEY);
-  return DENSITY_OPTIONS.includes(raw as Density) ? (raw as Density) : "cozy";
-}
-
-interface TriageWorkspaceProps {
+interface InboxReaderProps {
   items: InboxItem[];
   title: string;
   emptyTitle: string;
@@ -50,219 +48,14 @@ interface TriageWorkspaceProps {
   onPageSizeChange?: (size: number) => void;
 }
 
-function kindLabel(item: InboxItem): string {
-  return item.kind === "pull-request" ? "PR" : "Issue";
-}
-
-function primaryReason(item: InboxItem): string {
-  return item.reasons[0]?.label || item.status;
-}
-
-function scoreTone(item: InboxItem): string {
-  if (item.score >= 80) return "danger";
-  if (item.score >= 60) return "attention";
-  if (item.score >= 42) return "warning";
-  return "default";
-}
-
-function PropertyRow({ label, children }: { label: string; children: ReactNode }) {
-  return (
-    <div className="inbox-property-row">
-      <span>{label}</span>
-      <strong>{children}</strong>
-    </div>
-  );
-}
-
-function LabelPills({ item }: { item: InboxItem }) {
-  if (!item.labels.length) return <span className="inbox-muted">None</span>;
-  return (
-    <div className="inbox-labels">
-      {item.labels.map((label) => {
-        const vars = getLabelCssVars(label.color);
-        return (
-          <span
-            className={vars ? "inbox-label gh-label" : "inbox-label"}
-            key={label.name}
-            style={vars}
-          >
-            {label.name}
-          </span>
-        );
-      })}
-    </div>
-  );
-}
-
-interface TriagePreviewProps {
-  item: InboxItem | undefined;
-  repo?: GhRepo;
-  onRepoClick?: (repo: GhRepo) => void;
-  onMarkRead?: (threadId: string) => void;
-}
-
-function TriagePreview({ item, repo, onRepoClick, onMarkRead }: TriagePreviewProps) {
-  if (!item) {
-    return (
-      <section className="inbox-reader empty-reader">
-        <div>
-          <strong>No item selected</strong>
-          <span>Select an issue or pull request from the list.</span>
-        </div>
-      </section>
-    );
-  }
-
-  const handleOpen = () => {
-    if (item.unread && item.notificationThreadId && onMarkRead) {
-      onMarkRead(item.notificationThreadId);
-    }
-  };
-
-  return (
-    <section className="inbox-reader">
-      <header className="inbox-reader-head">
-        <div className="inbox-reader-from">
-          <Avatar login={item.author?.login} size={48} />
-          <div className="inbox-reader-from-meta">
-            <strong>{item.author?.login || "Unknown"}</strong>
-            <span>
-              {item.repository.nameWithOwner} · #{item.number} · {item.status}
-            </span>
-            <span className="inbox-reader-time">Updated {formatRelativeTime(item.updatedAt)}</span>
-          </div>
-          {item.unread ? <span className="inbox-unread-pill">Unread</span> : null}
-        </div>
-        <h2>{item.title}</h2>
-        <div className="inbox-actions">
-          <a
-            className="btn primary"
-            href={item.url}
-            target="_blank"
-            rel="noreferrer"
-            onClick={handleOpen}
-          >
-            Open on GitHub
-          </a>
-          {item.unread && item.notificationThreadId && onMarkRead ? (
-            <button
-              className="btn"
-              type="button"
-              onClick={() => onMarkRead(item.notificationThreadId!)}
-            >
-              <CheckIcon /> Mark as read
-            </button>
-          ) : null}
-          {repo && onRepoClick ? (
-            <button className="btn" type="button" onClick={() => onRepoClick(repo)}>
-              <BookIcon /> Repository
-            </button>
-          ) : null}
-        </div>
-      </header>
-
-      <div className="inbox-reader-section">
-        <h3>Why this needs attention</h3>
-        <div className="inbox-reasons expanded">
-          {item.reasons.map((itemReason) => (
-            <span
-              className={`inbox-reason tone-${itemReason.tone}`}
-              key={`${item.id}-${itemReason.code}`}
-            >
-              {itemReason.label}
-            </span>
-          ))}
-        </div>
-      </div>
-
-      <div className="inbox-reader-section">
-        <h3>Context</h3>
-        <div className="inbox-context-grid">
-          <div>
-            <span>Comments</span>
-            <strong>{formatNumber(item.commentsCount)}</strong>
-          </div>
-          <div>
-            <span>Attention score</span>
-            <strong>{formatNumber(item.score)}</strong>
-          </div>
-          <div>
-            <span>Created</span>
-            <strong>{formatRelativeTime(item.createdAt)}</strong>
-          </div>
-          <div>
-            <span>Updated</span>
-            <strong>{formatRelativeTime(item.updatedAt)}</strong>
-          </div>
-        </div>
-      </div>
-
-      {item.branch || item.diff ? (
-        <div className="inbox-reader-section">
-          <h3>Pull request details</h3>
-          <div className="inbox-pr-detail">
-            {item.branch ? (
-              <span>
-                {item.branch.head} {"->"} {item.branch.base}
-              </span>
-            ) : null}
-            {item.diff ? (
-              <span>
-                +{formatNumber(item.diff.additions)} -{formatNumber(item.diff.deletions)} across{" "}
-                {formatNumber(item.diff.changedFiles)} files
-              </span>
-            ) : null}
-          </div>
-        </div>
-      ) : null}
-    </section>
-  );
-}
-
-function TriageProperties({ item }: { item: InboxItem | undefined }) {
-  return (
-    <aside className="inbox-properties">
-      <div className="inbox-properties-head">
-        <strong>Properties</strong>
-      </div>
-      {item ? (
-        <>
-          <PropertyRow label="Type">
-            <span className={`inbox-kind ${item.kind}`}>{kindLabel(item)}</span>
-          </PropertyRow>
-          <PropertyRow label="Status">{item.status}</PropertyRow>
-          <PropertyRow label="Score">
-            <span className={`inbox-score tone-${scoreTone(item)}`}>
-              {formatNumber(item.score)}
-            </span>
-          </PropertyRow>
-          <PropertyRow label="Repository">{item.repository.nameWithOwner}</PropertyRow>
-          <PropertyRow label="Author">{item.author?.login || "Unknown"}</PropertyRow>
-          <PropertyRow label="Assignees">
-            {item.assignees.length
-              ? item.assignees.map((assignee) => assignee.login).join(", ")
-              : "None"}
-          </PropertyRow>
-          <PropertyRow label="Created">{new Date(item.createdAt).toLocaleDateString()}</PropertyRow>
-          <PropertyRow label="Updated">{new Date(item.updatedAt).toLocaleDateString()}</PropertyRow>
-          {item.branch ? (
-            <PropertyRow label="Branch">
-              {item.branch.head} {"->"} {item.branch.base}
-            </PropertyRow>
-          ) : null}
-          <div className="inbox-property-block">
-            <span>Labels</span>
-            <LabelPills item={item} />
-          </div>
-        </>
-      ) : (
-        <div className="inbox-properties-empty">Select an item to inspect its properties.</div>
-      )}
-    </aside>
-  );
-}
-
-export function TriageWorkspace({
+/**
+ * Two-pane inbox reader: a searchable, paginated, keyboard-navigable list of
+ * items on the left and a detail/properties view on the right. Owns selection,
+ * search, pagination, multi-select, density, and shortcut state; the preview and
+ * properties panes ({@link InboxPreview}/{@link InboxProperties}) render from the
+ * current selection. Used by the Inbox tab via `InboxView`.
+ */
+export function InboxReader({
   items,
   title,
   emptyTitle,
@@ -281,7 +74,7 @@ export function TriageWorkspace({
   pageSize: pageSizeProp,
   onPageChange,
   onPageSizeChange,
-}: TriageWorkspaceProps) {
+}: InboxReaderProps) {
   const [internalSearch, setInternalSearch] = useState("");
   const search = searchProp !== undefined ? searchProp : internalSearch;
   const setSearch = onSearchChange ?? setInternalSearch;
@@ -631,13 +424,13 @@ export function TriageWorkspace({
         ) : null}
       </section>
 
-      <TriagePreview
+      <InboxPreview
         item={selectedItem}
         repo={selectedRepo}
         onRepoClick={onRepoClick}
         onMarkRead={onMarkRead}
       />
-      <TriageProperties item={selectedItem} />
+      <InboxProperties item={selectedItem} />
 
       {shortcutsOpen ? (
         /* biome-ignore lint/a11y/useKeyWithClickEvents: backdrop click-to-close; keyboard users close via Escape (global handler) or the visible Close button */

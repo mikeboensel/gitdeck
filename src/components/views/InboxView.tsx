@@ -1,6 +1,6 @@
 import type { GhRepo } from "../../types/github";
 import type { InboxItem } from "../../utils/inbox";
-import { TriageWorkspace } from "./TriageWorkspace";
+import { InboxReader } from "./InboxReader";
 
 interface InboxViewProps {
   items: InboxItem[];
@@ -30,7 +30,7 @@ export function InboxView({
   onPageSizeChange,
 }: InboxViewProps) {
   return (
-    <TriageWorkspace
+    <InboxReader
       className="view-inbox"
       items={items}
       title={mailboxLabel}
