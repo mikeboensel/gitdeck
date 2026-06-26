@@ -34,6 +34,21 @@ describe("format utilities", () => {
     expect(formatRelativeTime("2026-04-12T12:00:00.000Z", now, "zh")).toBe("10 天前");
   });
 
+  it("returns an empty string for empty/falsy iso", () => {
+    const now = new Date("2026-04-22T12:00:00.000Z").getTime();
+    expect(formatRelativeTime("", now)).toBe("");
+  });
+
+  it("formats relative time in months and years", () => {
+    const now = new Date("2026-04-22T12:00:00.000Z").getTime();
+    const day = 86_400_000;
+
+    // 60 days ago → days >= 30 hits the month branch (60 / 30 = 2).
+    expect(formatRelativeTime(new Date(now - 60 * day).toISOString(), now)).toBe("2mo ago");
+    // 400 days ago → months >= 12 hits the year branch (13 months → 1 year).
+    expect(formatRelativeTime(new Date(now - 400 * day).toISOString(), now)).toBe("1y ago");
+  });
+
   it("formats compact numbers", () => {
     expect(formatNumber(999)).toBe("999");
     expect(formatNumber(1_200)).toBe("1.2k");
@@ -49,5 +64,14 @@ describe("format utilities", () => {
     expect(formatBytes(0)).toBe("0 B");
     expect(formatBytes(1536)).toBe("1.5 KB");
     expect(formatBytes(5 * 1024 * 1024)).toBe("5 MB");
+  });
+
+  it("formats byte values into the GB unit", () => {
+    expect(formatBytes(5 * 1024 * 1024 * 1024)).toBe("5 GB");
+  });
+
+  it("drops the decimal once a byte size reaches 10", () => {
+    // 15.5 MB → size >= 10 so toFixed(0) rounds to a whole "16 MB", not "15.5 MB".
+    expect(formatBytes(15.5 * 1024 * 1024)).toBe("16 MB");
   });
 });

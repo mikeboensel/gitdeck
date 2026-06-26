@@ -681,7 +681,7 @@ query($from: DateTime!, $to: DateTime!) {
 
 /** Split [fromIso, toIso] into contiguous, non-overlapping chunks of at most
  *  `maxDays` each (used to stay under contributionsCollection's per-repo cap). */
-function chunkDateRange(
+export function chunkDateRange(
   fromIso: string,
   toIso: string,
   maxDays: number,
@@ -826,7 +826,7 @@ interface RepoListResponse {
   } | null;
 }
 
-interface RawGitHubNotification {
+export interface RawGitHubNotification {
   id: string;
   unread: boolean;
   reason: string;
@@ -836,7 +836,7 @@ interface RawGitHubNotification {
   repository: { name: string; full_name: string; private: boolean; html_url: string };
 }
 
-function parseNextLink(header: string | null): string | null {
+export function parseNextLink(header: string | null): string | null {
   if (!header) return null;
   for (const part of header.split(",")) {
     const match = /<([^>]+)>;\s*rel="next"/.exec(part.trim());
@@ -847,7 +847,7 @@ function parseNextLink(header: string | null): string | null {
 
 const SUBJECT_NUMBER_PATTERN = /\/(?:issues|pulls)\/(\d+)$/;
 
-function normalizeGitHubNotification(raw: RawGitHubNotification): GhNotification {
+export function normalizeGitHubNotification(raw: RawGitHubNotification): GhNotification {
   const itemNumber = (() => {
     if (!raw.subject?.url) return null;
     const match = SUBJECT_NUMBER_PATTERN.exec(raw.subject.url);

@@ -171,4 +171,145 @@ describe("inbox utilities", () => {
     expect(merged).toBe(items);
     expect(filterInboxItems(merged, "unread")).toEqual([]);
   });
+
+  // A settled PR (approved, recently updated, created >2d ago, no assignee match)
+  // so only the targeted branch under test fires.
+  function basePr(overrides: Partial<GhPullRequest> = {}): GhPullRequest {
+    return {
+      repository: { name: "app", nameWithOwner: "acme/app" },
+      title: "Stable change",
+      url: "https://github.com/acme/app/pull/20",
+      number: 20,
+      createdAt: "2026-04-20T10:00:00Z",
+      updatedAt: "2026-05-01T10:00:00Z",
+      author: { login: "alice" },
+      labels: [],
+      commentsCount: 0,
+      assignees: [],
+      isDraft: false,
+      reviewDecision: "APPROVED",
+      reviewsCount: 1,
+      additions: 1,
+      deletions: 1,
+      changedFiles: 1,
+      baseRefName: "main",
+      headRefName: "stable-change",
+      ...overrides,
+    };
+  }
+
+  it("flags large diffs by file count and adds to the score", () => {
+    const [base] = buildInboxItems({ issues: [], pullRequests: [basePr()], now });
+    const [big] = buildInboxItems({
+      issues: [],
+      pullRequests: [basePr({ changedFiles: 12 })],
+      now,
+    });
+
+    expect(itemHasReason(base!, "large-diff")).toBe(false);
+    expect(itemHasReason(big!, "large-diff")).toBe(true);
+    expect(big!.score).toBe(base!.score + 10);
+  });
+
+  it("flags large diffs by total additions + deletions", () => {
+    const [big] = buildInboxItems({
+      issues: [],
+      pullRequests: [basePr({ additions: 300, deletions: 250 })],
+      now,
+    });
+
+    expect(itemHasReason(big!, "large-diff")).toBe(true);
+  });
+
+  it("flags changes-requested PRs with status, reason, and score bump", () => {
+    const [base] = buildInboxItems({
+      issues: [],
+      pullRequests: [basePr({ reviewDecision: null })],
+      now,
+    });
+    const [changes] = buildInboxItems({
+      issues: [],
+      pullRequests: [basePr({ reviewDecision: "CHANGES_REQUESTED" })],
+      now,
+    });
+
+    expect(itemHasReason(changes!, "changes-requested")).toBe(true);
+    expect(changes!.status).toBe("Changes requested");
+    expect(changes!.score).toBe(base!.score + 34);
+  });
+
+  it("matches the changes-requested mailbox", () => {
+    const items = buildInboxItems({
+      issues: [],
+      pullRequests: [basePr({ reviewDecision: "CHANGES_REQUESTED" }), basePr({ number: 21 })],
+      now,
+    });
+
+    expect(filterInboxItems(items, "changes-requested").map((item) => item.number)).toEqual([20]);
+  });
+
+  function note(overrides: Partial<GhNotification> = {}): GhNotification {
+    return {
+      id: "900",
+      unread: false,
+      reason: "assign",
+      updatedAt: "2026-05-02T10:00:00Z",
+      lastReadAt: null,
+      subject: {
+        title: "Ship auth cleanup",
+        url: "https://api.github.com/repos/acme/app/pulls/10",
+        latestCommentUrl: null,
+        type: "PullRequest",
+      },
+      repository: {
+        name: "app",
+        nameWithOwner: "acme/app",
+        private: false,
+        htmlUrl: "https://github.com/acme/app",
+      },
+      itemNumber: 10,
+      itemHtmlUrl: "https://github.com/acme/app/pull/10",
+      ...overrides,
+    };
+  }
+
+  it("skips notifications missing an item number or repository", () => {
+    const items = buildInboxItems({ issues, pullRequests, userLogin: "bob", now });
+
+    const noNumber = mergeNotifications(items, [note({ itemNumber: 0 })]);
+    expect(noNumber.find((entry) => entry.number === 10)?.notificationThreadId).toBeUndefined();
+
+    const noRepo = mergeNotifications(items, [
+      note({
+        repository: { name: "", nameWithOwner: "", private: false, htmlUrl: "" },
+      }),
+    ]);
+    expect(noRepo.find((entry) => entry.number === 10)?.notificationThreadId).toBeUndefined();
+  });
+
+  it("does not add a reason code twice", () => {
+    // PR #10 is assigned to bob, so it already carries the assigned-me reason.
+    const items = buildInboxItems({ issues, pullRequests, userLogin: "bob", now });
+    const merged = mergeNotifications(items, [note({ reason: "assign" })]);
+    const pr = merged.find((entry) => entry.number === 10)!;
+
+    expect(pr.reasons.filter((entry) => entry.code === "assigned-me")).toHaveLength(1);
+  });
+
+  it("maps assign, ci_activity, and state_change notification reasons", () => {
+    // userLogin "" so the assign mapping is the only source of assigned-me.
+    const items = buildInboxItems({ issues, pullRequests, now });
+
+    const assigned = mergeNotifications(items, [note({ reason: "assign" })]);
+    const assignedPr = assigned.find((entry) => entry.number === 10)!;
+    expect(itemHasReason(assignedPr, "assigned-me")).toBe(true);
+
+    const ci = mergeNotifications(items, [note({ reason: "ci_activity" })]);
+    const ciPr = ci.find((entry) => entry.number === 10)!;
+    expect(ciPr.reasons.some((entry) => entry.label === "CI activity")).toBe(true);
+
+    const state = mergeNotifications(items, [note({ reason: "state_change" })]);
+    const statePr = state.find((entry) => entry.number === 10)!;
+    expect(statePr.reasons.some((entry) => entry.label === "State change")).toBe(true);
+  });
 });

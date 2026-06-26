@@ -47,4 +47,16 @@ describe("i18n utilities", () => {
     expect(translate("it", "summary.repos", { count: 3 })).toBe("3 repo");
     expect(translate("en", "summary.repos", { count: 3 })).toBe("3 repos");
   });
+
+  it("returns the key itself when no translation exists in lang or default", () => {
+    // Cast through unknown: the key intentionally isn't a real TranslationKey.
+    const unknownKey = "does.not.exist" as never;
+    expect(translate("en", unknownKey)).toBe("does.not.exist");
+    expect(translate("it", unknownKey)).toBe("does.not.exist");
+  });
+
+  it("leaves a token literal when no replacement is provided for it", () => {
+    // "local.reposFiltered" is "{count} of {total}" — only count is supplied.
+    expect(translate("en", "local.reposFiltered", { count: 3 })).toBe("3 of {total}");
+  });
 });
