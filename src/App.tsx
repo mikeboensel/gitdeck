@@ -88,9 +88,6 @@ import { useLocalRepos } from "./hooks/useLocalRepos";
 import { useTabsCompact } from "./hooks/useTabsCompact";
 import { useI18n } from "./i18n/I18nProvider";
 import type {
-  CommitActivityData,
-  DailyDigestEntry,
-  DailyDigestsData,
   DigestPeriod,
   GhIssue,
   GhPullRequest,
@@ -98,7 +95,6 @@ import type {
   IssuesData,
   PullRequestsData,
   RepoInsight,
-  RepoInsightsData,
   ReposData,
 } from "./types/github";
 import {
@@ -190,8 +186,6 @@ export function App() {
   const [pullRequests, setPullRequests] = useState<GhPullRequest[]>([]);
   const [repos, setRepos] = useState<GhRepo[]>([]);
   const [owners, setOwners] = useState<string[]>([]);
-  const [repoInsights, setRepoInsights] = useState<RepoInsight[]>([]);
-  const [commitActivity, setCommitActivity] = useState<CommitActivityData | null>(null);
   // Repo→collaborator-logins map, hydrated from localStorage for instant render.
   const [collaboratorsByRepo, setCollaboratorsByRepo] = useState<Map<string, string[]>>(() => {
     const cached = readCollaboratorsCache();
@@ -224,7 +218,6 @@ export function App() {
   const [localSort, setLocalSort] = useState<LocalSort>(
     () => (cachedFiltersOnMount?.sorts?.localSort as LocalSort | undefined) ?? DEFAULT_LOCAL_SORT,
   );
-  const [dailyDigests, setDailyDigests] = useState<DailyDigestEntry[]>([]);
   const [digestPeriod, setDigestPeriod] = useState<DigestPeriod>(
     () => (localStorage.getItem("gh-dash.digestPeriod") as DigestPeriod) || "day",
   );
@@ -404,8 +397,6 @@ export function App() {
     setPullRequests([]);
     setRepos([]);
     setOwners([]);
-    setRepoInsights([]);
-    setDailyDigests([]);
     setCollaboratorsByRepo(new Map());
     setCollaboratorsFetchedAt(null);
     clearNotifications();
@@ -429,46 +420,23 @@ export function App() {
     });
   }, [repos, owners, issues, pullRequests, fetchedAt]);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: activeAccountId is an intentional re-run trigger so account-scoped insights are refetched when the active account changes
-  useEffect(() => {
-    if (authState !== "authenticated") return;
-    if (tab !== "insights" && tab !== "alerts" && tab !== "repos") return;
-    const cached = peek<RepoInsightsData>(CACHE_KEY.insights);
-    if (cached) setRepoInsights(cached.insights);
-    const controller = new AbortController();
-    swr<RepoInsightsData>(CACHE_KEY.insights, (signal) => fetchRepoInsights(false, signal), {
-      signal: controller.signal,
-    })
-      .promise.then((data) => {
-        if (!controller.signal.aborted) setRepoInsights(data.insights);
-      })
-      .catch(() => {});
-    return () => controller.abort();
-  }, [tab, authState, activeAccountId]);
+  // Account-scoped server data on TanStack Query. Each queryKey carries
+  // activeAccountId so an account switch swaps to that account's cache instead of
+  // a manual reset; `enabled` gates the fetch to the tab(s) that need it; the
+  // global staleTime keeps a revisited tab from refetching within the cache TTL.
+  const { data: repoInsights = [] } = useQuery({
+    queryKey: ["repoInsights", activeAccountId],
+    queryFn: ({ signal }) => fetchRepoInsights(false, signal).then((data) => data.insights),
+    enabled:
+      authState === "authenticated" && (tab === "insights" || tab === "alerts" || tab === "repos"),
+  });
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: activeAccountId is an intentional re-run trigger so account-scoped commit activity is refetched when the active account changes
-  useEffect(() => {
-    if (authState !== "authenticated") return;
-    if (tab !== "insights") return;
-    const cached = peek<CommitActivityData>(CACHE_KEY.commitActivity);
-    if (cached) setCommitActivity(cached);
-    const controller = new AbortController();
-    swr<CommitActivityData>(
-      CACHE_KEY.commitActivity,
-      (signal) => fetchCommitActivity(false, signal),
-      { signal: controller.signal },
-    )
-      .promise.then((data) => {
-        if (!controller.signal.aborted) setCommitActivity(data);
-      })
-      .catch(() => {});
-    return () => controller.abort();
-  }, [tab, authState, activeAccountId]);
+  const { data: commitActivity = null } = useQuery({
+    queryKey: ["commitActivity", activeAccountId],
+    queryFn: ({ signal }) => fetchCommitActivity(false, signal),
+    enabled: authState === "authenticated" && tab === "insights",
+  });
 
-  // CI health (TanStack Query spike): the queryKey carries activeAccountId so an
-  // account switch swaps to that account's cache instead of a manual reset, and
-  // `enabled` gates the fetch to the ci tab. staleTime (set globally) keeps a
-  // revisited tab from refetching, matching the old in-memory TTL.
   const { data: ciHealth = [] } = useQuery({
     queryKey: ["ciHealth", activeAccountId],
     queryFn: ({ signal }) => fetchCIHealth(false, signal).then((data) => data.repos),
@@ -510,24 +478,13 @@ export function App() {
       .finally(() => setCollaboratorsLoading(false));
   }, [applyCollaborators]);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: activeAccountId is an intentional re-run trigger so account-scoped digests are refetched when the active account changes
-  useEffect(() => {
-    if (authState !== "authenticated") return;
-    if (tab !== "digests") return;
-    const cacheKey =
-      digestPeriod === "day" ? CACHE_KEY.digests : `${CACHE_KEY.digests}?period=${digestPeriod}`;
-    const cached = peek<DailyDigestsData>(cacheKey);
-    if (cached) setDailyDigests(cached.digests);
-    const controller = new AbortController();
-    swr<DailyDigestsData>(cacheKey, (signal) => fetchDailyDigests(signal, digestPeriod), {
-      signal: controller.signal,
-    })
-      .promise.then((data) => {
-        if (!controller.signal.aborted) setDailyDigests(data.digests);
-      })
-      .catch(() => {});
-    return () => controller.abort();
-  }, [tab, authState, digestPeriod, activeAccountId]);
+  // digestPeriod is part of the key, so each period keeps its own cache entry —
+  // this replaces the hand-built `?period=` cache key the swr layer needed.
+  const { data: dailyDigests = [] } = useQuery({
+    queryKey: ["digests", digestPeriod, activeAccountId],
+    queryFn: ({ signal }) => fetchDailyDigests(signal, digestPeriod).then((data) => data.digests),
+    enabled: authState === "authenticated" && tab === "digests",
+  });
 
   useEffect(() => {
     localStorage.setItem("gh-dash.digestPeriod", digestPeriod);
@@ -550,8 +507,6 @@ export function App() {
     setPullRequests([]);
     setRepos([]);
     setOwners([]);
-    setRepoInsights([]);
-    setDailyDigests([]);
     setCollaboratorsByRepo(new Map());
     setCollaboratorsFetchedAt(null);
     setFetchedAt("");
