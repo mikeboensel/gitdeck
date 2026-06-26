@@ -3,6 +3,7 @@ import { getActive as getActiveAccount } from "./accountStore";
 import { memoize } from "./cache";
 import { getReposCached } from "./dashboardData";
 import { AuthRequiredError, restApiPaginate } from "./githubClient";
+import { mapPool } from "./localScan";
 import { logger } from "./logger";
 
 /**
@@ -22,25 +23,6 @@ const CONCURRENCY = 6;
 // Collaborator membership changes rarely and is expensive to fetch (one paginated
 // REST call per repo), so cache aggressively — 24h, refreshed only on fresh=1.
 const TTL_MS = 24 * 60 * 60 * 1000;
-
-async function mapWithConcurrency<T, R>(
-  items: T[],
-  limit: number,
-  worker: (item: T) => Promise<R>,
-): Promise<R[]> {
-  const results: R[] = new Array(items.length);
-  let cursor = 0;
-  async function run(): Promise<void> {
-    while (true) {
-      const idx = cursor++;
-      if (idx >= items.length) return;
-      results[idx] = await worker(items[idx]!);
-    }
-  }
-  const runners = Array.from({ length: Math.min(limit, items.length) }, run);
-  await Promise.all(runners);
-  return results;
-}
 
 async function fetchRepoCollaborators(
   nameWithOwner: string,
@@ -71,7 +53,7 @@ async function build(): Promise<CollaboratorsResult> {
   try {
     let authRequired = false;
     const byRepo: Record<string, string[]> = {};
-    await mapWithConcurrency(candidates, CONCURRENCY, async (repo) => {
+    await mapPool(candidates, CONCURRENCY, async (repo) => {
       const logins = await fetchRepoCollaborators(repo.nameWithOwner, self);
       if (logins === "auth-required") {
         authRequired = true;

@@ -5,6 +5,7 @@ import { memoize } from "./cache";
 import { getIssuesCached, getReposCached } from "./dashboardData";
 import { describeRestError, ghApiJson, restApiPaginate } from "./githubClient";
 import { sendJsonCacheable } from "./http";
+import { mapPool } from "./localScan";
 import { fetchRepoSecuritySummary } from "./securityAlerts";
 
 interface ReleaseAssetApi {
@@ -78,25 +79,6 @@ async function fetchInsightForRepo(repo: GhRepo, issues: GhIssue[]): Promise<Rep
   });
 }
 
-async function mapWithConcurrency<T, R>(
-  items: T[],
-  concurrency: number,
-  worker: (item: T) => Promise<R>,
-): Promise<R[]> {
-  const results: R[] = [];
-  let index = 0;
-
-  async function run() {
-    while (index < items.length) {
-      const currentIndex = index++;
-      results[currentIndex] = await worker(items[currentIndex]!);
-    }
-  }
-
-  await Promise.all(Array.from({ length: Math.min(concurrency, items.length) }, () => run()));
-  return results;
-}
-
 const INSIGHTS_TTL_MS = 15 * 60 * 1000;
 
 type RepoInsightsResult =
@@ -113,7 +95,7 @@ const store = memoize<RepoInsightsResult>(
     if (!repos.ok) return repos;
     if (!issues.ok) return issues;
 
-    const insights = await mapWithConcurrency(repos.repos, 6, async (repo) =>
+    const insights = await mapPool(repos.repos, 6, async (repo) =>
       fetchInsightForRepo(repo, issues.issues),
     );
     return {

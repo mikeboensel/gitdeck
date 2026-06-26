@@ -3,6 +3,7 @@ import { errorMessage } from "../utils/errors";
 import { memoize } from "./cache";
 import { getReposCached } from "./dashboardData";
 import { AuthRequiredError, restApi } from "./githubClient";
+import { mapPool } from "./localScan";
 import { logger } from "./logger";
 
 export interface CIRunSummary {
@@ -152,25 +153,6 @@ async function fetchRepoRuns(repo: GhRepo): Promise<RawWorkflowRun[] | "auth-req
   return result.data?.workflow_runs ?? [];
 }
 
-async function mapWithConcurrency<T, R>(
-  items: T[],
-  limit: number,
-  worker: (item: T) => Promise<R>,
-): Promise<R[]> {
-  const results: R[] = new Array(items.length);
-  let cursor = 0;
-  async function run(): Promise<void> {
-    while (true) {
-      const idx = cursor++;
-      if (idx >= items.length) return;
-      results[idx] = await worker(items[idx]!);
-    }
-  }
-  const runners = Array.from({ length: Math.min(limit, items.length) }, run);
-  await Promise.all(runners);
-  return results;
-}
-
 async function build(): Promise<CIHealthResult> {
   const reposResult = await getReposCached(false);
   if (!reposResult.ok) {
@@ -181,7 +163,7 @@ async function build(): Promise<CIHealthResult> {
   const candidates = reposResult.repos.filter((repo) => !repo.isArchived);
   try {
     let authRequired = false;
-    const perRepo = await mapWithConcurrency(candidates, CONCURRENCY, async (repo) => {
+    const perRepo = await mapPool(candidates, CONCURRENCY, async (repo) => {
       const runs = await fetchRepoRuns(repo);
       if (runs === "auth-required") {
         authRequired = true;
