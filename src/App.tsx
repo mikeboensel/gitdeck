@@ -8,6 +8,7 @@ import {
   LuListFilter,
   LuSearch,
   LuServer,
+  LuTerminal,
 } from "react-icons/lu";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { invalidate as invalidateCache, peek, swr } from "./api/cache";
@@ -79,6 +80,7 @@ import {
   type RepoLayout,
 } from "./components/views/ReposView";
 import { RepoViewControls } from "./components/views/RepoViewControls";
+import { TerminalView } from "./components/views/TerminalView";
 import { WidgetHost } from "./components/widgets/WidgetHost";
 import { useAccounts, useCapability } from "./contexts/AccountContext";
 import { useCommandPaletteHotkey } from "./hooks/useCommandPaletteHotkey";
@@ -901,6 +903,7 @@ export function App() {
     ...(projectsEnabled
       ? [{ key: "kanban" as const, label: t("tabs.board"), count: "—", icon: <BoardIcon /> }]
       : []),
+    { key: "terminal" as const, label: "Terminal", count: "—", icon: <LuTerminal size={15} /> },
     { key: "lab" as const, label: "Viz Lab", count: "—", icon: <GridIcon /> },
   ];
 
@@ -933,6 +936,7 @@ export function App() {
     ci: { shown: ciHealth.length, total: ciHealth.length, filters: 0 },
     digests: { shown: dailyDigests.length, total: dailyDigests.length, filters: 0 },
     kanban: { shown: filteredIssues.length, total: issues.length, filters: issueFilterCount },
+    terminal: { shown: 0, total: 0, filters: 0 },
     lab: {
       shown: filteredInsights.length,
       total: filteredInsights.length,
@@ -1252,6 +1256,8 @@ export function App() {
               onDelete={deleteLocalRepo}
             />
           ) : null}
+
+          {tab === "terminal" ? <TerminalView /> : null}
 
           {tab === "kanban" && projectsEnabled ? <KanbanView /> : null}
 

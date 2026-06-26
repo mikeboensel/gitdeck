@@ -13,6 +13,7 @@ export type Tab =
   | "alerts"
   | "ci"
   | "digests"
+  | "terminal"
   | "lab";
 
 export const TAB_ROUTES: Record<Tab, string> = {
@@ -26,6 +27,7 @@ export const TAB_ROUTES: Record<Tab, string> = {
   alerts: "/alerts",
   ci: "/ci",
   digests: "/daily",
+  terminal: "/terminal",
   lab: "/lab",
 };
 

@@ -13,7 +13,9 @@ export default defineConfig({
     // Vite projects. Mirrors package.json `config.ports.web`.
     port: 5180,
     proxy: {
-      "/api": "http://127.0.0.1:8765",
+      // `ws: true` forwards the terminal WebSocket upgrade (/api/terminal) to
+      // the API server alongside the normal REST proxying.
+      "/api": { target: "http://127.0.0.1:8765", ws: true },
     },
   },
   test: {

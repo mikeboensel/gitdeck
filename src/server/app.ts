@@ -1,4 +1,5 @@
 import type { HttpBindings } from "@hono/node-server";
+import { createNodeWebSocket } from "@hono/node-ws";
 import { swaggerUI } from "@hono/swagger-ui";
 import { OpenAPIHono } from "@hono/zod-openapi";
 import { requestId } from "hono/request-id";
@@ -16,6 +17,7 @@ import { registerNotifications } from "./routes/notifications";
 import { registerProjects } from "./routes/projects";
 import { registerRepoAliases } from "./routes/repoAliases";
 import { registerStatic } from "./routes/static";
+import { registerTerminal } from "./routes/terminal";
 
 /**
  * The Hono application. Every endpoint, static asset, and SPA route is served
@@ -42,6 +44,13 @@ export const app = new OpenAPIHono<{ Bindings: HttpBindings }>({
     return undefined;
   },
 });
+
+// WebSocket support for the Node adapter. `injectWebSocket` is wired onto the
+// HTTP server in `server.ts`; `upgradeWebSocket` turns a GET route into a WS
+// upgrade handler (used by the terminal route below).
+const { injectWebSocket, upgradeWebSocket } = createNodeWebSocket({ app });
+
+export { injectWebSocket };
 
 // Log full error (stack + cause via pino) with correlation id, then 500.
 app.onError((err, c) => {
@@ -76,6 +85,9 @@ registerCommitActivity(app);
 registerLocalRepos(app);
 registerNotifications(app);
 registerDelegated(app);
+
+// ── WebSocket routes (must precede the static catch-all) ─────────────────────
+registerTerminal(app, upgradeWebSocket);
 
 // ── Plain Hono auth/account routes (dynamic payloads, not in the spec) ────────
 registerAuth(app);

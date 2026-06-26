@@ -37,6 +37,7 @@ type Tab =
   | "ci"
   | "digests"
   | "lab"
+  | "terminal"
   | "prs";
 
 export interface InboxSidebarState {
