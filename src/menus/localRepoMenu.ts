@@ -14,6 +14,10 @@ export interface LocalRepoMenuActions {
   onOpenInCursor: (repo: LocalRepo) => void;
   /** Open the repo's folder in a new Terminal window. */
   onOpenInTerminal: (repo: LocalRepo) => void;
+  /** Open the commit-history graph for the repo. */
+  onViewHistory: (repo: LocalRepo) => void;
+  /** Open the stash viewer for the repo. */
+  onViewStashes: (repo: LocalRepo) => void;
 }
 
 /**
@@ -26,7 +30,23 @@ export function buildLocalRepoMenu(
   t: (key: TranslationKey) => string,
 ): ContextMenuItem[] {
   const items: ContextMenuItem[] = [
+    {
+      key: "history",
+      label: t("menu.viewHistory"),
+      onSelect: () => actions.onViewHistory(repo),
+    },
     { key: "finder", label: t("menu.revealInFinder"), onSelect: () => actions.onReveal(repo) },
+  ];
+  // Stash entries are repo-level and counted on the primary only, so the item
+  // only shows where there's actually something to view.
+  if (repo.stashCount > 0) {
+    items.splice(1, 0, {
+      key: "stashes",
+      label: t("menu.viewStashes"),
+      onSelect: () => actions.onViewStashes(repo),
+    });
+  }
+  items.push(
     { key: "cursor", label: t("menu.openInCursor"), onSelect: () => actions.onOpenInCursor(repo) },
     {
       key: "terminal",
@@ -38,7 +58,7 @@ export function buildLocalRepoMenu(
       label: t("menu.copyPath"),
       onSelect: () => void navigator.clipboard?.writeText(repo.path),
     },
-  ];
+  );
   if (repo.enrichment) {
     const url = repo.enrichment.url;
     items.push({

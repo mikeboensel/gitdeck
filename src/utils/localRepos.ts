@@ -15,10 +15,19 @@ export interface LocalRepoFilters {
   remotes: Set<string>;
   /** Working-tree state. */
   status: "all" | "dirty" | "clean";
+  /** Whether the repo has stash entries (`refs/stash`). */
+  stash: "all" | "has" | "none";
 }
 
 export function defaultLocalFilters(): LocalRepoFilters {
-  return { search: "", owners: new Set(), hosts: new Set(), remotes: new Set(), status: "all" };
+  return {
+    search: "",
+    owners: new Set(),
+    hosts: new Set(),
+    remotes: new Set(),
+    status: "all",
+    stash: "all",
+  };
 }
 
 /** Count of active (non-default) filter dimensions — drives the sidebar reset affordance. */
@@ -28,6 +37,7 @@ export function localFiltersActiveCount(f: LocalRepoFilters): number {
     f.hosts.size +
     f.remotes.size +
     (f.status !== "all" ? 1 : 0) +
+    (f.stash !== "all" ? 1 : 0) +
     (f.search.trim() ? 1 : 0)
   );
 }
@@ -91,6 +101,17 @@ function matchesStatus(repo: LocalRepo, status: LocalRepoFilters["status"]): boo
   return true;
 }
 
+/**
+ * `stashCount` is repo-level and populated on the primary only (0 for linked
+ * worktrees), so `has` matches the primary checkout that owns the shared stash;
+ * a stashed repo's worktree rows fall under `none`.
+ */
+function matchesStash(repo: LocalRepo, stash: LocalRepoFilters["stash"]): boolean {
+  if (stash === "has") return repo.stashCount > 0;
+  if (stash === "none") return repo.stashCount === 0;
+  return true;
+}
+
 function matchesQuery(repo: LocalRepo, query: string): boolean {
   if (!query) return true;
   const haystack = [
@@ -116,6 +137,7 @@ export function filterLocalRepos(repos: LocalRepo[], f: LocalRepoFilters): Local
   return repos.filter(
     (repo) =>
       matchesStatus(repo, f.status) &&
+      matchesStash(repo, f.stash) &&
       matchesOwners(repo, f.owners) &&
       (!f.hosts.size || repo.remotes.some((r) => r.host && f.hosts.has(r.host))) &&
       (!f.remotes.size || repo.remotes.some((r) => f.remotes.has(r.url))) &&

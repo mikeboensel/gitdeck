@@ -52,6 +52,7 @@ function makeRepo(over: Partial<LocalRepo> = {}): LocalRepo {
     behind: 0,
     dirty: false,
     changes: { staged: 0, modified: 0, untracked: 0, conflicted: 0 },
+    stashCount: 0,
     lastCommit: { sha: "a1", date: "2026-01-01T00:00:00Z", message: "init" },
     sizeBytes: null,
     linkedWorktrees: [],
@@ -203,6 +204,7 @@ describe("localFiltersActiveCount", () => {
         hosts: new Set(["github.com"]),
         remotes: new Set(),
         status: "dirty",
+        stash: "all",
       }),
     ).toBe(2 + 1 + 1 + 1); // owners(2) + hosts(1) + status(1) + search(1)
   });

@@ -37,6 +37,7 @@ const localFilters = (over: Partial<LocalRepoFilters> = {}): LocalRepoFilters =>
   hosts: new Set(),
   remotes: new Set(),
   status: "all",
+  stash: "all",
   ...over,
 });
 

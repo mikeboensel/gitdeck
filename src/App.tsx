@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
+  LuArchive,
   LuBuilding2,
   LuChevronRight,
   LuFileDiff,
@@ -1062,26 +1063,48 @@ export function App() {
             onSearchChange={(value) => setLocalFilters((f) => ({ ...f, search: value }))}
             groups={localFacetGroups}
             extraSections={
-              <FilterSection
-                title={t("local.facetGitStatus")}
-                icon={<LuFileDiff size={16} />}
-                activeCount={localFilters.status !== "all" ? 1 : 0}
-                onClear={() => setLocalFilters((f) => ({ ...f, status: "all" }))}
-              >
-                <div className="local-status-filter">
-                  {(["all", "dirty", "clean"] as const).map((s) => (
-                    <label className="check" key={s}>
-                      <input
-                        type="radio"
-                        name="local-status"
-                        checked={localFilters.status === s}
-                        onChange={() => setLocalFilters((f) => ({ ...f, status: s }))}
-                      />
-                      <span className="label-text">{t(`local.status_${s}`)}</span>
-                    </label>
-                  ))}
-                </div>
-              </FilterSection>
+              <>
+                <FilterSection
+                  title={t("local.facetGitStatus")}
+                  icon={<LuFileDiff size={16} />}
+                  activeCount={localFilters.status !== "all" ? 1 : 0}
+                  onClear={() => setLocalFilters((f) => ({ ...f, status: "all" }))}
+                >
+                  <div className="local-status-filter">
+                    {(["all", "dirty", "clean"] as const).map((s) => (
+                      <label className="check" key={s}>
+                        <input
+                          type="radio"
+                          name="local-status"
+                          checked={localFilters.status === s}
+                          onChange={() => setLocalFilters((f) => ({ ...f, status: s }))}
+                        />
+                        <span className="label-text">{t(`local.status_${s}`)}</span>
+                      </label>
+                    ))}
+                  </div>
+                </FilterSection>
+                <FilterSection
+                  title={t("local.facetStash")}
+                  icon={<LuArchive size={16} />}
+                  activeCount={localFilters.stash !== "all" ? 1 : 0}
+                  onClear={() => setLocalFilters((f) => ({ ...f, stash: "all" }))}
+                >
+                  <div className="local-status-filter">
+                    {(["all", "has", "none"] as const).map((s) => (
+                      <label className="check" key={s}>
+                        <input
+                          type="radio"
+                          name="local-stash"
+                          checked={localFilters.stash === s}
+                          onChange={() => setLocalFilters((f) => ({ ...f, stash: s }))}
+                        />
+                        <span className="label-text">{t(`local.stash_${s}`)}</span>
+                      </label>
+                    ))}
+                  </div>
+                </FilterSection>
+              </>
             }
             onReset={() => setLocalFilters(defaultLocalFilters())}
             onClose={() => setFiltersOpen(false)}

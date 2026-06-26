@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { parseStatusCounts, parseWorktreePorcelain } from "../../src/server/localScan";
+import {
+  parseStashCount,
+  parseStatusCounts,
+  parseWorktreePorcelain,
+} from "../../src/server/localScan";
 
 describe("parseWorktreePorcelain", () => {
   const raw = [
@@ -92,5 +96,22 @@ describe("parseStatusCounts", () => {
 
   it("ignores blank trailing lines", () => {
     expect(parseStatusCounts("M  a.ts\n\n")).toMatchObject({ staged: 1 });
+  });
+});
+
+describe("parseStashCount", () => {
+  it("returns 0 for empty output", () => {
+    expect(parseStashCount("")).toBe(0);
+  });
+
+  it("counts NUL-terminated entries, dropping the empty trailing segment", () => {
+    // `git stash list -z` terminates each entry with NUL, including the last.
+    const raw = "stash@{0}: WIP on main: abc Fix\0stash@{1}: On feat: def WIP\0";
+    expect(parseStashCount(raw)).toBe(2);
+  });
+
+  it("does not over-count when a stash message contains a newline", () => {
+    const raw = "stash@{0}: WIP on main: line one\nline two\0";
+    expect(parseStashCount(raw)).toBe(1);
   });
 });

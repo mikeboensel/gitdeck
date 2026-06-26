@@ -17,7 +17,10 @@ import {
 } from "../utils/i18n";
 import { type TranslationKey, translations } from "./translations";
 
-type Translate = (key: TranslationKey, replacements?: Record<string, string | number>) => string;
+export type Translate = (
+  key: TranslationKey,
+  replacements?: Record<string, string | number>,
+) => string;
 const AVAILABLE_LANGUAGES = Object.keys(translations) as Language[];
 
 interface I18nContextValue {

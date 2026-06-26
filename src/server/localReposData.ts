@@ -115,6 +115,10 @@ async function loadFromDisk(): Promise<LocalReposOk | null> {
       if (data.repos.length > 0 && data.repos[0] && !("linkedWorktrees" in data.repos[0])) {
         return null;
       }
+      // Discard caches predating `stashCount` so a rescan populates stash data.
+      if (data.repos.length > 0 && data.repos[0] && !("stashCount" in data.repos[0])) {
+        return null;
+      }
       return data;
     }
     return null;

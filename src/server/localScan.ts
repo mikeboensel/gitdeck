@@ -22,6 +22,13 @@ export interface ScannedRepo {
   behind: number;
   dirty: boolean;
   changes: GitChangeCounts;
+  /**
+   * Number of entries on the stash stack (`refs/stash`). The stash is a single
+   * repo-level ref in the common git dir, shared by every checkout — so this is
+   * counted on the primary only and left 0 for linked worktrees, mirroring
+   * `linkedWorktrees`.
+   */
+  stashCount: number;
   lastCommit: { sha: string; date: string; message: string } | null;
   /** Total size on disk of this checkout (working tree + .git), in bytes; null if unmeasurable. */
   sizeBytes: number | null;
@@ -236,6 +243,24 @@ async function readLinkedWorktrees(repoPath: string): Promise<WorktreeEntry[]> {
   );
 }
 
+/**
+ * Count NUL-terminated entries from `git stash list -z`. `-z` is used so stash
+ * messages containing newlines can't inflate the count; the trailing NUL yields
+ * an empty final segment, which the filter drops.
+ */
+export function parseStashCount(raw: string): number {
+  return raw.split("\0").filter((entry) => entry.length > 0).length;
+}
+
+/**
+ * Number of entries on the stash stack. The stash ref (`refs/stash`) lives in
+ * the shared common dir, so this is run from the primary checkout only.
+ */
+async function readStashCount(repoPath: string): Promise<number> {
+  const raw = await git(repoPath, ["stash", "list", "-z"]);
+  return raw ? parseStashCount(raw) : 0;
+}
+
 async function readGitMeta(repoPath: string): Promise<ScannedRepo> {
   // NB: disk size (`du`) is intentionally NOT measured here — it's the dominant,
   // slowly-changing scan cost (a full-tree walk per repo). It's filled in later
@@ -303,6 +328,10 @@ async function readGitMeta(repoPath: string): Promise<ScannedRepo> {
   // sibling N times.
   const linkedWorktrees = isWorktree ? [] : await readLinkedWorktrees(repoPath);
 
+  // The stash is shared across all checkouts; attribute it to the primary so the
+  // same N entries don't render on every linked worktree row.
+  const stashCount = isWorktree ? 0 : await readStashCount(repoPath);
+
   return {
     path: repoPath,
     name: parsed?.repo ?? basename(repoPath),
@@ -315,6 +344,7 @@ async function readGitMeta(repoPath: string): Promise<ScannedRepo> {
     behind,
     dirty: changes.staged + changes.modified + changes.untracked + changes.conflicted > 0,
     changes,
+    stashCount,
     lastCommit,
     sizeBytes: null,
     linkedWorktrees,

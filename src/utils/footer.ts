@@ -29,7 +29,13 @@ export function countPrFilters(f: PullRequestFilters): number {
   return f.orgs.size + f.repos.size + f.labels.size + f.authors.size + f.assignees.size;
 }
 
-/** Local-repo facets (owners/hosts/remotes) plus the non-default git-status filter. */
+/** Local-repo facets (owners/hosts/remotes) plus the non-default git-status and stash filters. */
 export function countLocalFilters(f: LocalRepoFilters): number {
-  return f.owners.size + f.hosts.size + f.remotes.size + (f.status !== "all" ? 1 : 0);
+  return (
+    f.owners.size +
+    f.hosts.size +
+    f.remotes.size +
+    (f.status !== "all" ? 1 : 0) +
+    (f.stash !== "all" ? 1 : 0)
+  );
 }

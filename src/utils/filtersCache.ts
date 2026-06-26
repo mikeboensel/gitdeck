@@ -47,6 +47,8 @@ export interface CachedFilters {
     hosts: string[];
     remotes: string[];
     status: string;
+    // Optional so caches from before the stash filter still validate.
+    stash?: string;
   };
   // Optional so cached data from before this field existed still validates.
   sorts?: {
@@ -60,6 +62,7 @@ export interface CachedFilters {
 
 const VALID_VISIBILITY = new Set(["all", "public", "private"]);
 const VALID_LOCAL_STATUS = new Set(["all", "dirty", "clean"]);
+const VALID_LOCAL_STASH = new Set(["all", "has", "none"]);
 
 function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every((item) => typeof item === "string");
@@ -88,7 +91,8 @@ function isLocalFiltersShape(value: unknown): boolean {
     isStringArray(lf.owners) &&
     isStringArray(lf.hosts) &&
     isStringArray(lf.remotes) &&
-    typeof lf.status === "string"
+    typeof lf.status === "string" &&
+    (lf.stash === undefined || typeof lf.stash === "string")
   );
 }
 
@@ -183,6 +187,10 @@ export function hydrateFilters(cached: CachedFilters): {
         status: VALID_LOCAL_STATUS.has(lf.status)
           ? (lf.status as LocalRepoFilters["status"])
           : "all",
+        stash:
+          lf.stash && VALID_LOCAL_STASH.has(lf.stash)
+            ? (lf.stash as LocalRepoFilters["stash"])
+            : "all",
       }
     : defaultLocalFilters();
 
@@ -269,6 +277,7 @@ export function writeFiltersCache(
             hosts: [...localFilters.hosts],
             remotes: [...localFilters.remotes],
             status: localFilters.status,
+            stash: localFilters.stash,
           }
         : undefined,
       sorts: sorts ? { ...sorts } : undefined,

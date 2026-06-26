@@ -1,38 +1,16 @@
-import { type MouseEvent as ReactMouseEvent, useEffect, useRef, useState } from "react";
-import type { IconType } from "react-icons";
-import {
-  LuCircleCheck,
-  LuClock,
-  LuEye,
-  LuEyeOff,
-  LuFilePen,
-  LuFilePlus,
-  LuFileQuestion,
-  LuFolderGit2,
-  LuGitBranch,
-  LuGlobe,
-  LuHardDrive,
-  LuLock,
-  LuPickaxe,
-  LuRefreshCw,
-  LuSettings,
-  LuTreePine,
-  LuTriangleAlert,
-} from "react-icons/lu";
+import { useEffect, useState } from "react";
+import { LuEye, LuRefreshCw, LuSettings } from "react-icons/lu";
 import { useSearchParams } from "react-router-dom";
 import { openLocalRepo } from "../../api/github";
-import { useRightClickMenu } from "../../contexts/RightClickMenuProvider";
 import { useI18n } from "../../i18n/I18nProvider";
 import type { TranslationKey } from "../../i18n/translations";
-import { buildLocalRepoMenu } from "../../menus/localRepoMenu";
-import type { GitChangeCounts, LocalRepo, LocalReposConfig } from "../../types/github";
-import { errorMessage } from "../../utils/errors";
-import { formatBytes, formatNumber, formatRelativeTime } from "../../utils/format";
+import type { LocalRepo, LocalReposConfig } from "../../types/github";
+import { formatNumber, formatRelativeTime } from "../../utils/format";
 import { arrangeLocalRepos, type LocalSort } from "../../utils/localRepos";
-import { ForkIcon, StarIcon } from "../common/Icons";
-import { LanguageIcon } from "../common/LanguageIcon";
 import { SortSelect } from "../common/SortSelect";
 import { LocalDiskUsage } from "./LocalDiskUsage";
+import { LocalRepoCard } from "./LocalRepoCard";
+import { LocalRepoRow } from "./LocalRepoRow";
 import type { RepoDensity, RepoLayout } from "./ReposView";
 import { RepoViewControls } from "./RepoViewControls";
 
@@ -102,10 +80,14 @@ export function LocalReposView({
   const focusName = searchParams.get("localFocus")?.toLowerCase() ?? null;
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [rootsDraft, setRootsDraft] = useState("");
+  const [ttlDraft, setTtlDraft] = useState("15");
 
-  // Seed the scan-roots textarea from config whenever it (re)loads.
+  // Seed the settings drafts from config whenever it (re)loads.
   useEffect(() => {
-    if (config) setRootsDraft(config.scanRoots.join("\n"));
+    if (config) {
+      setRootsDraft(config.scanRoots.join("\n"));
+      setTtlDraft(String(config.sizeCacheTtlMinutes));
+    }
   }, [config]);
 
   const saveRoots = () => {
@@ -113,7 +95,13 @@ export function LocalReposView({
       .split("\n")
       .map((line) => line.trim())
       .filter(Boolean);
-    onSaveConfig({ scanRoots });
+    // Server clamps a non-positive/NaN TTL back to the default, so passing the raw
+    // parse is safe; only send a finite number.
+    const ttl = Number(ttlDraft);
+    onSaveConfig({
+      scanRoots,
+      ...(Number.isFinite(ttl) ? { sizeCacheTtlMinutes: ttl } : {}),
+    });
   };
 
   const filtered = repos.length !== totalCount;
@@ -187,6 +175,17 @@ export function LocalReposView({
             onChange={(e) => setRootsDraft(e.target.value)}
             rows={3}
           />
+          <label htmlFor="local-size-ttl">{t("local.sizeCacheTtl")}</label>
+          <input
+            id="local-size-ttl"
+            className="local-ttl-input"
+            type="number"
+            min={1}
+            value={ttlDraft}
+            onChange={(e) => setTtlDraft(e.target.value)}
+          />
+          <div className="local-settings-hint">{t("local.sizeCacheTtlHint")}</div>
+
           <div className="local-settings-actions">
             <button type="button" className="btn primary" onClick={saveRoots}>
               {t("local.saveAndRescan")}
@@ -274,436 +273,6 @@ export function LocalReposView({
           )}
         </div>
       )}
-    </div>
-  );
-}
-
-function statusLabelKey(status: LocalRepo["enrichmentStatus"]) {
-  switch (status) {
-    case "enriched":
-      return "local.statusEnriched";
-    case "unreachable":
-      return "local.statusUnreachable";
-    case "no-remote":
-      return "local.statusNoRemote";
-    default:
-      return "local.statusLocalOnly";
-  }
-}
-
-/**
- * Working-tree change categories, in display order (most urgent first). Each
- * renders as its own pill when its count is non-zero; the label is count-prefixed
- * and the title carries the full explanation.
- */
-const CHANGE_PILLS: ReadonlyArray<{
-  field: keyof GitChangeCounts;
-  cls: string;
-  icon: IconType;
-  label: TranslationKey;
-  title: TranslationKey;
-}> = [
-  {
-    field: "conflicted",
-    cls: "conflicted",
-    icon: LuTriangleAlert,
-    label: "local.changeConflicted",
-    title: "local.changeConflictedTitle",
-  },
-  {
-    field: "staged",
-    cls: "staged",
-    icon: LuFilePlus,
-    label: "local.changeStaged",
-    title: "local.changeStagedTitle",
-  },
-  {
-    field: "modified",
-    cls: "modified",
-    icon: LuFilePen,
-    label: "local.changeModified",
-    title: "local.changeModifiedTitle",
-  },
-  {
-    field: "untracked",
-    cls: "untracked",
-    icon: LuFileQuestion,
-    label: "local.changeUntracked",
-    title: "local.changeUntrackedTitle",
-  },
-];
-
-/** Longer hover explainer for the enrichment-status pickaxe badge. */
-function statusTitleKey(status: LocalRepo["enrichmentStatus"]) {
-  switch (status) {
-    case "enriched":
-      return "local.statusEnrichedTitle";
-    case "unreachable":
-      return "local.statusUnreachableTitle";
-    case "no-remote":
-      return "local.statusNoRemoteTitle";
-    default:
-      return "local.statusLocalOnlyTitle";
-  }
-}
-
-/** Worktree tooltip: a count header, then one line per worktree (branch + dirty marker). */
-function worktreeTooltip(worktrees: LocalRepo[], t: ReturnType<typeof useI18n>["t"]): string {
-  if (worktrees.length === 0) return "";
-  return [
-    t("local.worktreeCount", { count: String(worktrees.length) }),
-    ...worktrees.map((w) => `• ${w.branch ?? "(detached)"}${w.dirty ? " *" : ""}`),
-  ].join("\n");
-}
-
-/**
- * Shared "open natively / right-click menu" wiring for the card and row variants:
- * a transient open-error message plus the context-menu handler. Keeps both
- * variants in sync without duplicating the Finder/Cursor plumbing.
- */
-function useLocalRepoActions(repo: LocalRepo): {
-  actionError: string;
-  onContextMenu: (event: ReactMouseEvent) => void;
-} {
-  const { t } = useI18n();
-  const { open } = useRightClickMenu();
-  // Transient feedback when a native "open" (Finder/Cursor) fails, e.g. Cursor
-  // isn't installed. Clears itself a few seconds after it's shown.
-  const [actionError, setActionError] = useState("");
-  useEffect(() => {
-    if (!actionError) return;
-    const id = setTimeout(() => setActionError(""), 4000);
-    return () => clearTimeout(id);
-  }, [actionError]);
-
-  const runOpen = (target: "finder" | "cursor" | "terminal") => {
-    setActionError("");
-    openLocalRepo(repo.path, target).catch((err: unknown) => {
-      setActionError(`${t("local.openFailed")}: ${errorMessage(err)}`);
-    });
-  };
-
-  const onContextMenu = (event: ReactMouseEvent) =>
-    open(event, {
-      ariaLabel: repo.name,
-      items: buildLocalRepoMenu(
-        repo,
-        {
-          onReveal: () => runOpen("finder"),
-          onOpenInCursor: () => runOpen("cursor"),
-          onOpenInTerminal: () => runOpen("terminal"),
-        },
-        t,
-      ),
-    });
-
-  return { actionError, onContextMenu };
-}
-
-function LocalRepoCard({
-  repo,
-  worktrees,
-  onHide,
-  highlighted,
-}: {
-  repo: LocalRepo;
-  /** Linked worktrees sharing this repo's git dir; surfaced as a count + tooltip. */
-  worktrees: LocalRepo[];
-  onHide: (path: string) => void;
-  highlighted: boolean;
-}) {
-  const { language, t } = useI18n();
-  const { actionError, onContextMenu } = useLocalRepoActions(repo);
-  const enrich = repo.enrichment;
-  const primaryLanguage = enrich?.primaryLanguage?.name;
-  const worktreeTip = worktreeTooltip(worktrees, t);
-  const cardRef = useRef<HTMLElement>(null);
-  // Scroll the targeted clone into view when navigated to from a repo card.
-  useEffect(() => {
-    if (highlighted) cardRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-  }, [highlighted]);
-
-  return (
-    <article
-      ref={cardRef}
-      className={`repo-card local-card${highlighted ? " local-card-focused" : ""}${
-        repo.isWorktree ? " local-card-worktree" : ""
-      }`}
-      onContextMenu={onContextMenu}
-    >
-      <div className="rc-head">
-        <LuFolderGit2 size={20} className="local-card-icon" />
-        <div className="rc-title">
-          {enrich ? (
-            <a href={enrich.url} target="_blank" rel="noreferrer">
-              {repo.name}
-            </a>
-          ) : (
-            <span>{repo.name}</span>
-          )}
-        </div>
-        <div className="repo-badges">
-          {repo.isWorktree ? (
-            <span className="rb local-worktree-badge">{t("local.worktree")}</span>
-          ) : null}
-          {enrich ? (
-            enrich.isPrivate ? (
-              <span className="rb rb-icon private" role="img" aria-label={t("repo.private")}>
-                <LuLock size={11} />
-              </span>
-            ) : (
-              <span className="rb rb-icon" role="img" aria-label={t("repo.public")}>
-                <LuGlobe size={11} />
-              </span>
-            )
-          ) : null}
-          <span
-            className={`rb rb-icon tip local-status local-status-${repo.enrichmentStatus}`}
-            role="img"
-            aria-label={t(statusLabelKey(repo.enrichmentStatus))}
-            data-tip={t(statusTitleKey(repo.enrichmentStatus))}
-          >
-            <LuPickaxe size={11} />
-          </span>
-        </div>
-      </div>
-
-      <div className="local-path" title={repo.path}>
-        {repo.path}
-      </div>
-
-      <div className="local-git-row">
-        {repo.branch ? (
-          <span className="local-branch">
-            <LuGitBranch size={11} aria-hidden /> {repo.branch}
-          </span>
-        ) : null}
-        <GitStatusPills repo={repo} />
-      </div>
-
-      {actionError ? (
-        <div className="local-action-error" role="alert">
-          {actionError}
-        </div>
-      ) : null}
-
-      {enrich?.description ? <div className="repo-desc">{enrich.description}</div> : null}
-
-      <div className="rc-stats">
-        {enrich ? (
-          <>
-            <span className="rc-stat strong star">
-              <StarIcon /> {formatNumber(enrich.stargazerCount)}
-            </span>
-            <span className="rc-stat strong fork">
-              <ForkIcon /> {formatNumber(enrich.forkCount)}
-            </span>
-          </>
-        ) : null}
-        {worktrees.length > 0 ? (
-          <span
-            className="rc-stat strong worktrees tip"
-            role="img"
-            aria-label={t("local.worktreeCount", { count: String(worktrees.length) })}
-            data-tip={worktreeTip}
-          >
-            <LuTreePine size={13} /> {worktrees.length}
-          </span>
-        ) : null}
-        {repo.sizeBytes != null ? (
-          <span className="rc-stat local-size tip" data-tip={t("local.sizeOnDisk")}>
-            <LuHardDrive size={12} aria-hidden /> {formatBytes(repo.sizeBytes)}
-          </span>
-        ) : null}
-        {primaryLanguage ? (
-          <span className="rc-lang" role="img" aria-label={primaryLanguage} title={primaryLanguage}>
-            <LanguageIcon name={primaryLanguage} />
-          </span>
-        ) : null}
-        {repo.lastCommit ? (
-          <span className="local-committed tip" data-tip={t("tip.committed")}>
-            <LuClock size={12} aria-hidden />{" "}
-            {formatRelativeTime(repo.lastCommit.date, Date.now(), language)}
-          </span>
-        ) : null}
-        <button
-          type="button"
-          className="local-hide-btn tip"
-          data-tip={t("local.hide")}
-          aria-label={t("local.hide")}
-          onClick={() => onHide(repo.path)}
-        >
-          <LuEyeOff size={14} aria-hidden />
-        </button>
-      </div>
-    </article>
-  );
-}
-
-/** The dirty/clean + ahead/behind pills, shared by the card and the compact row. */
-function GitStatusPills({ repo }: { repo: LocalRepo }) {
-  const { t } = useI18n();
-  return (
-    <div className="local-git-status">
-      {repo.dirty ? (
-        CHANGE_PILLS.filter((p) => repo.changes[p.field] > 0).map((p) => (
-          <span
-            key={p.field}
-            className={`local-pill dirty ${p.cls} tip`}
-            role="img"
-            data-tip={`${repo.changes[p.field]} ${t(p.label)} — ${t(p.title)}`}
-            aria-label={`${repo.changes[p.field]} ${t(p.label)}`}
-          >
-            <p.icon size={11} aria-hidden /> {repo.changes[p.field]}
-          </span>
-        ))
-      ) : (
-        <span
-          className="local-pill clean tip"
-          role="img"
-          data-tip={`${t("local.clean")} — ${t("local.cleanTitle")}`}
-          aria-label={t("local.clean")}
-        >
-          <LuCircleCheck size={11} aria-hidden />
-        </span>
-      )}
-      {repo.ahead > 0 ? <span className="local-pill">↑{repo.ahead}</span> : null}
-      {repo.behind > 0 ? <span className="local-pill">↓{repo.behind}</span> : null}
-    </div>
-  );
-}
-
-/**
- * Dense one-row-per-repo layout for the Local tab's List mode — mirrors the
- * Repositories `RepoList` row (shared `.data-row`/`.repo-row` grid + density
- * vars) but carries local git facts: branch, working-tree status, worktree
- * count and last commit. The full path lives in the row's hover title.
- */
-function LocalRepoRow({
-  repo,
-  worktrees,
-  onHide,
-  highlighted,
-}: {
-  repo: LocalRepo;
-  worktrees: LocalRepo[];
-  onHide: (path: string) => void;
-  highlighted: boolean;
-}) {
-  const { language, t } = useI18n();
-  const { actionError, onContextMenu } = useLocalRepoActions(repo);
-  const enrich = repo.enrichment;
-  const rowRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (highlighted) rowRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
-  }, [highlighted]);
-
-  return (
-    // biome-ignore lint/a11y/noStaticElementInteractions: the row only adds a contextmenu (right-click) enhancement; every primary action is a nested focusable control (repo link, hide button).
-    <div
-      ref={rowRef}
-      className={`data-row repo-row local-row${highlighted ? " local-card-focused" : ""}`}
-      title={repo.path}
-      onContextMenu={onContextMenu}
-    >
-      <span className="local-row-icon" aria-hidden>
-        <LuFolderGit2 size={16} />
-      </span>
-      <div className="repo-row-main">
-        <div className="repo-row-title">
-          {enrich ? (
-            <a href={enrich.url} target="_blank" rel="noreferrer">
-              {repo.name}
-            </a>
-          ) : (
-            <span>{repo.name}</span>
-          )}
-        </div>
-        {repo.branch ? (
-          <span className="local-branch local-row-branch">
-            <LuGitBranch size={11} aria-hidden /> {repo.branch}
-          </span>
-        ) : null}
-        {repo.isWorktree ? (
-          <span className="rb local-worktree-badge">{t("local.worktree")}</span>
-        ) : null}
-        {actionError ? (
-          <span className="local-action-error" role="alert">
-            {actionError}
-          </span>
-        ) : null}
-      </div>
-      <div className="repo-row-stats">
-        <GitStatusPills repo={repo} />
-        <span className="repo-row-flags">
-          {enrich ? (
-            enrich.isPrivate ? (
-              <span className="rb rb-icon private" role="img" aria-label={t("repo.private")}>
-                <LuLock size={11} />
-              </span>
-            ) : (
-              <span className="rb rb-icon" role="img" aria-label={t("repo.public")}>
-                <LuGlobe size={11} />
-              </span>
-            )
-          ) : null}
-          <span
-            className={`rb rb-icon tip local-status local-status-${repo.enrichmentStatus}`}
-            role="img"
-            aria-label={t(statusLabelKey(repo.enrichmentStatus))}
-            data-tip={t(statusTitleKey(repo.enrichmentStatus))}
-          >
-            <LuPickaxe size={11} />
-          </span>
-        </span>
-        {enrich ? (
-          <>
-            <span className="rc-stat strong star">
-              <StarIcon /> {formatNumber(enrich.stargazerCount)}
-            </span>
-            <span className="rc-stat strong fork">
-              <ForkIcon /> {formatNumber(enrich.forkCount)}
-            </span>
-          </>
-        ) : null}
-        {worktrees.length > 0 ? (
-          <span
-            className="rc-stat strong worktrees tip"
-            role="img"
-            aria-label={t("local.worktreeCount", { count: String(worktrees.length) })}
-            data-tip={worktreeTooltip(worktrees, t)}
-          >
-            <LuTreePine size={13} /> {worktrees.length}
-          </span>
-        ) : null}
-        {repo.sizeBytes != null ? (
-          <span className="rc-stat local-size tip" data-tip={t("local.sizeOnDisk")}>
-            <LuHardDrive size={12} aria-hidden /> {formatBytes(repo.sizeBytes)}
-          </span>
-        ) : null}
-        <span
-          className="repo-row-pushed local-committed tip"
-          data-tip={repo.lastCommit ? t("tip.committed") : undefined}
-        >
-          {repo.lastCommit ? (
-            <>
-              <LuClock size={12} aria-hidden />{" "}
-              {formatRelativeTime(repo.lastCommit.date, Date.now(), language)}
-            </>
-          ) : (
-            "-"
-          )}
-        </span>
-        <button
-          type="button"
-          className="local-hide-btn tip"
-          data-tip={t("local.hide")}
-          aria-label={t("local.hide")}
-          onClick={() => onHide(repo.path)}
-        >
-          <LuEyeOff size={14} aria-hidden />
-        </button>
-      </div>
     </div>
   );
 }

@@ -181,6 +181,11 @@ export interface LocalRepo {
   dirty: boolean;
   /** Granular breakdown of the working tree's pending changes. */
   changes: GitChangeCounts;
+  /**
+   * Number of stash entries (`refs/stash`). The stash is a repo-level ref shared
+   * by all checkouts, so it's populated on the primary only and 0 for worktrees.
+   */
+  stashCount: number;
   /** Most recent commit, or null for an empty repo. */
   lastCommit: { sha: string; date: string; message: string } | null;
   /** Total size on disk of this checkout (working tree + .git), in bytes; null if unmeasurable. */
