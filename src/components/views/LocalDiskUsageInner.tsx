@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 
 /** A pre-formatted donut slice. All display strings are built by the outer
@@ -58,7 +59,7 @@ function DiskTooltip({
  * out of the main bundle). Default export for `lazy(() => import(...))`. Hovering
  * a slice reports its key up so the companion table can highlight the same row.
  */
-export default function LocalDiskUsageInner({ data, onActiveChange }: DiskUsageChartInnerProps) {
+function LocalDiskUsageInner({ data, onActiveChange }: DiskUsageChartInnerProps) {
   return (
     <ResponsiveContainer width="100%" height={300}>
       <PieChart>
@@ -84,3 +85,8 @@ export default function LocalDiskUsageInner({ data, onActiveChange }: DiskUsageC
     </ResponsiveContainer>
   );
 }
+
+// Memoized: a stable `data` reference (memoized upstream) plus the stable
+// `setActiveKey` callback means hover-driven parent re-renders skip the chart
+// entirely.
+export default memo(LocalDiskUsageInner);

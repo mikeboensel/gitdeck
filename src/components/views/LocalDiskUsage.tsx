@@ -99,29 +99,38 @@ export function LocalDiskUsage({ repos, onReveal, onDelete }: LocalDiskUsageProp
   const percentLabel = (bytes: number) =>
     t("local.disk.percentOfTotal", { percent: percent(bytes).toFixed(1) });
 
-  const chartData: DiskChartDatum[] = model.wedges.map((w) => {
-    const isOther = w.key === OTHER_KEY;
-    const safety = w.safety;
-    return {
-      key: w.key,
-      name: isOther ? t("local.disk.other", { count: model.otherCount }) : w.name,
-      bytes: w.bytes,
-      color: w.color,
-      sizeLabel: formatBytes(w.bytes),
-      percentLabel: percentLabel(w.bytes),
-      pathLabel: w.unit?.primary.path,
-      statusLabel: safety
-        ? safety.safe
-          ? t("local.disk.safe")
-          : t("local.disk.unsafe")
-        : undefined,
-      safe: safety?.safe,
-      reasonLabels: w.unit && safety ? blockerLabels(w.unit, safety.blockers) : [],
-      committedLabel: w.unit?.primary.lastCommit
-        ? formatRelativeTime(w.unit.primary.lastCommit.date, Date.now(), language)
-        : undefined,
-    };
-  });
+  // Stable identity across hover-driven re-renders (setActiveKey fires on every
+  // slice/row mouse move). A fresh array each render would restart the Recharts
+  // donut animation, causing visible choppiness — so memoize on the inputs that
+  // actually affect the slices: the model and i18n.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: percentLabel/blockerLabels are pure per-render closures over `model` + `t`; listing them would recreate the array every render and defeat the memo — `model`, `t`, `language` are the real inputs.
+  const chartData: DiskChartDatum[] = useMemo(
+    () =>
+      model.wedges.map((w) => {
+        const isOther = w.key === OTHER_KEY;
+        const safety = w.safety;
+        return {
+          key: w.key,
+          name: isOther ? t("local.disk.other", { count: model.otherCount }) : w.name,
+          bytes: w.bytes,
+          color: w.color,
+          sizeLabel: formatBytes(w.bytes),
+          percentLabel: percentLabel(w.bytes),
+          pathLabel: w.unit?.primary.path,
+          statusLabel: safety
+            ? safety.safe
+              ? t("local.disk.safe")
+              : t("local.disk.unsafe")
+            : undefined,
+          safe: safety?.safe,
+          reasonLabels: w.unit && safety ? blockerLabels(w.unit, safety.blockers) : [],
+          committedLabel: w.unit?.primary.lastCommit
+            ? formatRelativeTime(w.unit.primary.lastCommit.date, Date.now(), language)
+            : undefined,
+        };
+      }),
+    [model, t, language],
+  );
 
   async function handleDelete(wedge: DiskWedge) {
     const unit = wedge.unit;
