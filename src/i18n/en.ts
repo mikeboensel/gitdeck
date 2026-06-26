@@ -92,6 +92,9 @@ export const en = {
   "local.scanRoots": "Scan directories (one per line)",
   "local.scanRootsPlaceholder": "Leave empty to scan your home directory",
   "local.saveAndRescan": "Save & rescan",
+  "local.sizeCacheTtl": "Disk-size cache (minutes)",
+  "local.sizeCacheTtlHint":
+    "How long a repo's measured size is reused before re-measuring. Higher means fewer disk scans.",
   "local.emptyTitle": "No local repositories found",
   "local.emptyText": "Adjust your scan directories and rescan.",
   "local.noRemoteGroup": "No remote",

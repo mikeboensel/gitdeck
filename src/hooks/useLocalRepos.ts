@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   deleteLocalRepo as apiDeleteLocalRepo,
+  fetchLocalRepoSizes,
   fetchLocalRepos,
   fetchLocalReposConfig,
   updateLocalReposConfig,
@@ -23,7 +24,9 @@ interface UseLocalReposOptions {
  * owns the (persisted) local filter state.
  */
 export function useLocalRepos({ authenticated, tab }: UseLocalReposOptions) {
-  const [localRepos, setLocalRepos] = useState<LocalRepo[]>([]);
+  // Raw scan result. Consumers get `localRepos` below — the same list with the
+  // latest measured disk sizes overlaid.
+  const [scannedRepos, setScannedRepos] = useState<LocalRepo[]>([]);
   const [localScannedAt, setLocalScannedAt] = useState<string | null>(null);
   const [localLoading, setLocalLoading] = useState(false);
   const [localError, setLocalError] = useState("");
@@ -32,13 +35,26 @@ export function useLocalRepos({ authenticated, tab }: UseLocalReposOptions) {
   const [localClonesByRepo, setLocalClonesByRepo] = useState<Map<string, string[]>>(new Map());
   // -1 = not yet scanned (uncertain); a real count once the scan resolves.
   const [localReposCount, setLocalReposCount] = useState(-1);
+  // Absolute repo path → on-disk size (bytes), measured lazily by the server's
+  // TTL-gated size cache. Overlaid onto the scan result (see `localRepos` below)
+  // so badges/sort/disk-view see fresh sizes without the scan having to block on
+  // `du`. `null` = unmeasurable.
+  const [localSizes, setLocalSizes] = useState<Record<string, number | null>>({});
   const localReposFetchedRef = useRef(false);
+
+  // Ask the server for up-to-date disk sizes (re-measures only repos past the TTL).
+  // Fire-and-forget after a scan, so the scan returns fast and sizes fill in after.
+  const refreshLocalSizes = useCallback(() => {
+    fetchLocalRepoSizes()
+      .then(({ sizes }) => setLocalSizes((prev) => ({ ...prev, ...sizes })))
+      .catch(() => {});
+  }, []);
 
   // Apply a fresh local-repo dataset: store the repos + scan time, and derive
   // the clone-count map (lowercased nameWithOwner → on-disk paths) used by the
   // Repos-tab clone badge. Local data is disk state, not account-scoped.
   const applyLocalRepos = useCallback((data: LocalReposData) => {
-    setLocalRepos(data.repos);
+    setScannedRepos(data.repos);
     setLocalScannedAt(data.scannedAt);
     const map = new Map<string, string[]>();
     for (const local of data.repos) {
@@ -57,11 +73,15 @@ export function useLocalRepos({ authenticated, tab }: UseLocalReposOptions) {
       setLocalLoading(true);
       setLocalError("");
       fetchLocalRepos(fresh)
-        .then(applyLocalRepos)
+        .then((data) => {
+          applyLocalRepos(data);
+          // Sizes were skipped by the fast scan — pull them in separately.
+          refreshLocalSizes();
+        })
         .catch((err: unknown) => setLocalError(err instanceof Error ? err.message : String(err)))
         .finally(() => setLocalLoading(false));
     },
-    [applyLocalRepos],
+    [applyLocalRepos, refreshLocalSizes],
   );
 
   // Scan once when the Repos or Local tab is first opened (the disk walk is
@@ -93,7 +113,7 @@ export function useLocalRepos({ authenticated, tab }: UseLocalReposOptions) {
   // Triage: add a repo path to the denylist (optimistically drop it from view).
   const hideLocalRepo = useCallback(
     (path: string) => {
-      setLocalRepos((prev) => prev.filter((r) => r.path !== path));
+      setScannedRepos((prev) => prev.filter((r) => r.path !== path));
       const denylist = [...(localConfig?.denylist ?? []), path];
       updateLocalReposConfig({ denylist })
         .then(({ config }) => setLocalConfig(config))
@@ -124,20 +144,30 @@ export function useLocalRepos({ authenticated, tab }: UseLocalReposOptions) {
     async (path: string, memberPaths: string[], force: boolean) => {
       const drop = new Set(memberPaths.length ? memberPaths : [path]);
       let snapshot: LocalRepo[] = [];
-      setLocalRepos((prev) => {
+      setScannedRepos((prev) => {
         snapshot = prev;
         return prev.filter((r) => !drop.has(r.path));
       });
       try {
         await apiDeleteLocalRepo(path, force);
       } catch (err) {
-        setLocalRepos(snapshot);
+        setScannedRepos(snapshot);
         setLocalError(err instanceof Error ? err.message : String(err));
         throw err;
       }
     },
     [],
   );
+
+  // Overlay the latest measured sizes onto the scanned repos. The scan attaches
+  // whatever the size cache held at build time; this keeps the displayed size in
+  // sync with a post-scan refresh without re-fetching the whole dataset.
+  const localRepos = useMemo(() => {
+    if (Object.keys(localSizes).length === 0) return scannedRepos;
+    return scannedRepos.map((repo) =>
+      repo.path in localSizes ? { ...repo, sizeBytes: localSizes[repo.path] ?? null } : repo,
+    );
+  }, [scannedRepos, localSizes]);
 
   return {
     localRepos,
@@ -148,6 +178,7 @@ export function useLocalRepos({ authenticated, tab }: UseLocalReposOptions) {
     localClonesByRepo,
     localReposCount,
     reloadLocalRepos,
+    refreshLocalSizes,
     saveLocalConfig,
     hideLocalRepo,
     unhideLocalRepo,

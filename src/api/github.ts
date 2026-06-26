@@ -201,6 +201,14 @@ export function fetchLocalReposConfig(): Promise<{ ok: true; config: LocalReposC
   return readJson("/api/local-repos/config");
 }
 
+/** TTL-cached on-disk sizes for the scanned repos, keyed by absolute path. The
+ * server re-measures (`du`) only repos older than the configured TTL. */
+export function fetchLocalRepoSizes(
+  signal?: AbortSignal,
+): Promise<{ ok: true; sizes: Record<string, number | null> }> {
+  return readJson("/api/local-repos/sizes", withSignal(signal));
+}
+
 export function updateLocalReposConfig(
   updates: Partial<LocalReposConfig>,
 ): Promise<{ ok: true; config: LocalReposConfig }> {

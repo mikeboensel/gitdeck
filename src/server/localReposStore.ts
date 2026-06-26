@@ -10,18 +10,31 @@ import { logger } from "./logger";
  * in-memory cache + promise dedup + graceful ENOENT + mkdir-on-save.
  */
 
-const EMPTY: LocalReposConfig = { scanRoots: [], excludes: [], denylist: [] };
+/** Default size-cache TTL in minutes (how often `du` may re-measure a repo). */
+const DEFAULT_SIZE_TTL_MINUTES = 15;
+
+const EMPTY: LocalReposConfig = {
+  scanRoots: [],
+  excludes: [],
+  denylist: [],
+  sizeCacheTtlMinutes: DEFAULT_SIZE_TTL_MINUTES,
+};
 
 let cache: LocalReposConfig | null = null;
 let loadPromise: Promise<LocalReposConfig> | null = null;
 
 function normalize(raw: Partial<LocalReposConfig> | null): LocalReposConfig {
+  // A non-positive or non-finite TTL would force a `du` on every refresh; clamp to
+  // the default so a bad value can't reinstate the per-scan cost we removed.
+  const ttl = raw?.sizeCacheTtlMinutes;
   return {
     scanRoots: Array.isArray(raw?.scanRoots)
       ? raw.scanRoots.filter((s) => typeof s === "string")
       : [],
     excludes: Array.isArray(raw?.excludes) ? raw.excludes.filter((s) => typeof s === "string") : [],
     denylist: Array.isArray(raw?.denylist) ? raw.denylist.filter((s) => typeof s === "string") : [],
+    sizeCacheTtlMinutes:
+      typeof ttl === "number" && Number.isFinite(ttl) && ttl > 0 ? ttl : DEFAULT_SIZE_TTL_MINUTES,
   };
 }
 
@@ -62,6 +75,7 @@ export async function getConfig(): Promise<LocalReposConfig> {
     scanRoots: [...config.scanRoots],
     excludes: [...config.excludes],
     denylist: [...config.denylist],
+    sizeCacheTtlMinutes: config.sizeCacheTtlMinutes,
   };
 }
 

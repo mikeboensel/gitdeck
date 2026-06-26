@@ -17,6 +17,7 @@ export const SNAPSHOTS_PATH = resolve(DATA_DIR, "snapshots.json");
 export const DIGESTS_PATH = resolve(DATA_DIR, "daily-digests.json");
 export const LOCAL_REPOS_CONFIG_PATH = resolve(DATA_DIR, "local-repos.json");
 export const LOCAL_REPOS_CACHE_PATH = resolve(DATA_DIR, "local-repos-cache.json");
+export const LOCAL_REPO_SIZES_PATH = resolve(DATA_DIR, "local-repo-sizes.json");
 
 export const ISSUE_FIELDS =
   "repository,title,url,number,createdAt,updatedAt,author,labels,commentsCount,assignees";

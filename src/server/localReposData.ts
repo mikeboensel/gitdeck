@@ -4,6 +4,7 @@ import type { LocalRepo } from "../types/github";
 import { errorMessage } from "../utils/errors";
 import { list as listAccounts } from "./accountStore";
 import { LOCAL_REPOS_CACHE_PATH } from "./config";
+import { getCachedSizes } from "./localRepoSizes";
 import { getConfig, getScanRoots } from "./localReposStore";
 import { mapPool, type ScannedRepo, scanLocalRepos } from "./localScan";
 import { logger } from "./logger";
@@ -73,6 +74,12 @@ async function buildLocalRepos(): Promise<LocalRepo[]> {
       return toLocalRepo(repo, null, "unreachable");
     }
   });
+
+  // Attach last-known disk sizes from the TTL-gated cache (no `du` here — that's
+  // measured separately via /api/local-repos/sizes). Badges render instantly with
+  // whatever's cached; a refresh fills in missing/stale sizes afterwards.
+  const sizes = await getCachedSizes(result.map((r) => r.path));
+  for (const repo of result) repo.sizeBytes = sizes.get(repo.path) ?? null;
 
   // Stable order: most recently committed first, then by path.
   result.sort((a, b) => {

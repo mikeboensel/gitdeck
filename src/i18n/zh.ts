@@ -93,6 +93,8 @@ export const zh: Record<keyof typeof en, string> = {
   "local.scanRoots": "扫描目录（每行一个）",
   "local.scanRootsPlaceholder": "留空以扫描主目录",
   "local.saveAndRescan": "保存并重新扫描",
+  "local.sizeCacheTtl": "磁盘大小缓存（分钟）",
+  "local.sizeCacheTtlHint": "重新测量前，仓库已测大小的复用时长。越大 = 磁盘扫描越少。",
   "local.emptyTitle": "未找到本地仓库",
   "local.emptyText": "调整扫描目录后重新扫描。",
   "local.noRemoteGroup": "无远程",

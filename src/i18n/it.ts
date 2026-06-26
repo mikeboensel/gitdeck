@@ -94,6 +94,9 @@ export const it: Record<keyof typeof en, string> = {
   "local.scanRoots": "Cartelle da scansionare (una per riga)",
   "local.scanRootsPlaceholder": "Lascia vuoto per scansionare la home",
   "local.saveAndRescan": "Salva e riscansiona",
+  "local.sizeCacheTtl": "Cache della dimensione su disco (minuti)",
+  "local.sizeCacheTtlHint":
+    "Per quanto tempo la dimensione misurata di un repo viene riutilizzata prima di rimisurarla. Più alto = meno scansioni del disco.",
   "local.emptyTitle": "Nessun repository locale trovato",
   "local.emptyText": "Modifica le cartelle e riscansiona.",
   "local.noRemoteGroup": "Senza remote",

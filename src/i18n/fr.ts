@@ -94,6 +94,9 @@ export const fr: Record<keyof typeof en, string> = {
   "local.scanRoots": "Dossiers à analyser (un par ligne)",
   "local.scanRootsPlaceholder": "Laissez vide pour analyser votre dossier personnel",
   "local.saveAndRescan": "Enregistrer et réanalyser",
+  "local.sizeCacheTtl": "Cache de taille disque (minutes)",
+  "local.sizeCacheTtlHint":
+    "Durée pendant laquelle la taille mesurée d'un dépôt est réutilisée avant une nouvelle mesure. Plus élevé = moins d'analyses disque.",
   "local.emptyTitle": "Aucun dépôt local trouvé",
   "local.emptyText": "Ajustez les dossiers et réanalysez.",
   "local.noRemoteGroup": "Sans distant",

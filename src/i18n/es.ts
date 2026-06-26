@@ -94,6 +94,9 @@ export const es: Record<keyof typeof en, string> = {
   "local.scanRoots": "Carpetas a escanear (una por línea)",
   "local.scanRootsPlaceholder": "Déjalo vacío para escanear tu carpeta personal",
   "local.saveAndRescan": "Guardar y reescanear",
+  "local.sizeCacheTtl": "Caché de tamaño en disco (minutos)",
+  "local.sizeCacheTtlHint":
+    "Cuánto tiempo se reutiliza el tamaño medido de un repo antes de volver a medirlo. Más alto = menos escaneos de disco.",
   "local.emptyTitle": "No se encontraron repositorios locales",
   "local.emptyText": "Ajusta las carpetas y reescanea.",
   "local.noRemoteGroup": "Sin remoto",

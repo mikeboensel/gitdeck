@@ -94,6 +94,9 @@ export const de: Record<keyof typeof en, string> = {
   "local.scanRoots": "Zu scannende Ordner (einer pro Zeile)",
   "local.scanRootsPlaceholder": "Leer lassen, um Ihr Home-Verzeichnis zu scannen",
   "local.saveAndRescan": "Speichern & neu scannen",
+  "local.sizeCacheTtl": "Größen-Cache (Minuten)",
+  "local.sizeCacheTtlHint":
+    "Wie lange die gemessene Größe eines Repos wiederverwendet wird, bevor neu gemessen wird. Höher = weniger Festplatten-Scans.",
   "local.emptyTitle": "Keine lokalen Repositories gefunden",
   "local.emptyText": "Passen Sie die Ordner an und scannen Sie neu.",
   "local.noRemoteGroup": "Kein Remote",

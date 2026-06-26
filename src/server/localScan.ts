@@ -174,7 +174,7 @@ async function git(cwd: string, args: string[]): Promise<string | null> {
  * worktree this measures only that checkout's tree — its `.git` is just a small
  * pointer file; the shared object store lives under the primary's common dir.
  */
-async function diskSizeBytes(dir: string): Promise<number | null> {
+export async function diskSizeBytes(dir: string): Promise<number | null> {
   try {
     const { stdout } = await execFileAsync("du", ["-sk", dir], {
       timeout: GIT_TIMEOUT_MS,
@@ -237,7 +237,10 @@ async function readLinkedWorktrees(repoPath: string): Promise<WorktreeEntry[]> {
 }
 
 async function readGitMeta(repoPath: string): Promise<ScannedRepo> {
-  const [remotesRaw, branchRaw, statusRaw, aheadBehindRaw, lastCommitRaw, gitDirsRaw, sizeBytes] =
+  // NB: disk size (`du`) is intentionally NOT measured here — it's the dominant,
+  // slowly-changing scan cost (a full-tree walk per repo). It's filled in later
+  // from the TTL-gated size cache (see localRepoSizes.ts) so the scan stays fast.
+  const [remotesRaw, branchRaw, statusRaw, aheadBehindRaw, lastCommitRaw, gitDirsRaw] =
     await Promise.all([
       git(repoPath, ["remote", "-v"]),
       git(repoPath, ["rev-parse", "--abbrev-ref", "HEAD"]),
@@ -245,7 +248,6 @@ async function readGitMeta(repoPath: string): Promise<ScannedRepo> {
       git(repoPath, ["rev-list", "--left-right", "--count", "@{u}...HEAD"]),
       git(repoPath, ["log", "-1", "--format=%H%n%cI%n%s"]),
       git(repoPath, ["rev-parse", "--git-dir", "--git-common-dir"]),
-      diskSizeBytes(repoPath),
     ]);
 
   // `origin` is the authoritative remote for owner/name; fall back to the first
@@ -314,7 +316,7 @@ async function readGitMeta(repoPath: string): Promise<ScannedRepo> {
     dirty: changes.staged + changes.modified + changes.untracked + changes.conflicted > 0,
     changes,
     lastCommit,
-    sizeBytes,
+    sizeBytes: null,
     linkedWorktrees,
     isWorktree,
     gitCommonDir,

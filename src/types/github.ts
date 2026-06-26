@@ -281,6 +281,12 @@ export interface LocalReposConfig {
   excludes: string[];
   /** Absolute repo paths to hide from results (triage). */
   denylist: string[];
+  /**
+   * How long a measured on-disk size (`du`) stays fresh before a refresh
+   * re-measures it, in minutes. `du` is a full-tree walk, so this caps how often
+   * the expensive measurement reruns. Defaults to 15.
+   */
+  sizeCacheTtlMinutes: number;
 }
 
 export interface IssuesData {

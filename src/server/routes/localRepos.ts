@@ -8,6 +8,7 @@ import { createRoute, type OpenAPIHono, z } from "@hono/zod-openapi";
 import { errorMessage } from "../../utils/errors";
 import { arrangeLocalRepos, assessSafety } from "../../utils/localRepos";
 import { isWithinHome, listChildDirs, resolveCloneCommand } from "../localClone";
+import { refreshSizes } from "../localRepoSizes";
 import { getLocalReposCached, invalidateLocalReposCache } from "../localReposData";
 import { getConfig, getScanRoots, updateConfig } from "../localReposStore";
 import { logger } from "../logger";
@@ -45,6 +46,7 @@ const configShape = {
   scanRoots: z.array(z.string()),
   excludes: z.array(z.string()),
   denylist: z.array(z.string()),
+  sizeCacheTtlMinutes: z.number(),
 };
 const LocalReposConfigResponse = okEnvelope({ config: z.object(configShape) }).openapi(
   "LocalReposConfigResponse",
@@ -54,8 +56,13 @@ const LocalReposConfigBody = z
     scanRoots: z.array(z.string()).optional(),
     excludes: z.array(z.string()).optional(),
     denylist: z.array(z.string()).optional(),
+    sizeCacheTtlMinutes: z.number().positive().optional(),
   })
   .openapi("LocalReposConfigBody");
+
+const LocalRepoSizesResponse = okEnvelope({
+  sizes: z.record(z.string(), z.number().nullable()),
+}).openapi("LocalRepoSizesResponse");
 
 const BrowseQuery = z.object({ path: z.string().optional() });
 const BrowseResponse = okEnvelope({
@@ -138,6 +145,34 @@ export function registerLocalRepos(app: App): void {
       },
     }),
     async (c) => json(c, 200, { ok: true, config: await getConfig() }),
+  );
+
+  app.openapi(
+    createRoute({
+      method: "get",
+      path: "/api/local-repos/sizes",
+      tags: ["local"],
+      responses: {
+        200: {
+          content: { "application/json": { schema: LocalRepoSizesResponse } },
+          description: "On-disk sizes (TTL-cached) for the scanned repos, keyed by path",
+        },
+        500: { ...errContent, description: "Scan error" },
+      },
+    }),
+    // Measures `du` only for repos whose cached size is older than the configured
+    // TTL; fresh ones are reused. The frontend calls this after a scan (and when
+    // the disk view opens) to fill in sizes the fast scan deliberately skipped.
+    async (c) => {
+      const scan = await getLocalReposCached(false);
+      if (!scan.ok) return c.json({ ok: false as const, error: scan.error }, 500);
+      const { sizeCacheTtlMinutes } = await getConfig();
+      const sizes = await refreshSizes(
+        scan.repos.map((r) => r.path),
+        sizeCacheTtlMinutes * 60_000,
+      );
+      return c.json({ ok: true as const, sizes: Object.fromEntries(sizes) }, 200);
+    },
   );
 
   app.openapi(
