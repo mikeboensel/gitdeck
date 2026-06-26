@@ -1999,6 +1999,9 @@ body.tab-digests .view-digests {
   gap: 2px;
 }
 .context-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   border: 0;
   background: transparent;
   color: var(--text);
@@ -2007,6 +2010,15 @@ body.tab-digests .view-digests {
   padding: 7px 9px;
   border-radius: 6px;
   font-size: 12.5px;
+}
+.context-menu-icon {
+  flex-shrink: 0;
+  color: var(--muted-2);
+}
+.context-menu-item:hover .context-menu-icon,
+.context-menu-item:focus-visible .context-menu-icon,
+.context-menu-item.danger .context-menu-icon {
+  color: inherit;
 }
 .context-menu-item:hover,
 .context-menu-item:focus-visible {

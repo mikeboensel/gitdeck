@@ -10,6 +10,7 @@ export const it: Record<keyof typeof en, string> = {
   "menu.openInCursor": "Apri in Cursor",
   "menu.openInTerminal": "Apri nel Terminale",
   "menu.copyPath": "Copia percorso",
+  "toast.copied": "Copiato negli appunti",
   "menu.clone": "Clona…",
   "clone.title": "Clona repository",
   "clone.chooseDir": "Scegli una cartella di destinazione",

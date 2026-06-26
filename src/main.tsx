@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import { App } from "./App";
 import { DEFAULT_TTL_MS } from "./api/cache";
+import { ToastLayer } from "./components/common/ToastLayer";
 import { TooltipLayer } from "./components/common/TooltipLayer";
 import { AccountProvider } from "./contexts/AccountContext";
 import { ChangesViewerProvider } from "./contexts/ChangesViewerProvider";
@@ -33,6 +34,9 @@ createRoot(document.getElementById("root")!).render(
                     {/* Delegated tooltip layer: listens for [data-tip] hover/focus and
                       self-portals to document.body, so it escapes card overflow clipping. */}
                     <TooltipLayer />
+                    {/* Delegated toast layer: subscribes to the toast bus and
+                      self-portals to document.body for copy/action feedback. */}
+                    <ToastLayer />
                   </ChangesViewerProvider>
                 </StashViewerProvider>
               </CommitHistoryProvider>

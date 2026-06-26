@@ -1,5 +1,6 @@
 import { type MouseEvent as ReactMouseEvent, useEffect, useState } from "react";
 import { openLocalRepo } from "../../api/github";
+import { useChangesViewer } from "../../contexts/ChangesViewerProvider";
 import { useCommitHistory } from "../../contexts/CommitHistoryProvider";
 import { useRightClickMenu } from "../../contexts/RightClickMenuProvider";
 import { useStashViewer } from "../../contexts/StashViewerProvider";
@@ -22,6 +23,7 @@ export function useLocalRepoActions(repo: LocalRepo): {
   const { open } = useRightClickMenu();
   const { openHistory } = useCommitHistory();
   const { openStashes } = useStashViewer();
+  const { openChanges } = useChangesViewer();
   // Transient feedback when a native "open" (Finder/Cursor) fails, e.g. Cursor
   // isn't installed. Clears itself a few seconds after it's shown.
   const [actionError, setActionError] = useState("");
@@ -49,6 +51,7 @@ export function useLocalRepoActions(repo: LocalRepo): {
           onOpenInTerminal: () => runOpen("terminal"),
           onViewHistory: () => openHistory(repo),
           onViewStashes: () => openStashes(repo),
+          onViewChanges: () => openChanges(repo),
         },
         t,
       ),

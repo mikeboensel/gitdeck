@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import type { IconType } from "react-icons";
 
 /** A position in viewport (clientX/clientY) coordinates. */
 export interface ContextMenuPosition {
@@ -11,6 +12,12 @@ export interface ContextMenuItem {
   key: string;
   /** Visible content. */
   label: React.ReactNode;
+  /**
+   * Optional leading icon, resolved from the shared {@link ICONS} registry.
+   * Decorative — the label carries the accessible name, so the icon is
+   * `aria-hidden`.
+   */
+  icon?: IconType;
   onSelect: () => void;
   disabled?: boolean;
   danger?: boolean;
@@ -79,21 +86,25 @@ export function ContextMenu({ position, items, onClose, ariaLabel }: ContextMenu
       style={{ top: coords.y, left: coords.x }}
       onContextMenu={(event) => event.preventDefault()}
     >
-      {items.map((item) => (
-        <button
-          key={item.key}
-          type="button"
-          role="menuitem"
-          className={`context-menu-item${item.danger ? " danger" : ""}`}
-          disabled={item.disabled}
-          onClick={() => {
-            item.onSelect();
-            onClose();
-          }}
-        >
-          {item.label}
-        </button>
-      ))}
+      {items.map((item) => {
+        const Icon = item.icon;
+        return (
+          <button
+            key={item.key}
+            type="button"
+            role="menuitem"
+            className={`context-menu-item${item.danger ? " danger" : ""}`}
+            disabled={item.disabled}
+            onClick={() => {
+              item.onSelect();
+              onClose();
+            }}
+          >
+            {Icon ? <Icon className="context-menu-icon" size={14} aria-hidden /> : null}
+            <span>{item.label}</span>
+          </button>
+        );
+      })}
     </div>
   );
 }

@@ -13,5 +13,6 @@
 @import "./styles/history.css";
 @import "./styles/diff.css";
 @import "./styles/tooltip.css";
+@import "./styles/toast.css";
 @import "./styles/widgets.css";
 @import "./styles/terminal.css";

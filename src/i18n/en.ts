@@ -8,6 +8,7 @@ export const en = {
   "menu.openInCursor": "Open in Cursor",
   "menu.openInTerminal": "Open in Terminal",
   "menu.copyPath": "Copy path",
+  "toast.copied": "Copied to clipboard",
   "menu.clone": "Clone…",
   "clone.title": "Clone repository",
   "clone.chooseDir": "Choose a destination folder",
